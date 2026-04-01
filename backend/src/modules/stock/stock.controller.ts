@@ -70,13 +70,14 @@ export async function createStock(
       costPrice: number
       sellPrice: number
       quantity?: number
+      minStock?: number
       categoryId?: string
     }
   }>,
   reply: FastifyReply
 ) {
   const { branchId, userId } = request.user
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, categoryId } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId } = request.body
 
   if (!itemCode || !description) {
     return reply.status(400).send({ success: false, message: 'Item code and description are required' })
@@ -97,6 +98,7 @@ export async function createStock(
       costPrice,
       sellPrice,
       quantity: initialQty,
+      minStock: minStock !== undefined ? Math.max(0, minStock) : 5,
       categoryId,
     },
     include: { category: true },
@@ -126,7 +128,7 @@ export async function updateStock(
 ) {
   const { branchId, userId } = request.user
   const { id } = request.params
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, categoryId } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId } = request.body
 
   const existing = await request.server.prisma.stockItem.findFirst({
     where: { id, branchId },
@@ -153,6 +155,7 @@ export async function updateStock(
       ...(costPrice !== undefined && { costPrice }),
       ...(sellPrice !== undefined && { sellPrice }),
       ...(newQty !== undefined && { quantity: newQty }),
+      ...(minStock !== undefined && { minStock: Math.max(0, minStock) }),
       ...(categoryId !== undefined && { categoryId }),
     },
     include: { category: true },

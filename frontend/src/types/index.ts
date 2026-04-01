@@ -31,6 +31,7 @@ export interface StockItem {
   costPrice: number
   sellPrice: number
   quantity: number
+  minStock: number
   categoryId?: string
   category?: StockCategory
   branchId: string

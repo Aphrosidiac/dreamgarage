@@ -52,8 +52,8 @@
       <template #cell-sellPrice="{ value }">
         RM {{ Number(value).toFixed(2) }}
       </template>
-      <template #cell-quantity="{ value }">
-        <span :class="value <= 5 ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
+      <template #cell-quantity="{ value, row }">
+        <span :class="value <= (row.minStock ?? 5) ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
       </template>
       <template #actions="{ row }">
         <div class="flex items-center gap-1 justify-end">

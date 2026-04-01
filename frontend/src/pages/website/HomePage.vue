@@ -251,7 +251,7 @@ const gallery = [
   { src: '/images/porsche-cayman-brake-service.jpg', alt: 'Porsche Cayman Brake Service' },
   { src: '/images/bmw-m4-yellow-tyres.jpg', alt: 'BMW M4 Tyre Service' },
   { src: '/images/storefront-porsche-taycan.jpg', alt: 'Porsche Taycan at Dream Garage' },
-  { src: '/images/alphard-custom-wheels.jpg', alt: 'Toyota Alphard Custom Wheels' },
+  { src: '/images/alphard-custom-wheels.jpg', alt: 'Toyota Alphard Tyre Service' },
   { src: '/images/mustang-bilstein-shocks.jpg', alt: 'Ford Mustang Suspension Upgrade' },
   { src: '/images/storefront-bmw-5-series.jpg', alt: 'BMW 5 Series at Dream Garage' },
 ]

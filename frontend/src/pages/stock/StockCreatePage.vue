@@ -25,7 +25,10 @@
         <BaseInput v-model="form.sellPrice" label="Sell Price (RM)" type="number" step="0.01" min="0" required />
       </div>
 
-      <BaseInput v-model="form.quantity" label="Initial Quantity" type="number" min="0" />
+      <div class="grid grid-cols-2 gap-4">
+        <BaseInput v-model="form.quantity" label="Initial Quantity" type="number" min="0" />
+        <BaseInput v-model="form.minStock" label="Min Stock Alert" type="number" min="0" placeholder="Default: 5" />
+      </div>
 
       <div class="flex justify-end gap-3 pt-2">
         <BaseButton variant="secondary" type="button" @click="$router.back()">Cancel</BaseButton>
@@ -59,6 +62,7 @@ const form = reactive({
   costPrice: '',
   sellPrice: '',
   quantity: '0',
+  minStock: '5',
   categoryId: '',
 })
 
@@ -72,6 +76,7 @@ async function handleSubmit() {
       costPrice: parseFloat(form.costPrice),
       sellPrice: parseFloat(form.sellPrice),
       quantity: parseInt(form.quantity),
+      minStock: parseInt(form.minStock) || 5,
       categoryId: form.categoryId || undefined,
     })
     toast.success('Item created successfully')

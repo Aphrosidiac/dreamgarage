@@ -44,12 +44,17 @@ export async function getStats(request: FastifyRequest, reply: FastifyReply) {
 export async function getLowStock(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
 
-  const items = await request.server.prisma.stockItem.findMany({
-    where: { branchId, isActive: true, quantity: { lte: 5 } },
-    include: { category: { select: { name: true } } },
-    orderBy: { quantity: 'asc' },
-    take: 20,
-  })
+  // Use raw query to compare quantity <= minStock (Prisma can't compare two columns)
+  const items = await request.server.prisma.$queryRaw`
+    SELECT si.*, sc.name as "categoryName"
+    FROM stock_items si
+    LEFT JOIN stock_categories sc ON si."categoryId" = sc.id
+    WHERE si."branchId" = ${branchId}
+    AND si."isActive" = true
+    AND si.quantity <= si."minStock"
+    ORDER BY si.quantity ASC
+    LIMIT 20
+  `
 
   return reply.send({ success: true, data: items })
 }

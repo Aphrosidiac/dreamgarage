@@ -15,9 +15,9 @@
       ]"
     >
       <!-- Logo -->
-      <div class="p-5 border-b border-dark-800">
-        <RouterLink to="/app/dashboard" class="flex items-center" @click="sidebarOpen = false">
-          <img src="/logo-sidebar.png" alt="Dream Garage" class="h-16" />
+      <div class="py-6 px-5 border-b border-dark-800">
+        <RouterLink to="/app/dashboard" class="flex justify-center" @click="sidebarOpen = false">
+          <img src="/logo-sidebar.png" alt="Dream Garage" class="h-20" />
         </RouterLink>
       </div>
 
