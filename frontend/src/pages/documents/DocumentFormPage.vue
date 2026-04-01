@@ -292,6 +292,7 @@ function handleCustomerSearch() {
 function selectCustomer(c: Customer) {
   form.customerName = c.name
   form.customerPhone = c.phone || ''
+  form.customerEmail = c.email || ''
   selectedCustomerVehicles.value = c.vehicles || []
   customerSearch.value = ''
   customerResults.value = []

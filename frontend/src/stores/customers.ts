@@ -35,12 +35,12 @@ export const useCustomerStore = defineStore('customers', () => {
     return data.data
   }
 
-  async function createCustomer(payload: { name: string; phone?: string; vehicles?: { plate: string; model?: string; mileage?: string }[] }): Promise<Customer> {
+  async function createCustomer(payload: { name: string; phone?: string; email?: string; vehicles?: { plate: string; model?: string; mileage?: string }[] }): Promise<Customer> {
     const { data } = await api.post('/customers', payload)
     return data.data
   }
 
-  async function updateCustomer(id: string, payload: { name?: string; phone?: string }): Promise<Customer> {
+  async function updateCustomer(id: string, payload: { name?: string; phone?: string; email?: string }): Promise<Customer> {
     const { data } = await api.put(`/customers/${id}`, payload)
     return data.data
   }

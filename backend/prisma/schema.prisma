@@ -134,6 +134,7 @@ model Customer {
   branchId  String
   name      String
   phone     String?
+  email     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

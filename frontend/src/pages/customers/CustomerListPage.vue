@@ -72,6 +72,7 @@ const search = ref('')
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email' },
   { key: 'vehicles', label: 'Vehicles' },
   { key: '_count', label: 'Documents' },
 ]

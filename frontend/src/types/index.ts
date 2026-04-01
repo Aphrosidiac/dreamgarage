@@ -159,6 +159,7 @@ export interface Customer {
   branchId: string
   name: string
   phone?: string
+  email?: string
   vehicles?: Vehicle[]
   _count?: { documents: number }
   createdAt: string

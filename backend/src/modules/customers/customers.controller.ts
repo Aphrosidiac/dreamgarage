@@ -88,12 +88,12 @@ export async function getCustomer(
 
 export async function createCustomer(
   request: FastifyRequest<{
-    Body: { name: string; phone?: string; vehicles?: { plate: string; model?: string; mileage?: string }[] }
+    Body: { name: string; phone?: string; email?: string; vehicles?: { plate: string; model?: string; mileage?: string }[] }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
-  const { name, phone, vehicles } = request.body
+  const { name, phone, email, vehicles } = request.body
 
   if (!name?.trim()) {
     return reply.status(400).send({ success: false, message: 'Name is required' })
@@ -104,6 +104,7 @@ export async function createCustomer(
       branchId,
       name: name.trim(),
       phone: phone?.trim() || null,
+      email: email?.trim() || null,
       ...(vehicles?.length && {
         vehicles: {
           create: vehicles.map((v, i) => ({
@@ -122,12 +123,12 @@ export async function createCustomer(
 }
 
 export async function updateCustomer(
-  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; phone?: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; phone?: string; email?: string } }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { name, phone } = request.body
+  const { name, phone, email } = request.body
 
   const existing = await request.server.prisma.customer.findFirst({ where: { id, branchId } })
   if (!existing) {
@@ -139,6 +140,7 @@ export async function updateCustomer(
     data: {
       ...(name && { name: name.trim() }),
       ...(phone !== undefined && { phone: phone?.trim() || null }),
+      ...(email !== undefined && { email: email?.trim() || null }),
     },
     include: { vehicles: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] } },
   })
