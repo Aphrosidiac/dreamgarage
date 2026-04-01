@@ -25,6 +25,9 @@
         </select>
       </div>
       <div class="flex items-center gap-2 ml-4">
+        <BaseButton variant="secondary" size="md" @click="handleExportPdf">
+          <FileDown class="w-4 h-4 mr-1.5" /> Export PDF
+        </BaseButton>
         <BaseButton variant="secondary" size="md" @click="showCategoryModal = true">
           <Tags class="w-4 h-4 mr-1.5" /> Categories
         </BaseButton>
@@ -54,10 +57,13 @@
       </template>
       <template #actions="{ row }">
         <div class="flex items-center gap-1 justify-end">
-          <button @click="$router.push(`/app/stock/${row.id}/edit`)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors">
+          <button @click="$router.push(`/app/stock/${row.id}/history`)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors" title="History">
+            <History class="w-4 h-4" />
+          </button>
+          <button @click="$router.push(`/app/stock/${row.id}/edit`)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Edit">
             <Pencil class="w-4 h-4" />
           </button>
-          <button @click="confirmDelete(row as any)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
+          <button @click="confirmDelete(row as any)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors" title="Delete">
             <Trash2 class="w-4 h-4" />
           </button>
         </div>
@@ -128,7 +134,8 @@ import BaseTable from '../../components/base/BaseTable.vue'
 import BasePagination from '../../components/base/BasePagination.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
-import { Search, Plus, Pencil, Trash2, Tags } from 'lucide-vue-next'
+import { Search, Plus, Pencil, Trash2, Tags, History, FileDown } from 'lucide-vue-next'
+import { exportStockListPdf } from '../../lib/pdf-export'
 import type { StockItem } from '../../types'
 
 const stock = useStockStore()
@@ -204,6 +211,13 @@ async function handleDeleteCategory(id: string) {
     toast.success('Category deleted')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed to delete category')
+  }
+}
+
+function handleExportPdf() {
+  if (stock.items.length) {
+    exportStockListPdf(stock.items)
+    toast.success('PDF exported')
   }
 }
 

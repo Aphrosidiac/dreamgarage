@@ -142,6 +142,25 @@ export interface PaymentTerm {
   isActive: boolean
 }
 
+// ─── STOCK HISTORY ─────────────────────────────────────────
+export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT'
+
+export interface StockHistory {
+  id: string
+  branchId: string
+  stockItemId: string
+  type: StockMovementType
+  quantity: number
+  previousQty: number
+  newQty: number
+  reason: string
+  documentId?: string
+  document?: { documentNumber: string }
+  stockItem?: { itemCode: string; description: string }
+  createdBy?: { name: string }
+  createdAt: string
+}
+
 export interface DocumentFormData {
   documentType: DocumentType
   customerName?: string

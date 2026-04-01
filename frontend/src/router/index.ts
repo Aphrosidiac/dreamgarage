@@ -35,6 +35,7 @@ const router = createRouter({
         { path: 'stock', name: 'stock-list', component: () => import('../pages/stock/StockListPage.vue') },
         { path: 'stock/new', name: 'stock-create', component: () => import('../pages/stock/StockCreatePage.vue') },
         { path: 'stock/:id/edit', name: 'stock-edit', component: () => import('../pages/stock/StockEditPage.vue') },
+        { path: 'stock/:id/history', name: 'stock-history', component: () => import('../pages/stock/StockHistoryPage.vue') },
         { path: 'documents', name: 'document-list', component: () => import('../pages/documents/DocumentListPage.vue') },
         { path: 'documents/new', name: 'document-create', component: () => import('../pages/documents/DocumentFormPage.vue') },
         { path: 'documents/settings', name: 'document-settings', component: () => import('../pages/documents/DocumentSettingsPage.vue') },

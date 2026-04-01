@@ -41,9 +41,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  branch           Branch     @relation(fields: [branchId], references: [id])
-  createdDocuments  Document[] @relation("DocumentCreatedBy")
-  createdPayments   Payment[]  @relation("PaymentCreatedBy")
+  branch           Branch         @relation(fields: [branchId], references: [id])
+  createdDocuments  Document[]    @relation("DocumentCreatedBy")
+  createdPayments   Payment[]     @relation("PaymentCreatedBy")
+  stockHistory      StockHistory[] @relation("StockHistoryCreatedBy")
 
   @@index([branchId])
   @@map("users")
@@ -88,11 +89,42 @@ model StockItem {
   branch        Branch         @relation(fields: [branchId], references: [id])
   category      StockCategory? @relation(fields: [categoryId], references: [id])
   documentItems DocumentItem[]
+  history       StockHistory[]
 
   @@unique([branchId, itemCode])
   @@index([branchId])
   @@index([itemCode])
   @@map("stock_items")
+}
+
+// ─── STOCK HISTORY ─────────────────────────────────────────
+model StockHistory {
+  id          String           @id @default(cuid())
+  branchId    String
+  stockItemId String
+  type        StockMovementType
+  quantity    Int
+  previousQty Int
+  newQty      Int
+  reason      String
+  documentId  String?
+  createdById String
+  createdAt   DateTime         @default(now())
+
+  stockItem StockItem @relation(fields: [stockItemId], references: [id])
+  document  Document? @relation(fields: [documentId], references: [id])
+  createdBy User      @relation("StockHistoryCreatedBy", fields: [createdById], references: [id])
+
+  @@index([stockItemId])
+  @@index([branchId])
+  @@index([createdAt])
+  @@map("stock_history")
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
 }
 
 // ─── DOCUMENT ──────────────────────────────────────────────
@@ -132,8 +164,9 @@ model Document {
 
   branch      Branch         @relation(fields: [branchId], references: [id])
   createdBy   User           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
-  items       DocumentItem[]
-  payments    Payment[]
+  items        DocumentItem[]
+  payments     Payment[]
+  stockHistory StockHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

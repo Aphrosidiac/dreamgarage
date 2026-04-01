@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../lib/api'
-import type { StockItem, StockCategory, PaginatedResponse } from '../types'
+import type { StockItem, StockCategory, StockHistory, PaginatedResponse } from '../types'
 
 export const useStockStore = defineStore('stock', () => {
   const items = ref<StockItem[]>([])
@@ -67,9 +67,51 @@ export const useStockStore = defineStore('stock', () => {
     categories.value = categories.value.filter((c) => c.id !== id)
   }
 
+  // Stock History
+  const history = ref<StockHistory[]>([])
+  const historyTotal = ref(0)
+  const historyPage = ref(1)
+  const historyTotalPages = ref(0)
+  const historyLoading = ref(false)
+
+  async function fetchHistory(itemId: string, params: Record<string, any> = {}) {
+    historyLoading.value = true
+    try {
+      const { data } = await api.get<PaginatedResponse<StockHistory>>(`/stock/${itemId}/history`, {
+        params: { page: historyPage.value, limit: limit.value, ...params },
+      })
+      history.value = data.data
+      historyTotal.value = data.total
+      historyTotalPages.value = data.totalPages
+    } finally {
+      historyLoading.value = false
+    }
+  }
+
+  async function fetchAllHistory(params: Record<string, any> = {}) {
+    historyLoading.value = true
+    try {
+      const { data } = await api.get<PaginatedResponse<StockHistory>>('/stock/history', {
+        params: { page: historyPage.value, limit: limit.value, ...params },
+      })
+      history.value = data.data
+      historyTotal.value = data.total
+      historyTotalPages.value = data.totalPages
+    } finally {
+      historyLoading.value = false
+    }
+  }
+
+  async function adjustStock(itemId: string, type: 'add' | 'remove', quantity: number, reason: string) {
+    const { data } = await api.post(`/stock/${itemId}/adjust`, { type, quantity, reason })
+    return data.data
+  }
+
   return {
     items, categories, total, page, limit, totalPages, loading,
     fetchItems, fetchCategories, createItem, updateItem, deleteItem, getItem,
     createCategory, updateCategory, deleteCategory,
+    history, historyTotal, historyPage, historyTotalPages, historyLoading,
+    fetchHistory, fetchAllHistory, adjustStock,
   }
 })

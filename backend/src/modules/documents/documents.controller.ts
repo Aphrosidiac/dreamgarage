@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { getPaginationParams, paginatedResponse } from '../../utils/pagination.js'
 import { DocumentType, Prisma } from '@prisma/client'
+import { recordStockHistory } from '../stock/stock.history.js'
 import {
   generateDocumentNumber,
   calculateItemTotals,
@@ -340,6 +341,7 @@ export async function updateDocumentStatus(
     return reply.status(400).send({ success: false, message: `Invalid status '${status}' for ${existing.documentType}` })
   }
 
+  const { userId } = request.user
   const document = await request.server.prisma.$transaction(async (tx) => {
     // Invoice stock deduction: DRAFT → OUTSTANDING
     if (existing.documentType === 'INVOICE' && existing.status === 'DRAFT' && status === 'OUTSTANDING') {
@@ -352,9 +354,22 @@ export async function updateDocumentStatus(
               { statusCode: 400 }
             )
           }
+          const newQty = stock!.quantity - item.quantity
           await tx.stockItem.update({
             where: { id: item.stockItemId },
-            data: { quantity: { decrement: item.quantity } },
+            data: { quantity: newQty },
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'OUT',
+            quantity: item.quantity,
+            previousQty: stock!.quantity,
+            newQty,
+            reason: `Invoice ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
           })
         }
       }
@@ -364,9 +379,24 @@ export async function updateDocumentStatus(
     if (existing.documentType === 'INVOICE' && status === 'VOID' && !['DRAFT', 'VOID'].includes(existing.status)) {
       for (const item of existing.items) {
         if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          const prevQty = stock?.quantity || 0
+          const newQty = prevQty + item.quantity
           await tx.stockItem.update({
             where: { id: item.stockItemId },
-            data: { quantity: { increment: item.quantity } },
+            data: { quantity: newQty },
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'IN',
+            quantity: item.quantity,
+            previousQty: prevQty,
+            newQty,
+            reason: `Void ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
           })
         }
       }
