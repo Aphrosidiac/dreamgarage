@@ -11,7 +11,7 @@ Full-stack car workshop management system with documents, stock management, and 
 | ORM | Prisma |
 | Database | PostgreSQL |
 | Auth | JWT (@fastify/jwt + bcrypt) |
-| Document Export | html2canvas |
+| Document Export | modern-screenshot |
 | Theme | Black + Yellow Gold (#FFD700) |
 
 ## Getting Started
@@ -67,7 +67,8 @@ DreamGarage/
 │       │   ├── prisma.ts          # Prisma client plugin
 │       │   └── error-handler.ts   # Global error handler
 │       ├── modules/
-│       │   ├── auth/              # Login, profile
+│       │   ├── auth/              # Login, JWT
+│       │   ├── profile/           # User profile, password, branch settings
 │       │   ├── documents/         # Full document system (CRUD, payments, conversions)
 │       │   ├── document-settings/ # Per-type numbering, template, defaults
 │       │   ├── payment-terms/     # Payment term management
@@ -202,6 +203,11 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - Google Maps location embed
 - Staff Login link in footer
 
+### Profile & Settings
+- Edit user name and email
+- Change password (with current password verification)
+- Branch/company details management (admin only): name, address, phone, email
+
 ### Authentication
 - JWT-based auth with 24-hour token expiry
 - bcrypt password hashing (12 salt rounds)
@@ -216,6 +222,14 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 |--------|----------|-------------|
 | POST | `/api/v1/auth/login` | Login with email + password |
 | GET | `/api/v1/auth/me` | Get current user profile |
+
+### Profile
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/profile` | Get full profile with branch details |
+| PUT | `/api/v1/profile` | Update name and email |
+| PUT | `/api/v1/profile/password` | Change password |
+| PUT | `/api/v1/profile/branch` | Update branch details (admin only) |
 
 ### Documents
 | Method | Endpoint | Description |
@@ -296,18 +310,34 @@ ADMIN_NAME="Dream Garage Admin"
 
 ## Deployment
 
-### Build
-```bash
-cd frontend && npm run build    # outputs to frontend/dist/
-cd backend && npm run build     # outputs to backend/dist/
-```
+### Repository
+- **GitHub**: [Aphrosidiac/dreamgarage](https://github.com/Aphrosidiac/dreamgarage)
+- **Monorepo**: `frontend/` and `backend/` in one repo, deployed separately
 
-### Production (Azure VPS)
-- Backend: PM2 or systemd service running `node dist/server.js`
-- Frontend: Nginx serving `frontend/dist/` with SPA fallback
-- Database: PostgreSQL on same VPS or managed service
-- Domain: dreamgarage.my
+### Frontend — Cloudflare Pages
+- **Connect**: GitHub repo `Aphrosidiac/dreamgarage`
+- **Root directory**: `frontend`
+- **Build command**: `npm run build`
+- **Output directory**: `dist`
+- **Environment**: Set `VITE_API_URL` to your backend URL
+
+### Backend — Azure VPS
+```bash
+cd backend
+npm install
+npx prisma db push
+npm run db:seed
+npm run build
+pm2 start dist/server.js --name dreamgarage-api
+```
+- Database: PostgreSQL on same VPS
+- Domain: API subdomain (e.g., api.dreamgarage.my)
 - SSL: Let's Encrypt via Certbot
+- Process manager: PM2 or systemd
+
+### Domain
+- Website: dreamgarage.my → Cloudflare Pages
+- API: api.dreamgarage.my → Azure VPS
 
 ## Phase 2 (Planned)
 
