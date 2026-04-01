@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+  /* Dream Garage — Black + Yellow Gold */
+  --color-gold-50: #fffef5;
+  --color-gold-100: #fefcdb;
+  --color-gold-200: #fdf8b2;
+  --color-gold-300: #fcf27e;
+  --color-gold-400: #f9e84a;
+  --color-gold-500: #FFD700;
+  --color-gold-600: #d4a800;
+  --color-gold-700: #a67c00;
+  --color-gold-800: #7a5c00;
+  --color-gold-900: #4d3a00;
+
+  --color-dark-50: #f6f6f7;
+  --color-dark-100: #e1e2e5;
+  --color-dark-200: #c3c5cb;
+  --color-dark-300: #a4a7b0;
+  --color-dark-400: #6b6e7a;
+  --color-dark-500: #3a3d48;
+  --color-dark-600: #2e303a;
+  --color-dark-700: #23252d;
+  --color-dark-800: #1a1b22;
+  --color-dark-900: #111217;
+  --color-dark-950: #0a0b0e;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Montserrat', system-ui, sans-serif;
+}
+
+/* Base styles */
+body {
+  @apply bg-dark-950 text-dark-100 font-sans antialiased;
+  margin: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: theme(--color-dark-900);
+}
+::-webkit-scrollbar-thumb {
+  background: theme(--color-dark-600);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme(--color-dark-500);
+}

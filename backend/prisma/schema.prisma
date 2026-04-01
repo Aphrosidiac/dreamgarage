@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── BRANCH ────────────────────────────────────────────────
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  stockItems       StockItem[]
+  categories       StockCategory[]
+  documents        Document[]
+  documentSettings DocumentSetting[]
+  paymentTerms     PaymentTerm[]
+
+  @@map("branches")
+}
+
+// ─── USER ──────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  branchId     String
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(STAFF)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  branch           Branch     @relation(fields: [branchId], references: [id])
+  createdDocuments  Document[] @relation("DocumentCreatedBy")
+  createdPayments   Payment[]  @relation("PaymentCreatedBy")
+
+  @@index([branchId])
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+// ─── STOCK CATEGORY ────────────────────────────────────────
+model StockCategory {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  code      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch Branch      @relation(fields: [branchId], references: [id])
+  items  StockItem[]
+
+  @@unique([branchId, name])
+  @@map("stock_categories")
+}
+
+// ─── STOCK ITEM ────────────────────────────────────────────
+model StockItem {
+  id          String   @id @default(cuid())
+  branchId    String
+  categoryId  String?
+  itemCode    String
+  description String
+  uom         String   @default("PCS")
+  costPrice   Decimal  @db.Decimal(12, 2)
+  sellPrice   Decimal  @db.Decimal(12, 2)
+  quantity    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  category      StockCategory? @relation(fields: [categoryId], references: [id])
+  documentItems DocumentItem[]
+
+  @@unique([branchId, itemCode])
+  @@index([branchId])
+  @@index([itemCode])
+  @@map("stock_items")
+}
+
+// ─── DOCUMENT ──────────────────────────────────────────────
+model Document {
+  id             String       @id @default(cuid())
+  branchId       String
+  documentType   DocumentType
+  documentNumber String
+  // Customer info (inline, Phase 2: link to customer table)
+  customerName   String?
+  customerPhone  String?
+  customerEmail  String?
+  // Vehicle info (car workshop specific)
+  vehiclePlate   String?
+  vehicleModel   String?
+  vehicleMileage String?
+  // Dates
+  issueDate      DateTime     @default(now())
+  dueDate        DateTime?
+  // Status
+  status         DocumentStatus @default(DRAFT)
+  // Totals
+  subtotal       Decimal      @db.Decimal(12, 2) @default(0)
+  taxAmount      Decimal      @db.Decimal(12, 2) @default(0)
+  discountAmount Decimal      @db.Decimal(12, 2) @default(0)
+  totalAmount    Decimal      @db.Decimal(12, 2) @default(0)
+  paidAmount     Decimal      @db.Decimal(12, 2) @default(0)
+  // Content
+  notes          String?
+  terms          String?
+  footerNote     String?
+  // Relations
+  createdById    String
+  // Conversion tracking
+  convertedFromId   String?
+  convertedFromType DocumentType?
+
+  branch      Branch         @relation(fields: [branchId], references: [id])
+  createdBy   User           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  items       DocumentItem[]
+  payments    Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([branchId, documentNumber])
+  @@index([branchId])
+  @@index([documentType])
+  @@index([documentNumber])
+  @@index([issueDate])
+  @@index([status])
+  @@map("documents")
+}
+
+enum DocumentType {
+  QUOTATION
+  INVOICE
+  RECEIPT
+  DELIVERY_ORDER
+}
+
+enum DocumentStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  SENT
+  OUTSTANDING
+  PARTIAL
+  PAID
+  OVERDUE
+  COMPLETED
+  CANCELLED
+  VOID
+}
+
+// ─── DOCUMENT ITEM ─────────────────────────────────────────
+model DocumentItem {
+  id             String  @id @default(cuid())
+  documentId     String
+  stockItemId    String?
+  // Snapshot fields
+  itemCode       String?
+  description    String
+  quantity       Int     @default(1)
+  unit           String  @default("PCS")
+  unitPrice      Decimal @db.Decimal(12, 2) @default(0)
+  discountPercent Decimal @db.Decimal(5, 2) @default(0)
+  taxRate        Decimal @db.Decimal(5, 2) @default(0)
+  subtotal       Decimal @db.Decimal(12, 2) @default(0)
+  taxAmount      Decimal @db.Decimal(12, 2) @default(0)
+  total          Decimal @db.Decimal(12, 2) @default(0)
+  sortOrder      Int     @default(0)
+
+  document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  stockItem StockItem? @relation(fields: [stockItemId], references: [id])
+
+  @@index([documentId])
+  @@map("document_items")
+}
+
+// ─── PAYMENT ───────────────────────────────────────────────
+model Payment {
+  id              String        @id @default(cuid())
+  documentId      String
+  amount          Decimal       @db.Decimal(12, 2)
+  paymentMethod   PaymentMethod
+  referenceNumber String?
+  notes           String?
+  bankName        String?
+  createdById     String
+  createdAt       DateTime      @default(now())
+
+  document  Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([documentId])
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  CREDIT_CARD
+  EWALLET
+  TNG
+  BOOST
+}
+
+// ─── DOCUMENT SETTING ──────────────────────────────────────
+model DocumentSetting {
+  id                     String       @id @default(cuid())
+  branchId               String
+  documentType           DocumentType
+  prefix                 String       @default("")
+  nextNumber             Int          @default(1)
+  paddingLength          Int          @default(4)
+  includeYear            Boolean      @default(true)
+  yearFormat             String       @default("YY")
+  separator              String       @default("-")
+  template               String       @default("standard")
+  templateColor          String       @default("#FFD700")
+  documentLabel          String?
+  footerNotes            String?
+  documentSize           String       @default("A4")
+  logoScale              Decimal      @db.Decimal(3, 2) @default(1.00)
+  defaultNotes           String?
+  defaultTerms           String?
+  defaultPaymentTermDays Int          @default(30)
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([branchId, documentType])
+  @@map("document_settings")
+}
+
+// ─── PAYMENT TERM ──────────────────────────────────────────
+model PaymentTerm {
+  id          String   @id @default(cuid())
+  branchId    String
+  name        String
+  days        Int      @default(30)
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("payment_terms")
+}

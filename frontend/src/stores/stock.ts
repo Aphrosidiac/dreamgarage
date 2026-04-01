@@ -1,0 +1,75 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import api from '../lib/api'
+import type { StockItem, StockCategory, PaginatedResponse } from '../types'
+
+export const useStockStore = defineStore('stock', () => {
+  const items = ref<StockItem[]>([])
+  const categories = ref<StockCategory[]>([])
+  const total = ref(0)
+  const page = ref(1)
+  const limit = ref(20)
+  const totalPages = ref(0)
+  const loading = ref(false)
+
+  async function fetchItems(params: Record<string, any> = {}) {
+    loading.value = true
+    try {
+      const { data } = await api.get<PaginatedResponse<StockItem>>('/stock', { params: { page: page.value, limit: limit.value, ...params } })
+      items.value = data.data
+      total.value = data.total
+      totalPages.value = data.totalPages
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchCategories() {
+    const { data } = await api.get('/categories')
+    categories.value = data.data
+  }
+
+  async function createItem(payload: Partial<StockItem>) {
+    const { data } = await api.post('/stock', payload)
+    return data.data
+  }
+
+  async function updateItem(id: string, payload: Partial<StockItem>) {
+    const { data } = await api.put(`/stock/${id}`, payload)
+    return data.data
+  }
+
+  async function deleteItem(id: string) {
+    await api.delete(`/stock/${id}`)
+  }
+
+  async function getItem(id: string): Promise<StockItem> {
+    const { data } = await api.get(`/stock/${id}`)
+    return data.data
+  }
+
+  // Categories
+  async function createCategory(payload: { name: string; code?: string }) {
+    const { data } = await api.post('/categories', payload)
+    categories.value.push(data.data)
+    return data.data
+  }
+
+  async function updateCategory(id: string, payload: { name?: string; code?: string }) {
+    const { data } = await api.put(`/categories/${id}`, payload)
+    const idx = categories.value.findIndex((c) => c.id === id)
+    if (idx !== -1) categories.value[idx] = data.data
+    return data.data
+  }
+
+  async function deleteCategory(id: string) {
+    await api.delete(`/categories/${id}`)
+    categories.value = categories.value.filter((c) => c.id !== id)
+  }
+
+  return {
+    items, categories, total, page, limit, totalPages, loading,
+    fetchItems, fetchCategories, createItem, updateItem, deleteItem, getItem,
+    createCategory, updateCategory, deleteCategory,
+  }
+})
