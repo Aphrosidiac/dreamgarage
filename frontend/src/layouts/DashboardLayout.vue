@@ -75,7 +75,7 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, FileText, LogOut, Menu } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, LogOut, Menu } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -85,6 +85,7 @@ const sidebarOpen = ref(false)
 const navItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/app/stock', label: 'Stock', icon: Package },
+  { path: '/app/customers', label: 'Customers', icon: Users },
   { path: '/app/documents', label: 'Documents', icon: FileText },
 ]
 
@@ -93,6 +94,7 @@ const isActive = (path: string) => route.path.startsWith(path)
 const pageTitle = computed(() => {
   const name = route.name as string
   if (name?.startsWith('stock')) return 'Stock Management'
+  if (name?.startsWith('customer')) return 'Customers'
   if (name?.startsWith('document')) return 'Documents'
   if (name === 'dashboard') return 'Dashboard'
   if (name === 'profile') return 'Profile'

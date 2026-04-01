@@ -17,6 +17,50 @@
         <!-- Customer & Vehicle Info -->
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">Customer & Vehicle</h3>
+
+          <!-- Customer Search -->
+          <div class="relative mb-4">
+            <Users class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+            <input
+              v-model="customerSearch"
+              @input="handleCustomerSearch"
+              @focus="showCustomerResults = true"
+              type="text"
+              placeholder="Search customer by name or phone..."
+              class="w-full bg-dark-800 border border-dark-700 rounded-lg pl-10 pr-3 py-2.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500"
+            />
+            <div
+              v-if="showCustomerResults && customerResults.length"
+              class="absolute z-20 mt-1 w-full bg-dark-800 border border-dark-700 rounded-lg shadow-xl max-h-48 overflow-y-auto"
+            >
+              <button
+                v-for="c in customerResults"
+                :key="c.id"
+                type="button"
+                @click="selectCustomer(c)"
+                class="w-full text-left px-4 py-2.5 hover:bg-dark-700 transition-colors"
+              >
+                <span class="text-dark-100 text-sm font-medium">{{ c.name }}</span>
+                <span v-if="c.phone" class="text-dark-500 text-sm ml-2">{{ c.phone }}</span>
+                <span v-if="c.vehicles?.length" class="text-dark-600 text-xs ml-2">({{ c.vehicles.length }} vehicle{{ c.vehicles.length > 1 ? 's' : '' }})</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Vehicle Switcher (if selected customer has multiple vehicles) -->
+          <div v-if="selectedCustomerVehicles.length > 1" class="mb-4">
+            <label class="block text-sm font-medium text-dark-200 mb-1.5">Vehicle</label>
+            <select
+              v-model="selectedVehicleId"
+              @change="applyVehicle"
+              class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+            >
+              <option v-for="v in selectedCustomerVehicles" :key="v.id" :value="v.id">
+                {{ v.plate }}{{ v.model ? ` — ${v.model}` : '' }}{{ v.isDefault ? ' (Default)' : '' }}
+              </option>
+            </select>
+          </div>
+
           <div class="grid sm:grid-cols-2 gap-4">
             <BaseInput v-model="form.customerName" label="Customer Name" placeholder="e.g. Ahmad bin Ali" />
             <BaseInput v-model="form.customerPhone" label="Phone" placeholder="+60 12-345 6789" />
@@ -198,8 +242,9 @@ import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseButton from '../../components/base/BaseButton.vue'
-import { ArrowLeft, Search, Plus, X } from 'lucide-vue-next'
-import type { StockItem, DocumentType } from '../../types'
+import { ArrowLeft, Search, Plus, X, Users } from 'lucide-vue-next'
+import { useCustomerStore } from '../../stores/customers'
+import type { StockItem, DocumentType, Customer, Vehicle } from '../../types'
 
 interface FormItem {
   stockItemId?: string
@@ -215,6 +260,7 @@ interface FormItem {
 const route = useRoute()
 const router = useRouter()
 const store = useDocumentStore()
+const customerStore = useCustomerStore()
 const toast = useToast()
 
 const isEdit = computed(() => !!route.params.id)
@@ -223,6 +269,52 @@ const saving = ref(false)
 const stockSearch = ref('')
 const stockResults = ref<StockItem[]>([])
 const showStockResults = ref(false)
+
+// Customer search
+const customerSearch = ref('')
+const customerResults = ref<Customer[]>([])
+const showCustomerResults = ref(false)
+const selectedCustomerVehicles = ref<Vehicle[]>([])
+const selectedVehicleId = ref('')
+
+let customerSearchTimer: ReturnType<typeof setTimeout>
+function handleCustomerSearch() {
+  clearTimeout(customerSearchTimer)
+  if (!customerSearch.value) { customerResults.value = []; return }
+  customerSearchTimer = setTimeout(async () => {
+    try {
+      customerResults.value = await customerStore.searchCustomers(customerSearch.value)
+      showCustomerResults.value = true
+    } catch { customerResults.value = [] }
+  }, 200)
+}
+
+function selectCustomer(c: Customer) {
+  form.customerName = c.name
+  form.customerPhone = c.phone || ''
+  selectedCustomerVehicles.value = c.vehicles || []
+  customerSearch.value = ''
+  customerResults.value = []
+  showCustomerResults.value = false
+
+  // Auto-select default vehicle
+  const defaultVehicle = c.vehicles?.find((v) => v.isDefault) || c.vehicles?.[0]
+  if (defaultVehicle) {
+    selectedVehicleId.value = defaultVehicle.id
+    form.vehiclePlate = defaultVehicle.plate
+    form.vehicleModel = defaultVehicle.model || ''
+    form.vehicleMileage = defaultVehicle.mileage || ''
+  }
+}
+
+function applyVehicle() {
+  const v = selectedCustomerVehicles.value.find((v) => v.id === selectedVehicleId.value)
+  if (v) {
+    form.vehiclePlate = v.plate
+    form.vehicleModel = v.model || ''
+    form.vehicleMileage = v.mileage || ''
+  }
+}
 
 const form = reactive({
   documentType: (route.query.type as DocumentType) || 'INVOICE',
@@ -360,7 +452,7 @@ async function handleSubmit() {
 }
 
 // Close dropdown on click outside
-function closeDropdown() { showStockResults.value = false }
+function closeDropdown() { showStockResults.value = false; showCustomerResults.value = false }
 onMounted(() => {
   document.addEventListener('click', closeDropdown)
   loadDocument()
@@ -368,5 +460,6 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', closeDropdown)
   clearTimeout(searchTimer)
+  clearTimeout(customerSearchTimer)
 })
 </script>

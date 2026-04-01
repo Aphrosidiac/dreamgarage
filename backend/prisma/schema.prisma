@@ -25,6 +25,7 @@ model Branch {
   documents        Document[]
   documentSettings DocumentSetting[]
   paymentTerms     PaymentTerm[]
+  customers        Customer[]
 
   @@map("branches")
 }
@@ -127,13 +128,51 @@ enum StockMovementType {
   ADJUSTMENT
 }
 
+// ─── CUSTOMER ──────────────────────────────────────────────
+model Customer {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  vehicles  Vehicle[]
+  documents Document[]
+
+  @@index([branchId])
+  @@map("customers")
+}
+
+// ─── VEHICLE ───────────────────────────────────────────────
+model Vehicle {
+  id         String   @id @default(cuid())
+  customerId String
+  plate      String
+  model      String?
+  mileage    String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([customerId])
+  @@map("vehicles")
+}
+
 // ─── DOCUMENT ──────────────────────────────────────────────
 model Document {
   id             String       @id @default(cuid())
   branchId       String
   documentType   DocumentType
   documentNumber String
-  // Customer info (inline, Phase 2: link to customer table)
+  // Customer & Vehicle links
+  customerId     String?
+  vehicleId      String?
+  // Snapshot fields (copied from customer/vehicle at creation)
   customerName   String?
   customerPhone  String?
   customerEmail  String?
@@ -164,6 +203,8 @@ model Document {
 
   branch      Branch         @relation(fields: [branchId], references: [id])
   createdBy   User           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  customer    Customer?      @relation(fields: [customerId], references: [id])
+  vehicle     Vehicle?       @relation(fields: [vehicleId], references: [id])
   items        DocumentItem[]
   payments     Payment[]
   stockHistory StockHistory[]

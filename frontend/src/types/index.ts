@@ -142,6 +142,29 @@ export interface PaymentTerm {
   isActive: boolean
 }
 
+// ─── CUSTOMER & VEHICLE ────────────────────────────────────
+export interface Vehicle {
+  id: string
+  customerId: string
+  plate: string
+  model?: string
+  mileage?: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Customer {
+  id: string
+  branchId: string
+  name: string
+  phone?: string
+  vehicles?: Vehicle[]
+  _count?: { documents: number }
+  createdAt: string
+  updatedAt: string
+}
+
 // ─── STOCK HISTORY ─────────────────────────────────────────
 export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT'
 

@@ -13,6 +13,7 @@ import settingsRoutes from './modules/document-settings/settings.routes.js'
 import paymentTermRoutes from './modules/payment-terms/terms.routes.js'
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
+import customerRoutes from './modules/customers/customers.routes.js'
 
 const app = Fastify({
   logger: {
@@ -40,6 +41,7 @@ async function start() {
   await app.register(paymentTermRoutes, { prefix: '/api/v1/payment-terms' })
   await app.register(dashboardRoutes, { prefix: '/api/v1/dashboard' })
   await app.register(profileRoutes, { prefix: '/api/v1/profile' })
+  await app.register(customerRoutes, { prefix: '/api/v1/customers' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
