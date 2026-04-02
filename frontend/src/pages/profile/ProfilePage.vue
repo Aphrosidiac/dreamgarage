@@ -45,6 +45,11 @@
             <BaseInput v-model="branchForm.phone" label="Phone" />
             <BaseInput v-model="branchForm.email" label="Email" type="email" />
           </div>
+          <BaseInput v-model="branchForm.ssmNumber" label="SSM / Registration Number" placeholder="e.g. 202401043458 / 1413766-V" />
+          <div class="grid sm:grid-cols-2 gap-4">
+            <BaseInput v-model="branchForm.bankName" label="Bank Name" placeholder="e.g. PUBLIC BANK" />
+            <BaseInput v-model="branchForm.bankAccount" label="Bank Account Number" placeholder="e.g. 3228 486 517" />
+          </div>
           <div class="flex justify-end">
             <BaseButton variant="primary" type="submit" :loading="savingBranch" :disabled="!branchChanged">
               Save Branch Details
@@ -118,7 +123,7 @@ interface ProfileData {
   isActive: boolean
   createdAt: string
   updatedAt: string
-  branch?: { id: string; name: string; code: string; address?: string; phone?: string; email?: string }
+  branch?: { id: string; name: string; code: string; address?: string; phone?: string; email?: string; ssmNumber?: string; bankName?: string; bankAccount?: string }
 }
 
 const router = useRouter()
@@ -133,7 +138,7 @@ const savingBranch = ref(false)
 
 const editForm = reactive({ name: '', email: '' })
 const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
-const branchForm = reactive({ name: '', address: '', phone: '', email: '' })
+const branchForm = reactive({ name: '', address: '', phone: '', email: '', ssmNumber: '', bankName: '', bankAccount: '' })
 
 const userInitials = computed(() => {
   const name = profile.value?.name || ''
@@ -158,7 +163,10 @@ const branchChanged = computed(() =>
   branchForm.name !== (profile.value?.branch?.name || '') ||
   branchForm.address !== (profile.value?.branch?.address || '') ||
   branchForm.phone !== (profile.value?.branch?.phone || '') ||
-  branchForm.email !== (profile.value?.branch?.email || '')
+  branchForm.email !== (profile.value?.branch?.email || '') ||
+  branchForm.ssmNumber !== (profile.value?.branch?.ssmNumber || '') ||
+  branchForm.bankName !== (profile.value?.branch?.bankName || '') ||
+  branchForm.bankAccount !== (profile.value?.branch?.bankAccount || '')
 )
 
 async function loadProfile() {
@@ -172,6 +180,9 @@ async function loadProfile() {
     branchForm.address = data.data.branch?.address || ''
     branchForm.phone = data.data.branch?.phone || ''
     branchForm.email = data.data.branch?.email || ''
+    branchForm.ssmNumber = data.data.branch?.ssmNumber || ''
+    branchForm.bankName = data.data.branch?.bankName || ''
+    branchForm.bankAccount = data.data.branch?.bankAccount || ''
   } catch {
     toast.error('Failed to load profile')
   } finally {

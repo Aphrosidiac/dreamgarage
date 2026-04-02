@@ -15,6 +15,9 @@ model Branch {
   address   String?
   phone     String?
   email     String?
+  ssmNumber   String?
+  bankName    String?
+  bankAccount String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

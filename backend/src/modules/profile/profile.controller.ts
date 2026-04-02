@@ -15,7 +15,7 @@ export async function getProfile(request: FastifyRequest, reply: FastifyReply) {
       isActive: true,
       createdAt: true,
       updatedAt: true,
-      branch: { select: { id: true, name: true, code: true, address: true, phone: true, email: true } },
+      branch: { select: { id: true, name: true, code: true, address: true, phone: true, email: true, ssmNumber: true, bankName: true, bankAccount: true } },
     },
   })
 
@@ -89,7 +89,7 @@ export async function changePassword(
 }
 
 export async function updateBranch(
-  request: FastifyRequest<{ Body: { name?: string; address?: string; phone?: string; email?: string } }>,
+  request: FastifyRequest<{ Body: { name?: string; address?: string; phone?: string; email?: string; ssmNumber?: string; bankName?: string; bankAccount?: string } }>,
   reply: FastifyReply
 ) {
   const { branchId, role } = request.user
@@ -98,7 +98,7 @@ export async function updateBranch(
     return reply.status(403).send({ success: false, message: 'Only admins can update branch details' })
   }
 
-  const { name, address, phone, email } = request.body
+  const { name, address, phone, email, ssmNumber, bankName, bankAccount } = request.body
 
   const branch = await request.server.prisma.branch.update({
     where: { id: branchId },
@@ -107,8 +107,11 @@ export async function updateBranch(
       ...(address !== undefined && { address: address?.trim() || null }),
       ...(phone !== undefined && { phone: phone?.trim() || null }),
       ...(email !== undefined && { email: email?.trim() || null }),
+      ...(ssmNumber !== undefined && { ssmNumber: ssmNumber?.trim() || null }),
+      ...(bankName !== undefined && { bankName: bankName?.trim() || null }),
+      ...(bankAccount !== undefined && { bankAccount: bankAccount?.trim() || null }),
     },
-    select: { id: true, name: true, code: true, address: true, phone: true, email: true },
+    select: { id: true, name: true, code: true, address: true, phone: true, email: true, ssmNumber: true, bankName: true, bankAccount: true },
   })
 
   return reply.send({ success: true, data: branch })

@@ -14,11 +14,14 @@ async function main() {
     where: { code: 'DG-JB' },
     update: {},
     create: {
-      name: 'Dream Garage JB',
+      name: 'DREAM GARAGE (M) SDN BHD',
       code: 'DG-JB',
       address: '22, Jalan Mutiara Emas 5/1, Taman Mount Austin, 81100 Johor Bahru, Johor',
       phone: '+60 18-207 8080',
       email: 'dreamgarage@gmail.com',
+      ssmNumber: '202401043458 / 1413766-V',
+      bankName: 'PUBLIC BANK',
+      bankAccount: '3228 486 517',
     },
   })
   console.log(`Branch created: ${branch.name}`)

@@ -74,10 +74,10 @@
       <div class="bg-gray-900 text-white px-8 py-5 flex items-center gap-4">
         <img src="/logo-doc.png" alt="Dream Garage" class="h-14" />
         <div class="flex-1">
-          <h1 class="text-lg font-bold text-yellow-400">DREAM GARAGE (M) SDN BHD</h1>
-          <p class="text-gray-400 text-xs">(202401043458 / 1413766-V)</p>
-          <p class="text-gray-300 text-xs mt-1">22, Jalan Mutiara Emas 5/1, Taman Mount Austin, 81100 Johor Bahru, Johor</p>
-          <p class="text-gray-300 text-xs">Tel: +60 18-207 8080</p>
+          <h1 class="text-lg font-bold text-yellow-400">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</h1>
+          <p v-if="branch?.ssmNumber" class="text-gray-400 text-xs">({{ branch.ssmNumber }})</p>
+          <p class="text-gray-300 text-xs mt-1">{{ branch?.address || '' }}</p>
+          <p v-if="branch?.phone" class="text-gray-300 text-xs">Tel: {{ branch.phone }}</p>
         </div>
       </div>
 
@@ -149,9 +149,9 @@
             <div v-if="doc.notes">
               <p class="whitespace-pre-line">{{ doc.notes }}</p>
             </div>
-            <div v-if="doc.documentType === 'INVOICE'">
-              <p class="font-semibold text-gray-700">PUBLIC BANK A/C : 3228 486 517</p>
-              <p>Dream Garage (M) Sdn Bhd</p>
+            <div v-if="doc.documentType === 'INVOICE' && branch?.bankAccount">
+              <p class="font-semibold text-gray-700">{{ branch.bankName || 'BANK' }} A/C : {{ branch.bankAccount }}</p>
+              <p>{{ branch.name }}</p>
             </div>
           </div>
           <!-- Totals (right) -->
@@ -283,6 +283,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../../stores/documents'
 import { useToast } from '../../composables/useToast'
 import { domToPng } from 'modern-screenshot'
+import api from '../../lib/api'
 import BaseButton from '../../components/base/BaseButton.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
@@ -300,6 +301,7 @@ const store = useDocumentStore()
 const toast = useToast()
 
 const doc = ref<Document | null>(null)
+const branch = ref<any>(null)
 const loadingDoc = ref(true)
 const statusLoading = ref(false)
 const converting = ref(false)
@@ -381,7 +383,12 @@ function fmtPaymentMethod(method: string): string {
 async function loadDocument() {
   loadingDoc.value = true
   try {
-    doc.value = await store.getDocument(route.params.id as string)
+    const [docData, profileData] = await Promise.all([
+      store.getDocument(route.params.id as string),
+      api.get('/profile'),
+    ])
+    doc.value = docData
+    branch.value = profileData.data.data.branch
   } catch {
     toast.error('Failed to load document')
     router.push('/app/documents')
