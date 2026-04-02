@@ -211,7 +211,7 @@
         </div>
         <div class="bg-dark-900 border border-dark-800 rounded-2xl overflow-hidden h-96">
           <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.4!2d103.7!3d1.55!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwMzMnMDAuMCJOIDEwM8KwNDInMDAuMCJF!5e0!3m2!1sen!2smy!4v1"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.4!2d103.7704336!3d1.5474854!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31da6e3e5a204b47%3A0x1a301196dd7f8f21!2sDream%20Garage!5e0!3m2!1sen!2smy!4v1"
             class="w-full h-full border-0"
             allowfullscreen
             loading="lazy"
