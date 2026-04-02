@@ -1,6 +1,8 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import formbody from '@fastify/formbody'
+import helmet from '@fastify/helmet'
+import rateLimit from '@fastify/rate-limit'
 import { env } from './config/env.js'
 import prismaPlugin from './plugins/prisma.js'
 import authPlugin from './plugins/auth.js'
@@ -15,18 +17,24 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
 import customerRoutes from './modules/customers/customers.routes.js'
 
+const isProd = env.NODE_ENV === 'production'
+
 const app = Fastify({
-  logger: {
-    transport: {
-      target: 'pino-pretty',
-      options: { colorize: true },
-    },
-  },
+  logger: isProd
+    ? { level: 'info' }
+    : { transport: { target: 'pino-pretty', options: { colorize: true } } },
 })
 
 async function start() {
+  // Security
+  await app.register(helmet, { contentSecurityPolicy: false })
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
+
   // Plugins
-  await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true })
+  await app.register(cors, {
+    origin: isProd ? env.CORS_ORIGIN.split(',') : env.CORS_ORIGIN,
+    credentials: true,
+  })
   await app.register(formbody)
   await app.register(prismaPlugin)
   await app.register(authPlugin)
