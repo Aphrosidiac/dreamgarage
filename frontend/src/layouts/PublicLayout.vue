@@ -171,9 +171,9 @@
           <p class="text-dark-500 text-xs">
             &copy; {{ new Date().getFullYear() }} Dream Garage (M) Sdn Bhd. All Rights Reserved.
           </p>
-          <RouterLink to="/login" class="text-dark-600 hover:text-dark-400 transition-colors text-xs">
+          <a href="https://app.dreamgarage.my/login" class="text-dark-600 hover:text-dark-400 transition-colors text-xs">
             Staff Login
-          </RouterLink>
+          </a>
         </div>
       </div>
     </footer>
