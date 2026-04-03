@@ -16,6 +16,10 @@ import paymentTermRoutes from './modules/payment-terms/terms.routes.js'
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
 import customerRoutes from './modules/customers/customers.routes.js'
+import brandRoutes from './modules/brands/brands.routes.js'
+import workerRoutes from './modules/workers/workers.routes.js'
+import debtorRoutes from './modules/debtors/debtors.routes.js'
+import reportRoutes from './modules/reports/reports.routes.js'
 
 const isProd = env.NODE_ENV === 'production'
 
@@ -50,6 +54,10 @@ async function start() {
   await app.register(dashboardRoutes, { prefix: '/api/v1/dashboard' })
   await app.register(profileRoutes, { prefix: '/api/v1/profile' })
   await app.register(customerRoutes, { prefix: '/api/v1/customers' })
+  await app.register(brandRoutes, { prefix: '/api/v1/brands' })
+  await app.register(workerRoutes, { prefix: '/api/v1/workers' })
+  await app.register(debtorRoutes, { prefix: '/api/v1/debtors' })
+  await app.register(reportRoutes, { prefix: '/api/v1/reports' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))

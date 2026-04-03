@@ -11,12 +11,13 @@ export async function listStock(
 ) {
   const { branchId } = request.user
   const { page, limit, skip } = getPaginationParams(request.query)
-  const { search, categoryId, sortBy, order } = request.query as any
+  const { search, categoryId, brandId, sortBy, order } = request.query as any
 
   const where: Prisma.StockItemWhereInput = {
     branchId,
     isActive: true,
     ...(categoryId && { categoryId }),
+    ...(brandId && { brandId }),
     ...(search && {
       OR: [
         { itemCode: { contains: search, mode: 'insensitive' } },
@@ -33,7 +34,10 @@ export async function listStock(
   const [data, total] = await Promise.all([
     request.server.prisma.stockItem.findMany({
       where,
-      include: { category: { select: { id: true, name: true, code: true } } },
+      include: {
+        category: { select: { id: true, name: true, code: true } },
+        brand: { select: { id: true, name: true, code: true } },
+      },
       orderBy,
       skip,
       take: limit,
@@ -51,7 +55,7 @@ export async function getStock(
   const { branchId } = request.user
   const item = await request.server.prisma.stockItem.findFirst({
     where: { id: request.params.id, branchId },
-    include: { category: true },
+    include: { category: true, brand: true },
   })
 
   if (!item) {
@@ -72,12 +76,15 @@ export async function createStock(
       quantity?: number
       minStock?: number
       categoryId?: string
+      brandId?: string
+      countryOfOrigin?: string
+      dotCode?: string
     }
   }>,
   reply: FastifyReply
 ) {
   const { branchId, userId } = request.user
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode } = request.body
 
   if (!itemCode || !description) {
     return reply.status(400).send({ success: false, message: 'Item code and description are required' })
@@ -88,6 +95,17 @@ export async function createStock(
   }
 
   const initialQty = Math.max(0, quantity || 0)
+
+  // Parse DOT code (format: WW/YY e.g. 12/06 = week 12, year 2006)
+  let dotWeek: number | null = null
+  let dotYear: number | null = null
+  if (dotCode) {
+    const match = dotCode.match(/^(\d{1,2})\/(\d{2,4})$/)
+    if (match) {
+      dotWeek = parseInt(match[1], 10)
+      dotYear = parseInt(match[2], 10)
+    }
+  }
 
   const item = await request.server.prisma.stockItem.create({
     data: {
@@ -100,8 +118,13 @@ export async function createStock(
       quantity: initialQty,
       minStock: minStock !== undefined ? Math.max(0, minStock) : 5,
       categoryId,
+      brandId: brandId || null,
+      countryOfOrigin: countryOfOrigin?.trim() || null,
+      dotCode: dotCode?.trim() || null,
+      dotWeek,
+      dotYear,
     },
-    include: { category: true },
+    include: { category: true, brand: true },
   })
 
   // Record history
@@ -128,7 +151,7 @@ export async function updateStock(
 ) {
   const { branchId, userId } = request.user
   const { id } = request.params
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode } = request.body
 
   const existing = await request.server.prisma.stockItem.findFirst({
     where: { id, branchId },
@@ -146,6 +169,25 @@ export async function updateStock(
 
   const newQty = quantity !== undefined ? Math.max(0, quantity) : undefined
 
+  // Parse DOT code if provided
+  let dotWeek: number | null | undefined = undefined
+  let dotYear: number | null | undefined = undefined
+  if (dotCode !== undefined) {
+    if (dotCode) {
+      const match = dotCode.match(/^(\d{1,2})\/(\d{2,4})$/)
+      if (match) {
+        dotWeek = parseInt(match[1], 10)
+        dotYear = parseInt(match[2], 10)
+      } else {
+        dotWeek = null
+        dotYear = null
+      }
+    } else {
+      dotWeek = null
+      dotYear = null
+    }
+  }
+
   const item = await request.server.prisma.stockItem.update({
     where: { id },
     data: {
@@ -157,8 +199,11 @@ export async function updateStock(
       ...(newQty !== undefined && { quantity: newQty }),
       ...(minStock !== undefined && { minStock: Math.max(0, minStock) }),
       ...(categoryId !== undefined && { categoryId }),
+      ...(brandId !== undefined && { brandId: brandId || null }),
+      ...(countryOfOrigin !== undefined && { countryOfOrigin: countryOfOrigin?.trim() || null }),
+      ...(dotCode !== undefined && { dotCode: dotCode?.trim() || null, dotWeek, dotYear }),
     },
-    include: { category: true },
+    include: { category: true, brand: true },
   })
 
   // Record history if quantity changed
@@ -235,7 +280,7 @@ export async function adjustStock(
   const item = await request.server.prisma.stockItem.update({
     where: { id },
     data: { quantity: newQty },
-    include: { category: true },
+    include: { category: true, brand: true },
   })
 
   await recordStockHistory({

@@ -201,6 +201,25 @@
       </div>
     </section>
 
+    <!-- ═══════════════ READY TO VISIT ═══════════════ -->
+    <section class="py-20 lg:py-32 px-4 sm:px-6 lg:px-8 bg-dark-900/50">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <p class="text-gold-500 font-heading font-medium text-xs uppercase tracking-[0.3em] mb-4">Before You Come</p>
+          <h2 class="font-heading italic text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white">Ready to Visit?</h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div v-for="(tip, i) in visitTips" :key="tip.title" class="text-center group">
+            <div class="w-20 h-20 bg-gold-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-gold-500/20 transition-colors duration-300">
+              <span class="text-gold-500 text-3xl font-bold">{{ String(i + 1).padStart(2, '0') }}</span>
+            </div>
+            <h4 class="text-white font-heading font-semibold text-lg mb-3">{{ tip.title }}</h4>
+            <p class="text-dark-400 text-sm leading-relaxed">{{ tip.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ═══════════════ LOCATION ═══════════════ -->
     <section class="py-20 lg:py-32 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
@@ -224,6 +243,12 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+
+const visitTips = [
+  { title: 'No Appointment Needed', desc: 'Just drive in during our operating hours. Walk-ins are welcome for most services.' },
+  { title: 'Know Your Vehicle', desc: 'Have your vehicle plate number and any previous service records ready for a smoother experience.' },
+  { title: 'We Handle The Rest', desc: 'Our experienced foremen will assess your vehicle, provide a transparent quote, and get the job done right.' },
+]
 
 const brandLogos = [
   { name: 'Michelin', src: '/images/brands/michelin.png' },

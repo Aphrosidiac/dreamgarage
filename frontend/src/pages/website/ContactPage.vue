@@ -71,11 +71,11 @@
                 </div>
                 <div class="space-y-1 text-sm pl-4">
                   <div class="flex justify-between gap-8">
-                    <span class="text-dark-400">Monday - Saturday</span>
-                    <span class="text-white">9:00 AM - 6:00 PM</span>
+                    <span class="text-dark-400">Monday - Friday</span>
+                    <span class="text-white">9:30 AM - 7:30 PM</span>
                   </div>
                   <div class="flex justify-between gap-8">
-                    <span class="text-dark-400">Sunday</span>
+                    <span class="text-dark-400">Saturday - Sunday</span>
                     <span class="text-gold-500">Closed</span>
                   </div>
                 </div>

@@ -25,24 +25,34 @@
             :key="service.title"
             class="group bg-dark-900 border border-dark-800 rounded-2xl overflow-hidden hover:border-gold-500/20 transition-all duration-300"
           >
-            <!-- Service Image -->
+            <!-- Service Image with hover animation -->
             <div class="relative h-52 overflow-hidden">
-              <img :src="service.image" :alt="service.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img :src="service.image" :alt="service.title" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
               <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/20 to-transparent"></div>
+              <!-- Hover overlay label -->
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <span class="bg-gold-500/90 text-dark-950 px-4 py-2 rounded-full text-xs font-heading font-bold uppercase tracking-wider transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                  {{ service.title }}
+                </span>
+              </div>
             </div>
             <!-- Content -->
             <div class="p-8">
-              <div class="flex items-center gap-3 mb-4">
+              <div class="flex items-center gap-3 mb-6">
                 <div class="w-px h-6 bg-gold-500"></div>
                 <h3 class="text-white font-heading font-semibold text-lg tracking-wide">{{ service.title }}</h3>
               </div>
-              <p class="text-dark-400 text-sm leading-relaxed mb-6 pl-4">{{ service.desc }}</p>
-              <ul class="space-y-2.5 pl-4">
-                <li v-for="item in service.includes" :key="item" class="flex items-center gap-3 text-dark-300 text-sm">
-                  <svg class="w-3.5 h-3.5 text-gold-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                  {{ item }}
-                </li>
-              </ul>
+              <!-- Brand Logos -->
+              <div class="flex flex-wrap items-center gap-4 pl-4">
+                <img
+                  v-for="brand in service.brands"
+                  :key="brand.name"
+                  :src="brand.logo"
+                  :alt="brand.name"
+                  class="h-6 opacity-50 group-hover:opacity-80 transition-opacity duration-300 object-contain"
+                  :title="brand.name"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -95,39 +105,44 @@
 const services = [
   {
     title: 'Tyres & Alignment',
-    desc: 'Wide selection of premium tyres with professional fitting, computerized alignment, and balancing.',
     image: '/images/bmw-m4-yellow-tyres.jpg',
-    includes: ['Tyre replacement & fitting', 'Computerized wheel alignment', 'Wheel balancing', 'Tyre pressure monitoring'],
+    brands: [
+      { name: 'Michelin', logo: '/images/brands/michelin.svg' },
+      { name: 'Continental', logo: '/images/brands/continental.svg' },
+      { name: 'Dunlop', logo: '/images/brands/dunlop.svg' },
+      { name: 'Hankook', logo: '/images/brands/hankook.svg' },
+    ],
   },
   {
     title: 'General Servicing',
-    desc: 'Comprehensive vehicle maintenance to keep your car running at its best.',
     image: '/images/mechanic-oil-service.jpg',
-    includes: ['Engine oil & filter change', 'Multi-point inspection', 'Fluid top-up & replacement', 'Spark plug replacement'],
+    brands: [
+      { name: 'Motul', logo: '/images/brands/motul.png' },
+    ],
   },
   {
     title: 'Engine Diagnostics',
-    desc: 'Advanced computerized diagnostics to identify and resolve engine issues accurately.',
     image: '/images/mercedes-amg-engine-bay.jpg',
-    includes: ['OBD fault code scanning', 'Engine performance analysis', 'Sensor & component testing', 'Check engine light diagnosis'],
+    brands: [],
   },
   {
     title: 'Brake Service',
-    desc: 'Complete brake system maintenance for your safety on the road.',
     image: '/images/porsche-cayman-brake-service.jpg',
-    includes: ['Brake pad replacement', 'Disc rotor inspection & resurfacing', 'Brake fluid change', 'Brake line inspection'],
+    brands: [
+      { name: 'Brembo', logo: '/images/brands/brembo.svg' },
+    ],
   },
   {
     title: 'Battery & Electrical',
-    desc: 'Battery testing, replacement, and full electrical system diagnostics.',
     image: '/images/mustang-bilstein-shocks.jpg',
-    includes: ['Battery health testing', 'Battery replacement', 'Alternator & starter check', 'Electrical fault diagnosis'],
+    brands: [],
   },
   {
-    title: 'Air-Con Service',
-    desc: 'Keep your cabin cool with professional air conditioning servicing.',
+    title: 'Suspension & Ride',
     image: '/images/bmw-8-series-white.jpg',
-    includes: ['A/C gas top-up & recharge', 'Compressor inspection', 'Cabin filter replacement', 'Cooling performance test'],
+    brands: [
+      { name: 'Bilstein', logo: '/images/brands/bilstein.svg' },
+    ],
   },
 ]
 

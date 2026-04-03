@@ -128,13 +128,14 @@
                   <th class="px-3 py-2.5 text-right w-24">Price</th>
                   <th class="px-3 py-2.5 text-right w-16">Disc%</th>
                   <th class="px-3 py-2.5 text-right w-16">Tax%</th>
+                  <th class="px-3 py-2.5 text-center w-28">Service Date</th>
                   <th class="px-3 py-2.5 text-right w-24">Amount</th>
                   <th class="px-3 py-2.5 w-10"></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-dark-800">
                 <tr v-if="!form.items.length">
-                  <td colspan="9" class="px-3 py-8 text-center text-dark-500">Add items using the search above or "Custom Item" button</td>
+                  <td colspan="10" class="px-3 py-8 text-center text-dark-500">Add items using the search above or "Custom Item" button</td>
                 </tr>
                 <tr v-for="(item, idx) in form.items" :key="idx" class="hover:bg-dark-800/20">
                   <td class="px-3 py-2 text-dark-500">{{ idx + 1 }}</td>
@@ -162,6 +163,9 @@
                   </td>
                   <td class="px-3 py-2">
                     <input v-model.number="item.taxRate" type="number" step="0.1" min="0" max="100" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
+                  </td>
+                  <td class="px-3 py-2">
+                    <input v-model="item.serviceDate" type="date" class="w-28 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
                   </td>
                   <td class="px-3 py-2 text-right font-medium text-dark-100">{{ calcItemTotal(item).toFixed(2) }}</td>
                   <td class="px-3 py-2">
@@ -376,6 +380,7 @@ function addStockItem(stock: StockItem) {
     unitPrice: Number(stock.sellPrice),
     discountPercent: 0,
     taxRate: 0,
+    serviceDate: '',
   })
   stockSearch.value = ''
   stockResults.value = []
@@ -390,6 +395,7 @@ function addCustomItem() {
     unitPrice: 0,
     discountPercent: 0,
     taxRate: 0,
+    serviceDate: '',
   })
 }
 
@@ -421,6 +427,7 @@ async function loadDocument() {
       unitPrice: Number(i.unitPrice),
       discountPercent: Number(i.discountPercent),
       taxRate: Number(i.taxRate),
+      serviceDate: i.serviceDate?.split('T')[0] || '',
     }))
   } catch {
     toast.error('Failed to load document')

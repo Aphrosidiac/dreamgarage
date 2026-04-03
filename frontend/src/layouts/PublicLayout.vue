@@ -153,11 +153,11 @@
             <h4 class="text-white font-heading font-semibold text-xs uppercase tracking-wider mb-6">Operating Hours</h4>
             <ul class="space-y-3 text-dark-400 text-sm">
               <li class="flex justify-between">
-                <span>Monday - Saturday</span>
-                <span class="text-white">9:00 AM - 6:00 PM</span>
+                <span>Monday - Friday</span>
+                <span class="text-white">9:30 AM - 7:30 PM</span>
               </li>
               <li class="flex justify-between">
-                <span>Sunday</span>
+                <span>Saturday - Sunday</span>
                 <span class="text-gold-500">Closed</span>
               </li>
             </ul>

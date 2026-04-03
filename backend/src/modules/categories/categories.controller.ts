@@ -5,38 +5,38 @@ export async function listCategories(request: FastifyRequest, reply: FastifyRepl
 
   const categories = await request.server.prisma.stockCategory.findMany({
     where: { branchId },
-    include: { _count: { select: { items: true } } },
-    orderBy: { name: 'asc' },
+    include: { _count: { select: { items: true, brands: true } } },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
   })
 
   return reply.send({ success: true, data: categories })
 }
 
 export async function createCategory(
-  request: FastifyRequest<{ Body: { name: string; code?: string } }>,
+  request: FastifyRequest<{ Body: { name: string; code?: string; sortOrder?: number } }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
-  const { name, code } = request.body
+  const { name, code, sortOrder } = request.body
 
   if (!name || !name.trim()) {
     return reply.status(400).send({ success: false, message: 'Name is required' })
   }
 
   const category = await request.server.prisma.stockCategory.create({
-    data: { branchId, name: name.trim(), code: code?.trim() || null },
+    data: { branchId, name: name.trim(), code: code?.trim() || null, ...(sortOrder !== undefined && { sortOrder }) },
   })
 
   return reply.status(201).send({ success: true, data: category })
 }
 
 export async function updateCategory(
-  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; code?: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; code?: string; sortOrder?: number } }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { name, code } = request.body
+  const { name, code, sortOrder } = request.body
 
   const existing = await request.server.prisma.stockCategory.findFirst({
     where: { id, branchId },
@@ -50,6 +50,7 @@ export async function updateCategory(
     data: {
       ...(name && { name: name.trim() }),
       ...(code !== undefined && { code: code?.trim() || null }),
+      ...(sortOrder !== undefined && { sortOrder }),
     },
   })
 

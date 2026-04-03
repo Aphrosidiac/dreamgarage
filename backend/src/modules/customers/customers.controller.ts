@@ -16,6 +16,9 @@ export async function listCustomers(
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { vehicles: { some: { plate: { contains: search, mode: 'insensitive' } } } },
+        { vehicles: { some: { model: { contains: search, mode: 'insensitive' } } } },
       ],
     }),
   }
@@ -54,6 +57,9 @@ export async function searchCustomers(
       OR: [
         { name: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { vehicles: { some: { plate: { contains: q, mode: 'insensitive' } } } },
+        { vehicles: { some: { model: { contains: q, mode: 'insensitive' } } } },
       ],
     },
     include: {
@@ -95,14 +101,12 @@ export async function createCustomer(
   const { branchId } = request.user
   const { name, phone, email, vehicles } = request.body
 
-  if (!name?.trim()) {
-    return reply.status(400).send({ success: false, message: 'Name is required' })
-  }
+  const customerName = name?.trim() || phone?.trim() || 'Walk-in'
 
   const customer = await request.server.prisma.customer.create({
     data: {
       branchId,
-      name: name.trim(),
+      name: customerName,
       phone: phone?.trim() || null,
       email: email?.trim() || null,
       ...(vehicles?.length && {

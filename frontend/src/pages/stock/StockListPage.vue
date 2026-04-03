@@ -17,11 +17,21 @@
         <!-- Category filter -->
         <select
           v-model="categoryFilter"
-          @change="fetchData"
+          @change="handleCategoryChange"
           class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50"
         >
           <option value="">All Categories</option>
           <option v-for="cat in stock.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        </select>
+        <!-- Brand filter (shows when category selected) -->
+        <select
+          v-if="categoryFilter && filteredBrands.length"
+          v-model="brandFilter"
+          @change="fetchData"
+          class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+        >
+          <option value="">All Brands</option>
+          <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
         </select>
       </div>
       <div class="flex items-center gap-2 ml-4">
@@ -30,6 +40,9 @@
         </BaseButton>
         <BaseButton variant="secondary" size="md" @click="showCategoryModal = true">
           <Tags class="w-4 h-4 mr-1.5" /> Categories
+        </BaseButton>
+        <BaseButton variant="secondary" size="md" @click="openBrandModal">
+          <Award class="w-4 h-4 mr-1.5" /> Brands
         </BaseButton>
         <BaseButton variant="primary" size="md" @click="$router.push('/app/stock/new')">
           <Plus class="w-4 h-4 mr-1.5" /> Add Item
@@ -43,8 +56,15 @@
         <span class="font-mono text-gold-500">{{ value }}</span>
       </template>
       <template #cell-category="{ row }">
-        <BaseBadge v-if="row.category" color="gray">{{ row.category.name }}</BaseBadge>
-        <span v-else class="text-dark-500">—</span>
+        <div class="flex flex-col gap-0.5">
+          <BaseBadge v-if="row.category" color="gray">{{ row.category.name }}</BaseBadge>
+          <span v-else class="text-dark-500">—</span>
+          <span v-if="row.brand" class="text-dark-400 text-xs">{{ row.brand.name }}</span>
+        </div>
+      </template>
+      <template #cell-countryOfOrigin="{ value }">
+        <span v-if="value" :title="value">{{ countryFlag(value) }}</span>
+        <span v-else class="text-dark-600">—</span>
       </template>
       <template #cell-costPrice="{ value }">
         RM {{ Number(value).toFixed(2) }}
@@ -53,7 +73,10 @@
         RM {{ Number(value).toFixed(2) }}
       </template>
       <template #cell-quantity="{ value, row }">
-        <span :class="value <= (row.minStock ?? 5) ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
+        <div>
+          <span :class="value <= (row.minStock ?? 5) ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
+          <span v-if="row.holdQuantity > 0" class="text-yellow-500 text-xs ml-1" title="On Hold">({{ row.holdQuantity }} held)</span>
+        </div>
       </template>
       <template #actions="{ row }">
         <div class="flex items-center gap-1 justify-end">
@@ -122,11 +145,61 @@
         <BaseButton variant="danger" @click="handleDelete" :loading="deleting">Delete</BaseButton>
       </template>
     </BaseModal>
+
+    <!-- Brand Modal -->
+    <BaseModal v-model="showBrandModal" title="Manage Brands" size="md">
+      <div class="space-y-4">
+        <!-- Category selector -->
+        <div>
+          <label class="block text-sm text-dark-300 mb-1">Category</label>
+          <select
+            v-model="brandModalCategoryId"
+            @change="loadBrandsForCategory"
+            class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+          >
+            <option value="">Select a category</option>
+            <option v-for="cat in stock.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+          </select>
+        </div>
+
+        <!-- Add brand form -->
+        <form v-if="brandModalCategoryId" @submit.prevent="handleAddBrand" class="flex gap-2">
+          <input
+            v-model="newBrandName"
+            placeholder="Brand name"
+            class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+          />
+          <input
+            v-model="newBrandCode"
+            placeholder="Code"
+            class="w-20 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+          />
+          <BaseButton variant="primary" size="md" type="submit" :disabled="!newBrandName">Add</BaseButton>
+        </form>
+
+        <!-- Brand list -->
+        <div v-if="brandModalCategoryId" class="divide-y divide-dark-800 max-h-64 overflow-y-auto">
+          <div v-for="b in modalBrands" :key="b.id" class="flex items-center justify-between py-2">
+            <div>
+              <span class="text-dark-100 text-sm">{{ b.name }}</span>
+              <span v-if="b.code" class="text-dark-500 text-xs ml-2">({{ b.code }})</span>
+              <span v-if="b._count" class="text-dark-500 text-xs ml-2">{{ b._count.items }} items</span>
+            </div>
+            <button @click="handleDeleteBrand(b.id)" class="text-dark-400 hover:text-red-400 transition-colors">
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p v-if="!modalBrands.length" class="py-4 text-center text-dark-400 text-sm">No brands for this category yet.</p>
+        </div>
+
+        <p v-else class="py-4 text-center text-dark-500 text-sm">Select a category first to manage its brands.</p>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStockStore } from '../../stores/stock'
 import { useToast } from '../../composables/useToast'
 import BaseButton from '../../components/base/BaseButton.vue'
@@ -134,7 +207,7 @@ import BaseTable from '../../components/base/BaseTable.vue'
 import BasePagination from '../../components/base/BasePagination.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
-import { Search, Plus, Pencil, Trash2, Tags, History, FileDown } from 'lucide-vue-next'
+import { Search, Plus, Pencil, Trash2, Tags, History, FileDown, Award } from 'lucide-vue-next'
 import { exportStockListPdf } from '../../lib/pdf-export'
 import type { StockItem } from '../../types'
 
@@ -150,15 +223,39 @@ const deleting = ref(false)
 const newCategoryName = ref('')
 const newCategoryCode = ref('')
 
+// Brand modal state
+const showBrandModal = ref(false)
+const brandModalCategoryId = ref('')
+const newBrandName = ref('')
+const newBrandCode = ref('')
+const modalBrands = ref<any[]>([])
+
+const brandFilter = ref('')
+
+const filteredBrands = computed(() =>
+  categoryFilter.value ? stock.brands.filter((b) => b.categoryId === categoryFilter.value) : []
+)
+
 const columns = [
   { key: 'itemCode', label: 'Item Code' },
   { key: 'description', label: 'Description' },
-  { key: 'category', label: 'Category' },
+  { key: 'category', label: 'Category / Brand' },
+  { key: 'countryOfOrigin', label: 'Origin' },
   { key: 'uom', label: 'UOM' },
   { key: 'costPrice', label: 'Cost (RM)' },
   { key: 'sellPrice', label: 'Price (RM)' },
   { key: 'quantity', label: 'Qty' },
 ]
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  MY: '\u{1F1F2}\u{1F1FE}', JP: '\u{1F1EF}\u{1F1F5}', CN: '\u{1F1E8}\u{1F1F3}', KR: '\u{1F1F0}\u{1F1F7}',
+  TH: '\u{1F1F9}\u{1F1ED}', ID: '\u{1F1EE}\u{1F1E9}', DE: '\u{1F1E9}\u{1F1EA}', US: '\u{1F1FA}\u{1F1F8}',
+  FR: '\u{1F1EB}\u{1F1F7}', IT: '\u{1F1EE}\u{1F1F9}', GB: '\u{1F1EC}\u{1F1E7}', AU: '\u{1F1E6}\u{1F1FA}',
+  IN: '\u{1F1EE}\u{1F1F3}', TW: '\u{1F1F9}\u{1F1FC}', SG: '\u{1F1F8}\u{1F1EC}',
+}
+function countryFlag(code: string): string {
+  return COUNTRY_FLAGS[code.toUpperCase()] || code
+}
 
 let debounceTimer: ReturnType<typeof setTimeout>
 function debouncedFetch() {
@@ -166,10 +263,17 @@ function debouncedFetch() {
   debounceTimer = setTimeout(() => { stock.page = 1; fetchData() }, 300)
 }
 
+function handleCategoryChange() {
+  brandFilter.value = ''
+  if (categoryFilter.value) stock.fetchBrands(categoryFilter.value)
+  fetchData()
+}
+
 function fetchData() {
   stock.fetchItems({
     search: search.value || undefined,
     categoryId: categoryFilter.value || undefined,
+    brandId: brandFilter.value || undefined,
   })
 }
 
@@ -211,6 +315,47 @@ async function handleDeleteCategory(id: string) {
     toast.success('Category deleted')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed to delete category')
+  }
+}
+
+// Brand modal functions
+function openBrandModal() {
+  brandModalCategoryId.value = ''
+  modalBrands.value = []
+  newBrandName.value = ''
+  newBrandCode.value = ''
+  showBrandModal.value = true
+}
+
+async function loadBrandsForCategory() {
+  if (!brandModalCategoryId.value) {
+    modalBrands.value = []
+    return
+  }
+  await stock.fetchBrands(brandModalCategoryId.value)
+  modalBrands.value = stock.brands.filter((b) => b.categoryId === brandModalCategoryId.value)
+}
+
+async function handleAddBrand() {
+  if (!newBrandName.value || !brandModalCategoryId.value) return
+  try {
+    await stock.createBrand({ categoryId: brandModalCategoryId.value, name: newBrandName.value, code: newBrandCode.value || undefined })
+    toast.success('Brand added')
+    newBrandName.value = ''
+    newBrandCode.value = ''
+    await loadBrandsForCategory()
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to add brand')
+  }
+}
+
+async function handleDeleteBrand(id: string) {
+  try {
+    await stock.deleteBrand(id)
+    toast.success('Brand deleted')
+    await loadBrandsForCategory()
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to delete brand')
   }
 }
 

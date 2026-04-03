@@ -17,6 +17,15 @@
         </BaseSelect>
       </div>
 
+      <div class="grid grid-cols-2 gap-4">
+        <BaseSelect v-model="form.brandId" label="Brand" placeholder="Select brand">
+          <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+        </BaseSelect>
+        <BaseSelect v-model="form.countryOfOrigin" label="Country of Origin" placeholder="Select country">
+          <option v-for="c in countries" :key="c.code" :value="c.code">{{ c.flag }} {{ c.name }}</option>
+        </BaseSelect>
+      </div>
+
       <BaseInput v-model="form.description" label="Description" required />
 
       <div class="grid grid-cols-3 gap-4">
@@ -27,9 +36,10 @@
         <BaseInput v-model="form.sellPrice" label="Sell Price (RM)" type="number" step="0.01" min="0" required />
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-3 gap-4">
         <BaseInput v-model="form.quantity" label="Quantity" type="number" min="0" />
         <BaseInput v-model="form.minStock" label="Min Stock Alert" type="number" min="0" />
+        <BaseInput v-model="form.dotCode" label="DOT Code" placeholder="e.g. 12/06" />
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
@@ -41,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStockStore } from '../../stores/stock'
 import { useToast } from '../../composables/useToast'
@@ -59,6 +69,24 @@ const loadingItem = ref(true)
 
 const uomOptions = ['PCS', 'SET', 'LITRE', 'BOX', 'UNIT', 'PAIR', 'KG']
 
+const countries = [
+  { code: 'MY', name: 'Malaysia', flag: '\u{1F1F2}\u{1F1FE}' },
+  { code: 'JP', name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}' },
+  { code: 'CN', name: 'China', flag: '\u{1F1E8}\u{1F1F3}' },
+  { code: 'KR', name: 'South Korea', flag: '\u{1F1F0}\u{1F1F7}' },
+  { code: 'TH', name: 'Thailand', flag: '\u{1F1F9}\u{1F1ED}' },
+  { code: 'ID', name: 'Indonesia', flag: '\u{1F1EE}\u{1F1E9}' },
+  { code: 'DE', name: 'Germany', flag: '\u{1F1E9}\u{1F1EA}' },
+  { code: 'US', name: 'United States', flag: '\u{1F1FA}\u{1F1F8}' },
+  { code: 'FR', name: 'France', flag: '\u{1F1EB}\u{1F1F7}' },
+  { code: 'IT', name: 'Italy', flag: '\u{1F1EE}\u{1F1F9}' },
+  { code: 'GB', name: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}' },
+  { code: 'TW', name: 'Taiwan', flag: '\u{1F1F9}\u{1F1FC}' },
+  { code: 'IN', name: 'India', flag: '\u{1F1EE}\u{1F1F3}' },
+  { code: 'AU', name: 'Australia', flag: '\u{1F1E6}\u{1F1FA}' },
+  { code: 'SG', name: 'Singapore', flag: '\u{1F1F8}\u{1F1EC}' },
+]
+
 const form = reactive({
   itemCode: '',
   description: '',
@@ -68,6 +96,9 @@ const form = reactive({
   quantity: '0',
   minStock: '5',
   categoryId: '',
+  brandId: '',
+  countryOfOrigin: '',
+  dotCode: '',
 })
 
 async function loadItem() {
@@ -82,6 +113,10 @@ async function loadItem() {
     form.quantity = String(item.quantity)
     form.minStock = String(item.minStock)
     form.categoryId = item.categoryId || ''
+    form.brandId = item.brandId || ''
+    form.countryOfOrigin = item.countryOfOrigin || ''
+    form.dotCode = item.dotCode || ''
+    if (item.categoryId) stock.fetchBrands(item.categoryId)
   } catch {
     toast.error('Failed to load item')
     router.push('/app/stock')
@@ -102,6 +137,9 @@ async function handleSubmit() {
       quantity: parseInt(form.quantity),
       minStock: parseInt(form.minStock) || 5,
       categoryId: form.categoryId || undefined,
+      brandId: form.brandId || undefined,
+      countryOfOrigin: form.countryOfOrigin || undefined,
+      dotCode: form.dotCode || undefined,
     } as any)
     toast.success('Item updated successfully')
     router.push('/app/stock')
@@ -112,10 +150,18 @@ async function handleSubmit() {
   }
 }
 
+const filteredBrands = computed(() =>
+  form.categoryId ? stock.brands.filter((b) => b.categoryId === form.categoryId) : []
+)
+
 onMounted(() => {
   loadItem()
   stock.fetchCategories()
 })
 
 watch(() => route.params.id, () => loadItem())
+watch(() => form.categoryId, (newVal, oldVal) => {
+  if (oldVal && newVal !== oldVal) form.brandId = ''
+  if (newVal) stock.fetchBrands(newVal)
+})
 </script>

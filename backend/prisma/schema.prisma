@@ -25,6 +25,8 @@ model Branch {
   users            User[]
   stockItems       StockItem[]
   categories       StockCategory[]
+  brands           Brand[]
+  workers          Worker[]
   documents        Document[]
   documentSettings DocumentSetting[]
   paymentTerms     PaymentTerm[]
@@ -65,40 +67,73 @@ model StockCategory {
   branchId  String
   name      String
   code      String?
+  sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   branch Branch      @relation(fields: [branchId], references: [id])
   items  StockItem[]
+  brands Brand[]
 
   @@unique([branchId, name])
   @@map("stock_categories")
 }
 
+// ─── BRAND ─────────────────────────────────────────────────
+model Brand {
+  id         String   @id @default(cuid())
+  branchId   String
+  categoryId String
+  name       String
+  code       String?
+  logoUrl    String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  branch   Branch        @relation(fields: [branchId], references: [id])
+  category StockCategory @relation(fields: [categoryId], references: [id])
+  items    StockItem[]
+
+  @@unique([branchId, categoryId, name])
+  @@index([branchId])
+  @@index([categoryId])
+  @@map("brands")
+}
+
 // ─── STOCK ITEM ────────────────────────────────────────────
 model StockItem {
-  id          String   @id @default(cuid())
-  branchId    String
-  categoryId  String?
-  itemCode    String
-  description String
-  uom         String   @default("PCS")
-  costPrice   Decimal  @db.Decimal(12, 2)
-  sellPrice   Decimal  @db.Decimal(12, 2)
-  quantity    Int      @default(0)
-  minStock    Int      @default(5)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  branchId        String
+  categoryId      String?
+  brandId         String?
+  itemCode        String
+  description     String
+  uom             String   @default("PCS")
+  costPrice       Decimal  @db.Decimal(12, 2)
+  sellPrice       Decimal  @db.Decimal(12, 2)
+  quantity        Int      @default(0)
+  holdQuantity    Int      @default(0)
+  minStock        Int      @default(5)
+  countryOfOrigin String?
+  dotCode         String?
+  dotWeek         Int?
+  dotYear         Int?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   branch        Branch         @relation(fields: [branchId], references: [id])
   category      StockCategory? @relation(fields: [categoryId], references: [id])
+  brand         Brand?         @relation(fields: [brandId], references: [id])
   documentItems DocumentItem[]
   history       StockHistory[]
 
   @@unique([branchId, itemCode])
   @@index([branchId])
   @@index([itemCode])
+  @@index([brandId])
   @@map("stock_items")
 }
 
@@ -130,6 +165,26 @@ enum StockMovementType {
   IN
   OUT
   ADJUSTMENT
+  HOLD
+  RELEASE
+}
+
+// ─── WORKER ───────────────────────────────────────────────
+model Worker {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  phone     String?
+  role      String   @default("Foreman")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  documents Document[] @relation("DocumentWorker")
+
+  @@index([branchId])
+  @@map("workers")
 }
 
 // ─── CUSTOMER ──────────────────────────────────────────────
@@ -202,12 +257,14 @@ model Document {
   footerNote     String?
   // Relations
   createdById    String
+  foremanId      String?
   // Conversion tracking
   convertedFromId   String?
   convertedFromType DocumentType?
 
   branch      Branch         @relation(fields: [branchId], references: [id])
   createdBy   User           @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  foreman     Worker?        @relation("DocumentWorker", fields: [foremanId], references: [id])
   customer    Customer?      @relation(fields: [customerId], references: [id])
   vehicle     Vehicle?       @relation(fields: [vehicleId], references: [id])
   items        DocumentItem[]
@@ -264,6 +321,8 @@ model DocumentItem {
   taxAmount      Decimal @db.Decimal(12, 2) @default(0)
   total          Decimal @db.Decimal(12, 2) @default(0)
   sortOrder      Int     @default(0)
+  serviceDate    DateTime?
+  serviceReminderSent Boolean @default(false)
 
   document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   stockItem StockItem? @relation(fields: [stockItemId], references: [id])

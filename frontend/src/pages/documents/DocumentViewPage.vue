@@ -18,6 +18,9 @@
           <BaseButton v-if="['OUTSTANDING', 'PARTIAL'].includes(doc.status)" variant="primary" size="sm" @click="showPaymentModal = true">
             <CreditCard class="w-4 h-4 mr-1" /> Record Payment
           </BaseButton>
+          <BaseButton v-if="doc.status === 'OUTSTANDING'" variant="secondary" size="sm" @click="handleRevertDraft" :loading="statusLoading">
+            <RotateCcw class="w-4 h-4 mr-1" /> Revert to Draft
+          </BaseButton>
           <BaseButton v-if="doc.status !== 'VOID' && doc.status !== 'DRAFT'" variant="danger" size="sm" @click="handleStatus('VOID')" :loading="statusLoading">
             Void
           </BaseButton>
@@ -29,6 +32,9 @@
         <template v-if="doc.documentType === 'DELIVERY_ORDER'">
           <BaseButton v-if="doc.status === 'DRAFT'" variant="primary" size="sm" @click="handleStatus('APPROVED')">Approve</BaseButton>
           <BaseButton v-if="doc.status === 'APPROVED'" variant="primary" size="sm" @click="handleStatus('COMPLETED')">Mark Delivered</BaseButton>
+          <BaseButton v-if="doc.status === 'COMPLETED'" variant="secondary" size="sm" @click="handleRevertDraft" :loading="statusLoading">
+            <RotateCcw class="w-4 h-4 mr-1" /> Revert to Draft
+          </BaseButton>
         </template>
 
         <!-- Convert -->
@@ -116,10 +122,10 @@
               <th class="text-left py-2 font-semibold">Description / Part No</th>
               <th class="text-center py-2 font-semibold w-12">Qty</th>
               <th class="text-left py-2 font-semibold w-12">UOM</th>
-              <th class="text-right py-2 font-semibold w-20">Price RM</th>
-              <th v-if="hasDiscount" class="text-right py-2 font-semibold w-12">Disc%</th>
-              <th v-if="hasTax" class="text-right py-2 font-semibold w-12">Tax%</th>
-              <th class="text-right py-2 font-semibold w-24">Amount RM</th>
+              <th v-if="!isDeliveryOrder" class="text-right py-2 font-semibold w-20">Price RM</th>
+              <th v-if="hasDiscount && !isDeliveryOrder" class="text-right py-2 font-semibold w-12">Disc%</th>
+              <th v-if="hasTax && !isDeliveryOrder" class="text-right py-2 font-semibold w-12">Tax%</th>
+              <th v-if="!isDeliveryOrder" class="text-right py-2 font-semibold w-24">Amount RM</th>
             </tr>
           </thead>
           <tbody>
@@ -128,21 +134,22 @@
               <td class="py-2">
                 <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
                 {{ item.description }}
+                <span v-if="item.serviceDate" class="block text-gray-400 text-xs mt-0.5">Service: {{ fmtDate(item.serviceDate) }}</span>
               </td>
               <td class="py-2 text-center">{{ item.quantity }}</td>
               <td class="py-2">{{ item.unit }}</td>
-              <td class="py-2 text-right">{{ Number(item.unitPrice).toFixed(2) }}</td>
-              <td v-if="hasDiscount" class="py-2 text-right">{{ Number(item.discountPercent) > 0 ? Number(item.discountPercent).toFixed(1) : '' }}</td>
-              <td v-if="hasTax" class="py-2 text-right">{{ Number(item.taxRate) > 0 ? Number(item.taxRate).toFixed(1) : '' }}</td>
-              <td class="py-2 text-right font-medium">{{ Number(item.total).toFixed(2) }}</td>
+              <td v-if="!isDeliveryOrder" class="py-2 text-right">{{ Number(item.unitPrice).toFixed(2) }}</td>
+              <td v-if="hasDiscount && !isDeliveryOrder" class="py-2 text-right">{{ Number(item.discountPercent) > 0 ? Number(item.discountPercent).toFixed(1) : '' }}</td>
+              <td v-if="hasTax && !isDeliveryOrder" class="py-2 text-right">{{ Number(item.taxRate) > 0 ? Number(item.taxRate).toFixed(1) : '' }}</td>
+              <td v-if="!isDeliveryOrder" class="py-2 text-right font-medium">{{ Number(item.total).toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Amount in Words + Totals -->
+      <!-- Amount in Words + Totals (hidden for Delivery Orders) -->
       <div class="bg-white px-8 py-4">
-        <p class="text-xs text-gray-500 italic mb-3">{{ amountInWords }}</p>
+        <p v-if="!isDeliveryOrder" class="text-xs text-gray-500 italic mb-3">{{ amountInWords }}</p>
         <div class="flex justify-between items-start">
           <!-- Notes & Bank Details (left) -->
           <div class="text-xs text-gray-500 max-w-[55%] space-y-3">
@@ -154,8 +161,8 @@
               <p>{{ branch.name }}</p>
             </div>
           </div>
-          <!-- Totals (right) -->
-          <div class="w-56 space-y-1 text-sm">
+          <!-- Totals (right) — hidden for Delivery Orders -->
+          <div v-if="!isDeliveryOrder" class="w-56 space-y-1 text-sm">
             <div class="flex justify-between"><span class="text-gray-500">Subtotal</span><span>{{ Number(doc.subtotal).toFixed(2) }}</span></div>
             <div v-if="Number(doc.taxAmount) > 0" class="flex justify-between"><span class="text-gray-500">Tax</span><span>{{ Number(doc.taxAmount).toFixed(2) }}</span></div>
             <div v-if="Number(doc.discountAmount) > 0" class="flex justify-between"><span class="text-gray-500">Discount</span><span class="text-red-600">-{{ Number(doc.discountAmount).toFixed(2) }}</span></div>
@@ -291,7 +298,7 @@ import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 import {
   ArrowLeft, Send, CreditCard, Download, Printer, Pencil,
-  ArrowRightLeft, GitBranch,
+  ArrowRightLeft, GitBranch, RotateCcw,
 } from 'lucide-vue-next'
 import type { Document, DocumentType, DocumentStatus } from '../../types'
 
@@ -317,6 +324,7 @@ const paymentForm = reactive({
   notes: '',
 })
 
+const isDeliveryOrder = computed(() => doc.value?.documentType === 'DELIVERY_ORDER')
 const hasDiscount = computed(() => doc.value?.items?.some((i) => Number(i.discountPercent) > 0))
 const hasTax = computed(() => doc.value?.items?.some((i) => Number(i.taxRate) > 0))
 
@@ -411,6 +419,12 @@ async function handleStatus(status: DocumentStatus) {
   } finally {
     statusLoading.value = false
   }
+}
+
+async function handleRevertDraft() {
+  if (!doc.value) return
+  if (!confirm('Are you sure you want to revert this document to DRAFT? Stock changes will be reversed.')) return
+  await handleStatus('DRAFT')
 }
 
 async function handleConvert(targetType: DocumentType) {

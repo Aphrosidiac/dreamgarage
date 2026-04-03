@@ -21,6 +21,7 @@ interface DocumentItemInput {
   discountPercent?: number
   taxRate?: number
   sortOrder?: number
+  serviceDate?: string
 }
 
 interface CreateDocumentBody {
@@ -31,6 +32,7 @@ interface CreateDocumentBody {
   vehiclePlate?: string
   vehicleModel?: string
   vehicleMileage?: string
+  foremanId?: string
   issueDate?: string
   dueDate?: string
   notes?: string
@@ -73,6 +75,7 @@ export async function listDocuments(
       where,
       include: {
         createdBy: { select: { id: true, name: true } },
+        foreman: { select: { id: true, name: true, role: true, phone: true } },
         _count: { select: { items: true, payments: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -100,6 +103,7 @@ export async function getDocument(
         orderBy: { createdAt: 'desc' },
       },
       createdBy: { select: { id: true, name: true } },
+      foreman: { select: { id: true, name: true, role: true, phone: true } },
     },
   })
 
@@ -158,6 +162,7 @@ export async function createDocument(
         taxAmount: totals.taxAmount,
         total: totals.total,
         sortOrder: item.sortOrder ?? idx,
+        serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
       }
     })
 
@@ -191,16 +196,42 @@ export async function createDocument(
         terms: body.terms ?? settings?.defaultTerms ?? null,
         footerNote: body.footerNote ?? settings?.footerNotes ?? null,
         createdById: userId,
+        foremanId: body.foremanId || null,
         items: { create: documentItems },
       },
       include: {
         items: { orderBy: { sortOrder: 'asc' } },
         createdBy: { select: { id: true, name: true } },
+        foreman: { select: { id: true, name: true, role: true, phone: true } },
       },
     })
 
-    // Auto-deduct stock for invoices (on creation, status is DRAFT — deduct when confirmed)
-    // Stock deduction happens in updateStatus when moving to OUTSTANDING/CONFIRMED
+    // Hold stock for draft invoices
+    if (documentType === 'INVOICE') {
+      for (const item of documentItems) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          if (stock) {
+            await tx.stockItem.update({
+              where: { id: item.stockItemId },
+              data: { holdQuantity: stock.holdQuantity + item.quantity },
+            })
+            await recordStockHistory({
+              prisma: tx,
+              branchId,
+              stockItemId: item.stockItemId,
+              type: 'HOLD',
+              quantity: item.quantity,
+              previousQty: stock.quantity,
+              newQty: stock.quantity,
+              reason: `Hold for draft ${documentNumber}`,
+              documentId: created.id,
+              createdById: userId,
+            })
+          }
+        }
+      }
+    }
 
     return created
   })
@@ -226,6 +257,22 @@ export async function updateDocument(
   }
 
   const document = await request.server.prisma.$transaction(async (tx) => {
+    // Release holds from old items (for invoices)
+    if (existing.documentType === 'INVOICE') {
+      const oldItems = await tx.documentItem.findMany({ where: { documentId: id } })
+      for (const oldItem of oldItems) {
+        if (oldItem.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: oldItem.stockItemId } })
+          if (stock) {
+            await tx.stockItem.update({
+              where: { id: oldItem.stockItemId },
+              data: { holdQuantity: Math.max(0, stock.holdQuantity - oldItem.quantity) },
+            })
+          }
+        }
+      }
+    }
+
     // Delete old items
     await tx.documentItem.deleteMany({ where: { documentId: id } })
 
@@ -258,12 +305,13 @@ export async function updateDocument(
         taxAmount: totals.taxAmount,
         total: totals.total,
         sortOrder: item.sortOrder ?? idx,
+        serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
       }
     })
 
     const docTotals = calculateDocumentTotals(documentItems, discountAmount)
 
-    return tx.document.update({
+    const updated = await tx.document.update({
       where: { id },
       data: {
         customerName: body.customerName,
@@ -281,13 +329,32 @@ export async function updateDocument(
         notes: body.notes,
         terms: body.terms,
         footerNote: body.footerNote,
+        foremanId: body.foremanId !== undefined ? (body.foremanId || null) : undefined,
         items: { create: documentItems },
       },
       include: {
         items: { orderBy: { sortOrder: 'asc' } },
         createdBy: { select: { id: true, name: true } },
+        foreman: { select: { id: true, name: true, role: true, phone: true } },
       },
     })
+
+    // Re-apply holds for new items (invoices only)
+    if (existing.documentType === 'INVOICE') {
+      for (const item of documentItems) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          if (stock) {
+            await tx.stockItem.update({
+              where: { id: item.stockItemId },
+              data: { holdQuantity: stock.holdQuantity + item.quantity },
+            })
+          }
+        }
+      }
+    }
+
+    return updated
   })
 
   return reply.send({ success: true, data: document })
@@ -313,6 +380,22 @@ export async function deleteDocument(
   }
   if (!['DRAFT', 'CANCELLED'].includes(existing.status)) {
     return reply.status(400).send({ success: false, message: 'Only draft/cancelled documents can be deleted' })
+  }
+
+  // Release holds for draft invoices before deleting
+  if (existing.documentType === 'INVOICE' && existing.status === 'DRAFT') {
+    const items = await request.server.prisma.documentItem.findMany({ where: { documentId: id } })
+    for (const item of items) {
+      if (item.stockItemId) {
+        const stock = await request.server.prisma.stockItem.findUnique({ where: { id: item.stockItemId } })
+        if (stock) {
+          await request.server.prisma.stockItem.update({
+            where: { id: item.stockItemId },
+            data: { holdQuantity: Math.max(0, stock.holdQuantity - item.quantity) },
+          })
+        }
+      }
+    }
   }
 
   await request.server.prisma.document.delete({ where: { id } })
@@ -343,7 +426,7 @@ export async function updateDocumentStatus(
 
   const { userId } = request.user
   const document = await request.server.prisma.$transaction(async (tx) => {
-    // Invoice stock deduction: DRAFT → OUTSTANDING
+    // Invoice: DRAFT → OUTSTANDING — release holds + deduct stock
     if (existing.documentType === 'INVOICE' && existing.status === 'DRAFT' && status === 'OUTSTANDING') {
       for (const item of existing.items) {
         if (item.stockItemId) {
@@ -355,9 +438,22 @@ export async function updateDocumentStatus(
             )
           }
           const newQty = stock!.quantity - item.quantity
+          const newHold = Math.max(0, stock!.holdQuantity - item.quantity)
           await tx.stockItem.update({
             where: { id: item.stockItemId },
-            data: { quantity: newQty },
+            data: { quantity: newQty, holdQuantity: newHold },
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'RELEASE',
+            quantity: item.quantity,
+            previousQty: stock!.quantity,
+            newQty: stock!.quantity,
+            reason: `Release hold for ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
           })
           await recordStockHistory({
             prisma: tx,
@@ -372,6 +468,91 @@ export async function updateDocumentStatus(
             createdById: userId,
           })
         }
+      }
+    }
+
+    // Invoice: DRAFT → CANCELLED — release holds
+    if (existing.documentType === 'INVOICE' && existing.status === 'DRAFT' && status === 'CANCELLED') {
+      for (const item of existing.items) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          if (stock) {
+            await tx.stockItem.update({
+              where: { id: item.stockItemId },
+              data: { holdQuantity: Math.max(0, stock.holdQuantity - item.quantity) },
+            })
+            await recordStockHistory({
+              prisma: tx,
+              branchId,
+              stockItemId: item.stockItemId,
+              type: 'RELEASE',
+              quantity: item.quantity,
+              previousQty: stock.quantity,
+              newQty: stock.quantity,
+              reason: `Cancel draft ${existing.documentNumber}`,
+              documentId: existing.id,
+              createdById: userId,
+            })
+          }
+        }
+      }
+    }
+
+    // Invoice: OUTSTANDING → DRAFT — restore stock + re-apply holds
+    if (existing.documentType === 'INVOICE' && existing.status === 'OUTSTANDING' && status === 'DRAFT') {
+      // Check no payments
+      const paymentCount = await tx.payment.count({ where: { documentId: existing.id } })
+      if (paymentCount > 0) {
+        throw Object.assign(
+          new Error('Cannot revert to draft: payments have been recorded'),
+          { statusCode: 400 }
+        )
+      }
+      for (const item of existing.items) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          const prevQty = stock?.quantity || 0
+          const newQty = prevQty + item.quantity
+          await tx.stockItem.update({
+            where: { id: item.stockItemId },
+            data: { quantity: newQty, holdQuantity: (stock?.holdQuantity || 0) + item.quantity },
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'IN',
+            quantity: item.quantity,
+            previousQty: prevQty,
+            newQty,
+            reason: `Revert to draft ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'HOLD',
+            quantity: item.quantity,
+            previousQty: newQty,
+            newQty,
+            reason: `Re-hold for draft ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
+          })
+        }
+      }
+    }
+
+    // Any type: COMPLETED → DRAFT
+    if (existing.status === 'COMPLETED' && status === 'DRAFT') {
+      const paymentCount = await tx.payment.count({ where: { documentId: existing.id } })
+      if (paymentCount > 0) {
+        throw Object.assign(
+          new Error('Cannot revert to draft: payments have been recorded'),
+          { statusCode: 400 }
+        )
       }
     }
 

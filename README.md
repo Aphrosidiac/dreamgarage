@@ -68,12 +68,17 @@ DreamGarage/
 │       │   └── error-handler.ts   # Global error handler
 │       ├── modules/
 │       │   ├── auth/              # Login, JWT
-│       │   ├── profile/           # User profile, password, branch settings
+│       │   ├── profile/           # User profile, password, branch settings, users list
 │       │   ├── documents/         # Full document system (CRUD, payments, conversions)
 │       │   ├── document-settings/ # Per-type numbering, template, defaults
 │       │   ├── payment-terms/     # Payment term management
-│       │   ├── stock/             # Stock items CRUD
-│       │   ├── categories/        # Stock categories CRUD
+│       │   ├── stock/             # Stock items CRUD with brand, DOT, country
+│       │   ├── categories/        # Stock categories CRUD with sort order
+│       │   ├── brands/            # Brand CRUD (under categories)
+│       │   ├── workers/           # Workshop staff CRUD (foremen, mechanics, etc.)
+│       │   ├── customers/         # Customer + vehicle management
+│       │   ├── debtors/           # Outstanding debtor tracking
+│       │   ├── reports/           # Payment log with filters and export
 │       │   └── dashboard/         # Stats, low stock, recent documents
 │       └── utils/
 │           ├── password.ts        # bcrypt hash/verify
@@ -91,8 +96,12 @@ DreamGarage/
 │       ├── pages/
 │       │   ├── auth/LoginPage.vue
 │       │   ├── dashboard/DashboardPage.vue
-│       │   ├── stock/             # StockList, StockCreate, StockEdit
-│       │   ├── documents/         # DocumentList, DocumentForm, DocumentView, DocumentSettings
+│       │   ├── stock/             # StockList, StockCreate, StockEdit, StockHistory
+│       │   ├── workers/           # WorkerList (with roles management)
+│       │   ├── customers/         # CustomerList, CustomerForm
+│       │   ├── documents/         # DocumentList, DocumentForm, DocumentView, TakeOrder
+│       │   ├── debtors/           # DebtorList, DebtorDetail
+│       │   ├── reports/           # PaymentLog
 │       │   └── website/           # Home, About, Services, Contact
 │       ├── components/base/       # BaseButton, BaseInput, BaseSelect, BaseModal, BaseTable, etc.
 │       ├── layouts/               # DashboardLayout, PublicLayout
@@ -104,19 +113,23 @@ DreamGarage/
 
 ## Database Schema
 
-### Models (10 tables)
+### Models (13 tables)
 
 | Model | Description |
 |-------|-------------|
 | **Branch** | Workshop locations (multi-branch ready) |
 | **User** | Staff accounts with ADMIN/STAFF roles |
-| **StockCategory** | Inventory categories (Tyres, Engine Oil, Brake Parts, etc.) |
-| **StockItem** | Inventory items with code, price, quantity |
+| **Worker** | Workshop staff (foremen, salesmen, mechanics, technicians) |
+| **StockCategory** | Inventory categories with sort order |
+| **Brand** | Brands under categories (e.g. Michelin under Tyres) |
+| **StockItem** | Inventory items with code, price, quantity, hold, DOT, country |
+| **StockHistory** | Audit trail for all stock movements (IN/OUT/HOLD/RELEASE) |
 | **Document** | Quotations, invoices, receipts, delivery orders |
-| **DocumentItem** | Line items on documents with price, discount, tax |
+| **DocumentItem** | Line items with price, discount, tax, service date |
 | **Payment** | Payment records linked to invoices |
 | **DocumentSetting** | Per-type numbering config, template, defaults |
 | **PaymentTerm** | Configurable payment terms (Net 7, Net 30, etc.) |
+| **Customer** | Customers with vehicles |
 
 All core tables include `branchId` for multi-branch support.
 
@@ -164,10 +177,14 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - Resets yearly
 
 **Stock Integration:**
-- Invoice DRAFT → OUTSTANDING: stock auto-deducted for items with stockItemId
+- Invoice DRAFT: stock placed on hold (holdQuantity)
+- Invoice DRAFT → OUTSTANDING: hold released + stock deducted
+- Invoice OUTSTANDING → DRAFT: stock restored + hold re-applied (blocked if payments exist)
 - Invoice → VOID: stock auto-restored
+- Invoice DRAFT → CANCELLED/DELETE: hold released
 - Quotations, receipts, delivery orders do NOT affect stock
 - Custom items (no stockItemId) skip stock deduction
+- Full audit trail with HOLD/RELEASE stock history entries
 
 **Payment System:**
 - Record payments against invoices
@@ -181,12 +198,48 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 
 ### Stock Management
 - Full CRUD with item code, description, UOM, cost/sell price, quantity
-- 9 default categories (Tyres, Engine Oil, Brake Parts, Filters, Battery, etc.)
+- 9 default categories with sort order (Tyres, Engine Oil, Brake Parts, etc.)
+- Brand hierarchy under categories (e.g. Michelin, Continental under Tyres)
+- Brand CRUD with manage modal
+- DOT code tracking for tyres (week/year format, auto-parsed)
+- Country of origin with flag emoji display
+- Stock hold system (draft invoices reserve stock)
 - Search by item code or description
-- Filter by category
+- Filter by category and brand
 - Pagination with configurable page size
 - Soft-delete (isActive flag) to preserve invoice references
 - Branch-scoped (all queries filter by user's branchId)
+
+### Workers
+- Separate from system login accounts
+- CRUD for workshop staff (foremen, salesmen, mechanics, technicians)
+- Dynamic role management (add/delete roles, same pattern as stock categories)
+- Role filter tabs on list page
+- Assigned to documents as foreman/salesperson
+- Soft-delete when worker has associated documents
+
+### Take Order
+- Streamlined single-page order entry
+- Quick customer search (universal: name, phone, plate, model)
+- Inline vehicle selection from customer
+- Worker/foreman selection dropdown
+- Fast stock item search per line
+- Creates draft invoice directly
+
+### Debtor Tracking
+- List of customers with outstanding/partial/overdue invoices
+- Total owed per customer, grand total
+- Detail view shows all unpaid invoices per customer with payment history
+- Links to invoice view for recording payments
+- Works without customerId — groups by customer snapshot fields
+
+### Payment Log (A/R)
+- Daily/date-range payment log with pagination
+- Payment method tabs (Cash, Bank Transfer, Credit Card, E-Wallet, etc.)
+- Search by invoice number, customer, plate
+- Summary cards: total collections, transaction count, method breakdown
+- Print template: white document-style with company header, signature lines
+- Prints all matching payments (not just current page)
 
 ### Dashboard
 - Total stock items and quantity
@@ -202,6 +255,10 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - WhatsApp contact integration
 - Google Maps location embed
 - Staff Login link in footer
+- Services page shows brand logos per service (no descriptions)
+- Service card hover animations (zoom + gold label overlay)
+- "Ready to Visit?" section on homepage (3-step guide)
+- Operating hours: Mon-Fri 9:30 AM - 7:30 PM
 
 ### Profile & Settings
 - Edit user name and email
@@ -227,9 +284,26 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/profile` | Get full profile with branch details |
+| GET | `/api/v1/profile/users` | List staff accounts (for dropdowns) |
 | PUT | `/api/v1/profile` | Update name and email |
 | PUT | `/api/v1/profile/password` | Change password |
 | PUT | `/api/v1/profile/branch` | Update branch details (admin only) |
+
+### Workers
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/workers` | List active workers |
+| POST | `/api/v1/workers` | Create worker |
+| PUT | `/api/v1/workers/:id` | Update worker |
+| DELETE | `/api/v1/workers/:id` | Delete/deactivate worker |
+
+### Brands
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/brands` | List brands (filter: categoryId) |
+| POST | `/api/v1/brands` | Create brand |
+| PUT | `/api/v1/brands/:id` | Update brand |
+| DELETE | `/api/v1/brands/:id` | Delete brand (only if no items) |
 
 ### Documents
 | Method | Endpoint | Description |
@@ -273,6 +347,17 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 | POST | `/api/v1/categories` | Create category |
 | PUT | `/api/v1/categories/:id` | Update category |
 | DELETE | `/api/v1/categories/:id` | Delete (only if no items) |
+
+### Debtors
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/debtors` | List customers with outstanding invoices |
+| GET | `/api/v1/debtors/:id` | Get debtor detail with unpaid invoices |
+
+### Reports
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/reports/payment-log` | Payment log (filter: from, to, method, search, page) |
 
 ### Dashboard
 | Method | Endpoint | Description |
@@ -341,12 +426,12 @@ pm2 start dist/server.js --name dreamgarage-api
 
 ## Phase 2 (Planned)
 
-- Customer management with vehicle history
+- Service date auto-reminder system (WhatsApp/SMS notification when service date arrives)
 - Supplier/vendor management
 - Advanced stock (reorder levels, min/max pricing, purchase tax)
 - Multi-branch support (branch switching UI)
 - Role-based access control (granular permissions)
-- Reporting & analytics (sales, stock movement, profit margins)
+- Advanced reporting & analytics (sales, stock movement, profit margins)
 - E-Invoice (Malaysia MyInvois) integration
 
 ## Client

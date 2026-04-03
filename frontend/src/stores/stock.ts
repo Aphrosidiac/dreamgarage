@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../lib/api'
-import type { StockItem, StockCategory, StockHistory, PaginatedResponse } from '../types'
+import type { StockItem, StockCategory, StockHistory, Brand, PaginatedResponse } from '../types'
 
 export const useStockStore = defineStore('stock', () => {
   const items = ref<StockItem[]>([])
@@ -67,6 +67,33 @@ export const useStockStore = defineStore('stock', () => {
     categories.value = categories.value.filter((c) => c.id !== id)
   }
 
+  // Brands
+  const brands = ref<Brand[]>([])
+
+  async function fetchBrands(categoryId?: string) {
+    const params = categoryId ? { categoryId } : {}
+    const { data } = await api.get('/brands', { params })
+    brands.value = data.data
+  }
+
+  async function createBrand(payload: { categoryId: string; name: string; code?: string; logoUrl?: string; sortOrder?: number }) {
+    const { data } = await api.post('/brands', payload)
+    brands.value.push(data.data)
+    return data.data
+  }
+
+  async function updateBrand(id: string, payload: Partial<Brand>) {
+    const { data } = await api.put(`/brands/${id}`, payload)
+    const idx = brands.value.findIndex((b) => b.id === id)
+    if (idx !== -1) brands.value[idx] = data.data
+    return data.data
+  }
+
+  async function deleteBrand(id: string) {
+    await api.delete(`/brands/${id}`)
+    brands.value = brands.value.filter((b) => b.id !== id)
+  }
+
   // Stock History
   const history = ref<StockHistory[]>([])
   const historyTotal = ref(0)
@@ -108,9 +135,10 @@ export const useStockStore = defineStore('stock', () => {
   }
 
   return {
-    items, categories, total, page, limit, totalPages, loading,
+    items, categories, brands, total, page, limit, totalPages, loading,
     fetchItems, fetchCategories, createItem, updateItem, deleteItem, getItem,
     createCategory, updateCategory, deleteCategory,
+    fetchBrands, createBrand, updateBrand, deleteBrand,
     history, historyTotal, historyPage, historyTotalPages, historyLoading,
     fetchHistory, fetchAllHistory, adjustStock,
   }

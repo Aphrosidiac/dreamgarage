@@ -19,7 +19,21 @@ export interface StockCategory {
   id: string
   name: string
   code?: string
+  sortOrder: number
   branchId: string
+  _count?: { items: number; brands: number }
+}
+
+export interface Brand {
+  id: string
+  branchId: string
+  categoryId: string
+  name: string
+  code?: string
+  logoUrl?: string
+  sortOrder: number
+  isActive: boolean
+  category?: { id: string; name: string }
   _count?: { items: number }
 }
 
@@ -31,11 +45,31 @@ export interface StockItem {
   costPrice: number
   sellPrice: number
   quantity: number
+  holdQuantity: number
   minStock: number
   categoryId?: string
+  brandId?: string
   category?: StockCategory
+  brand?: Brand
+  countryOfOrigin?: string
+  dotCode?: string
+  dotWeek?: number
+  dotYear?: number
   branchId: string
   isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// ─── WORKER ───────────────────────────────────────────────
+export interface Worker {
+  id: string
+  branchId: string
+  name: string
+  phone?: string
+  role: string
+  isActive: boolean
+  _count?: { documents: number }
   createdAt: string
   updatedAt: string
 }
@@ -65,6 +99,8 @@ export interface DocumentItem {
   taxAmount: number
   total: number
   sortOrder: number
+  serviceDate?: string
+  serviceReminderSent?: boolean
 }
 
 export interface Payment {
@@ -102,6 +138,8 @@ export interface Document {
   terms?: string
   footerNote?: string
   createdBy?: User
+  foremanId?: string
+  foreman?: { id: string; name: string; role: string; phone?: string }
   items?: DocumentItem[]
   payments?: Payment[]
   convertedFromId?: string
@@ -168,7 +206,7 @@ export interface Customer {
 }
 
 // ─── STOCK HISTORY ─────────────────────────────────────────
-export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT'
+export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT' | 'HOLD' | 'RELEASE'
 
 export interface StockHistory {
   id: string
@@ -194,6 +232,7 @@ export interface DocumentFormData {
   vehiclePlate?: string
   vehicleModel?: string
   vehicleMileage?: string
+  foremanId?: string
   issueDate?: string
   dueDate?: string
   notes?: string
@@ -210,6 +249,7 @@ export interface DocumentFormData {
     discountPercent?: number
     taxRate?: number
     sortOrder?: number
+    serviceDate?: string
   }[]
 }
 

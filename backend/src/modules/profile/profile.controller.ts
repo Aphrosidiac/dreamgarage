@@ -1,6 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { hashPassword, verifyPassword } from '../../utils/password.js'
 
+export async function listUsers(request: FastifyRequest, reply: FastifyReply) {
+  const { branchId } = request.user
+  const users = await request.server.prisma.user.findMany({
+    where: { branchId, isActive: true },
+    select: { id: true, name: true, email: true, role: true },
+    orderBy: { name: 'asc' },
+  })
+  return reply.send({ success: true, data: users })
+}
+
 export async function getProfile(request: FastifyRequest, reply: FastifyReply) {
   const { userId } = request.user
 

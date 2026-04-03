@@ -75,7 +75,7 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, LogOut, Menu } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, HardHat, LogOut, Menu } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -84,9 +84,13 @@ const sidebarOpen = ref(false)
 
 const navItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/app/take-order', label: 'Take Order', icon: ClipboardList },
   { path: '/app/stock', label: 'Stock', icon: Package },
+  { path: '/app/workers', label: 'Workers', icon: HardHat },
   { path: '/app/customers', label: 'Customers', icon: Users },
   { path: '/app/documents', label: 'Documents', icon: FileText },
+  { path: '/app/debtors', label: 'Debtors', icon: AlertCircle },
+  { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3 },
 ]
 
 const isActive = (path: string) => route.path.startsWith(path)
@@ -94,9 +98,13 @@ const isActive = (path: string) => route.path.startsWith(path)
 const pageTitle = computed(() => {
   const name = route.name as string
   if (name?.startsWith('stock')) return 'Stock Management'
+  if (name?.startsWith('worker')) return 'Workers'
   if (name?.startsWith('customer')) return 'Customers'
   if (name?.startsWith('document')) return 'Documents'
+  if (name === 'take-order') return 'Take Order'
   if (name === 'dashboard') return 'Dashboard'
+  if (name?.startsWith('debtor')) return 'Debtors'
+  if (name === 'payment-log') return 'Payment Log'
   if (name === 'profile') return 'Profile'
   return 'Dream Garage'
 })
