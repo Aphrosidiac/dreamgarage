@@ -19,6 +19,11 @@
               placeholder="Search by phone, plate number, name, or vehicle model..."
               class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50"
             />
+            <!-- Selected customer indicator -->
+            <div v-if="selectedCustomer" class="mt-2 flex items-center gap-2">
+              <span class="text-green-400 text-xs bg-green-400/10 px-2 py-1 rounded">Existing customer: {{ selectedCustomer.name }}</span>
+              <button type="button" @click="clearCustomer" class="text-dark-500 hover:text-red-400 text-xs">(clear)</button>
+            </div>
             <!-- Search Results Dropdown -->
             <div v-if="searchResults.length && showResults" class="absolute z-20 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
               <button
@@ -34,7 +39,7 @@
                 </div>
                 <div v-if="c.vehicles?.length" class="flex gap-2 mt-1">
                   <span v-for="v in c.vehicles" :key="v.id" class="text-gold-500 text-xs bg-gold-500/10 px-2 py-0.5 rounded">
-                    {{ v.plate }} {{ v.model ? `(${v.model})` : '' }}
+                    {{ v.plate }} <span v-if="v.make || v.model" class="text-dark-400">({{ [v.make, v.model].filter(Boolean).join(' ') }})</span>
                   </span>
                 </div>
               </button>
@@ -43,10 +48,32 @@
 
           <div class="grid grid-cols-3 gap-4">
             <BaseInput v-model="form.customerPhone" label="Phone" placeholder="e.g. 012-3456789" />
-            <BaseInput v-model="form.customerName" label="Name (optional)" placeholder="Walk-in customer" />
+            <BaseInput v-model="form.customerName" label="Name (optional)" placeholder="Customer name" />
             <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select worker">
               <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }} ({{ w.role }})</option>
             </BaseSelect>
+          </div>
+
+          <!-- Vehicle Switcher (when customer has multiple vehicles) -->
+          <div v-if="selectedCustomer && selectedCustomer.vehicles && selectedCustomer.vehicles.length > 1" class="mt-2">
+            <label class="block text-sm text-dark-300 mb-1">Select Vehicle</label>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                v-for="v in selectedCustomer.vehicles"
+                :key="v.id"
+                type="button"
+                @click="selectVehicle(v)"
+                :class="[
+                  'px-3 py-2 rounded-lg text-sm border transition-colors',
+                  selectedVehicleId === v.id
+                    ? 'bg-gold-500/10 border-gold-500/40 text-gold-500'
+                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:border-dark-600',
+                ]"
+              >
+                <span class="font-mono font-medium">{{ v.plate }}</span>
+                <span v-if="v.make || v.model" class="text-xs ml-1.5 opacity-70">{{ [v.make, v.model].filter(Boolean).join(' ') }}</span>
+              </button>
+            </div>
           </div>
 
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mt-6 mb-3">Vehicle Info</h3>
@@ -75,7 +102,6 @@
         <div class="space-y-3">
           <div v-for="(item, idx) in form.items" :key="idx" class="flex items-start gap-3 bg-dark-800/50 rounded-lg p-3">
             <div class="flex-1 grid grid-cols-12 gap-2">
-              <!-- Stock Search -->
               <div class="col-span-5 relative">
                 <input
                   v-model="item.searchTerm"
@@ -120,7 +146,6 @@
           </div>
         </div>
 
-        <!-- Total -->
         <div class="flex justify-end mt-4 pt-4 border-t border-dark-800">
           <div class="text-right">
             <span class="text-dark-400 text-sm mr-4">Total:</span>
@@ -148,6 +173,61 @@
         </BaseButton>
       </div>
     </form>
+
+    <!-- New Customer Confirmation Modal -->
+    <BaseModal v-model="showNewCustomerModal" title="New Customer Record" size="sm">
+      <p class="text-dark-300 text-sm">
+        No existing customer selected. A <strong class="text-dark-100">new customer record</strong> will be created from this order:
+      </p>
+      <div class="mt-3 bg-dark-800/50 rounded-lg p-3 space-y-1 text-sm">
+        <p v-if="form.customerName" class="text-dark-200"><span class="text-dark-500 w-16 inline-block">Name:</span> {{ form.customerName }}</p>
+        <p v-if="form.customerPhone" class="text-dark-200"><span class="text-dark-500 w-16 inline-block">Phone:</span> {{ form.customerPhone }}</p>
+        <p v-if="form.vehiclePlate" class="text-gold-500"><span class="text-dark-500 w-16 inline-block">Vehicle:</span> {{ form.vehiclePlate }} {{ [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') }}</p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showNewCustomerModal = false">Cancel</BaseButton>
+        <BaseButton variant="primary" :loading="saving" @click="confirmSubmit">Confirm & Create</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Duplicate Customer Warning Modal -->
+    <BaseModal v-model="showDuplicateModal" title="Possible Duplicate" size="sm">
+      <p class="text-dark-300 text-sm mb-3">
+        We found an existing customer that may match. Did you mean:
+      </p>
+      <div class="space-y-2">
+        <button
+          v-for="c in duplicateMatches"
+          :key="c.id"
+          type="button"
+          @click="useDuplicate(c)"
+          class="w-full text-left bg-dark-800 border border-dark-700 rounded-lg px-4 py-3 hover:border-gold-500/40 transition-colors"
+        >
+          <div class="flex justify-between">
+            <span class="text-dark-100 font-medium">{{ c.name }}</span>
+            <span class="text-dark-400 text-xs">{{ c.phone }}</span>
+          </div>
+          <div v-if="c.vehicles?.length" class="flex gap-2 mt-1">
+            <span v-for="v in c.vehicles" :key="v.id" class="text-gold-500 text-xs bg-gold-500/10 px-2 py-0.5 rounded">{{ v.plate }}</span>
+          </div>
+        </button>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="skipDuplicate">No, create new customer</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- New Vehicle for Existing Customer Modal -->
+    <BaseModal v-model="showNewVehicleModal" title="New Vehicle Detected" size="sm">
+      <p class="text-dark-300 text-sm">
+        The plate <strong class="text-gold-500">{{ form.vehiclePlate }}</strong> is not registered for <strong class="text-dark-100">{{ selectedCustomer?.name }}</strong>.
+      </p>
+      <p class="text-dark-300 text-sm mt-2">Add it as a new vehicle for this customer?</p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showNewVehicleModal = false; proceedSubmit()">Skip</BaseButton>
+        <BaseButton variant="primary" @click="showNewVehicleModal = false; addNewVehicleAndSubmit()">Yes, add vehicle</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -155,18 +235,17 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDocumentStore } from '../../stores/documents'
-import { useStockStore } from '../../stores/stock'
 import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseButton from '../../components/base/BaseButton.vue'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
+import BaseModal from '../../components/base/BaseModal.vue'
 import { Plus, Trash2 } from 'lucide-vue-next'
-import type { Customer, StockItem } from '../../types'
+import type { Customer, Vehicle, StockItem } from '../../types'
 
 const router = useRouter()
 const docStore = useDocumentStore()
-const stockStore = useStockStore()
 const toast = useToast()
 const saving = ref(false)
 
@@ -174,6 +253,16 @@ const workers = ref<{ id: string; name: string; role: string }[]>([])
 const customerSearch = ref('')
 const searchResults = ref<Customer[]>([])
 const showResults = ref(false)
+
+// Selected customer/vehicle tracking
+const selectedCustomer = ref<Customer | null>(null)
+const selectedVehicleId = ref('')
+
+// Modals
+const showNewCustomerModal = ref(false)
+const showDuplicateModal = ref(false)
+const showNewVehicleModal = ref(false)
+const duplicateMatches = ref<Customer[]>([])
 
 interface OrderItem {
   stockItemId?: string
@@ -207,13 +296,8 @@ const orderTotal = computed(() =>
 
 function addItem() {
   form.items.push({
-    searchTerm: '',
-    description: '',
-    quantity: 1,
-    unitPrice: 0,
-    unit: 'PCS',
-    showDropdown: false,
-    stockResults: [],
+    searchTerm: '', description: '', quantity: 1, unitPrice: 0,
+    unit: 'PCS', showDropdown: false, stockResults: [],
   })
 }
 
@@ -221,15 +305,12 @@ function removeItem(idx: number) {
   form.items.splice(idx, 1)
 }
 
-// Customer search
+// ─── Customer search ──────────────────────────────
 let customerTimer: ReturnType<typeof setTimeout>
 function debouncedSearch() {
   clearTimeout(customerTimer)
   customerTimer = setTimeout(async () => {
-    if (customerSearch.value.length < 1) {
-      searchResults.value = []
-      return
-    }
+    if (customerSearch.value.length < 1) { searchResults.value = []; return }
     try {
       const { data } = await api.get('/customers/search', { params: { q: customerSearch.value } })
       searchResults.value = data.data
@@ -239,27 +320,46 @@ function debouncedSearch() {
 }
 
 function selectCustomer(c: Customer) {
+  selectedCustomer.value = c
   form.customerName = c.name
   form.customerPhone = c.phone || ''
   if (c.vehicles?.length) {
     const defaultV = c.vehicles.find((v) => v.isDefault) || c.vehicles[0]
-    form.vehiclePlate = defaultV.plate
-    form.vehicleModel = defaultV.model || ''
-    form.vehicleMileage = defaultV.mileage || ''
+    selectVehicle(defaultV)
   }
   showResults.value = false
   customerSearch.value = ''
 }
 
-// Stock item search per line
+function selectVehicle(v: Vehicle) {
+  selectedVehicleId.value = v.id
+  form.vehiclePlate = v.plate
+  form.vehicleMake = v.make || ''
+  form.vehicleModel = v.model || ''
+  form.vehicleColor = v.color || ''
+  form.vehicleMileage = v.mileage || ''
+  form.vehicleEngineNo = v.engineNo || ''
+}
+
+function clearCustomer() {
+  selectedCustomer.value = null
+  selectedVehicleId.value = ''
+  form.customerName = ''
+  form.customerPhone = ''
+  form.vehiclePlate = ''
+  form.vehicleMake = ''
+  form.vehicleModel = ''
+  form.vehicleColor = ''
+  form.vehicleMileage = ''
+  form.vehicleEngineNo = ''
+}
+
+// ─── Stock search ─────────────────────────────────
 let stockTimers: Record<number, ReturnType<typeof setTimeout>> = {}
 function searchStock(idx: number, term: string) {
   clearTimeout(stockTimers[idx])
   form.items[idx].searchTerm = term
-  if (term.length < 1) {
-    form.items[idx].stockResults = []
-    return
-  }
+  if (term.length < 1) { form.items[idx].stockResults = []; return }
   stockTimers[idx] = setTimeout(async () => {
     try {
       const { data } = await api.get('/stock', { params: { search: term, limit: 8 } })
@@ -280,8 +380,115 @@ function selectStock(idx: number, s: StockItem) {
   form.items[idx].stockResults = []
 }
 
+// ─── Submit flow ──────────────────────────────────
 async function handleSubmit() {
   if (form.items.length === 0) return
+
+  if (selectedCustomer.value) {
+    // Existing customer — check if plate changed (new vehicle?)
+    const currentPlate = form.vehiclePlate.trim().toUpperCase()
+    const knownPlates = selectedCustomer.value.vehicles?.map((v) => v.plate.toUpperCase()) || []
+
+    if (currentPlate && !knownPlates.includes(currentPlate)) {
+      showNewVehicleModal.value = true
+      return
+    }
+
+    // Update mileage if changed
+    await updateMileageIfNeeded()
+    await proceedSubmit()
+  } else {
+    // No customer selected — check for duplicates first
+    if (form.customerPhone || form.vehiclePlate) {
+      try {
+        const q = form.customerPhone || form.vehiclePlate
+        const { data } = await api.get('/customers/search', { params: { q } })
+        if (data.data.length > 0) {
+          duplicateMatches.value = data.data
+          showDuplicateModal.value = true
+          return
+        }
+      } catch { /* ignore */ }
+    }
+    // No duplicates — show new customer confirmation
+    showNewCustomerModal.value = true
+  }
+}
+
+function useDuplicate(c: Customer) {
+  selectCustomer(c)
+  showDuplicateModal.value = false
+  toast.info('Customer selected — review vehicle info and submit again')
+}
+
+function skipDuplicate() {
+  showDuplicateModal.value = false
+  showNewCustomerModal.value = true
+}
+
+async function confirmSubmit() {
+  showNewCustomerModal.value = false
+  saving.value = true
+  try {
+    // Auto-create customer
+    const vehicleData = form.vehiclePlate ? [{
+      plate: form.vehiclePlate,
+      make: form.vehicleMake || undefined,
+      model: form.vehicleModel || undefined,
+      color: form.vehicleColor || undefined,
+      engineNo: form.vehicleEngineNo || undefined,
+      mileage: form.vehicleMileage || undefined,
+    }] : undefined
+
+    const { data: custData } = await api.post('/customers', {
+      name: form.customerName || form.customerPhone || 'Walk-in',
+      phone: form.customerPhone || undefined,
+      vehicles: vehicleData,
+    })
+    const newCustomer = custData.data
+    selectedCustomer.value = newCustomer
+    if (newCustomer.vehicles?.length) {
+      selectedVehicleId.value = newCustomer.vehicles[0].id
+    }
+    toast.success(`Customer "${newCustomer.name}" created`)
+    await proceedSubmit()
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to create customer')
+    saving.value = false
+  }
+}
+
+async function addNewVehicleAndSubmit() {
+  if (!selectedCustomer.value) return
+  try {
+    await api.post(`/customers/${selectedCustomer.value.id}/vehicles`, {
+      plate: form.vehiclePlate,
+      make: form.vehicleMake || undefined,
+      model: form.vehicleModel || undefined,
+      color: form.vehicleColor || undefined,
+      engineNo: form.vehicleEngineNo || undefined,
+      mileage: form.vehicleMileage || undefined,
+    })
+    toast.success(`Vehicle ${form.vehiclePlate} added to ${selectedCustomer.value.name}`)
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to add vehicle')
+  }
+  await proceedSubmit()
+}
+
+async function updateMileageIfNeeded() {
+  if (!selectedCustomer.value || !selectedVehicleId.value || !form.vehicleMileage) return
+  const vehicle = selectedCustomer.value.vehicles?.find((v) => v.id === selectedVehicleId.value)
+  if (vehicle && form.vehicleMileage !== (vehicle.mileage || '')) {
+    try {
+      await api.put(`/customers/${selectedCustomer.value.id}/vehicles/${selectedVehicleId.value}`, {
+        mileage: form.vehicleMileage,
+      })
+    } catch { /* silent — don't block order creation */ }
+  }
+}
+
+async function proceedSubmit() {
   saving.value = true
   try {
     const vehicleModelFull = [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || undefined
@@ -316,14 +523,13 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  addItem() // Start with one empty item
+  addItem()
   try {
     const { data } = await api.get('/workers')
     workers.value = data.data
   } catch { /* ignore */ }
 })
 
-// Close dropdowns on outside click
 document.addEventListener('click', () => {
   showResults.value = false
   form.items.forEach((item) => { item.showDropdown = false })

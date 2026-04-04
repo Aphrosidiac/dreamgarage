@@ -210,6 +210,14 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - Soft-delete (isActive flag) to preserve invoice references
 - Branch-scoped (all queries filter by user's branchId)
 
+### Customers & Vehicles
+- Customer CRUD with optional name (defaults to phone number or "Walk-in")
+- Universal search across name, phone, email, vehicle plate, vehicle model
+- Vehicle management per customer: plate, make, model, color, mileage, engine no
+- Multiple vehicles per customer with default vehicle selection
+- Auto-created from Take Order page when no existing customer is selected
+- Duplicate detection by phone/plate before creating new records
+
 ### Workers
 - Separate from system login accounts
 - CRUD for workshop staff (foremen, salesmen, mechanics, technicians)
@@ -219,19 +227,43 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - Soft-delete when worker has associated documents
 
 ### Take Order
-- Streamlined single-page order entry
+Streamlined single-page order entry that also manages the customer database automatically.
+
+**Order Entry:**
 - Quick customer search (universal: name, phone, plate, model)
-- Inline vehicle selection from customer
+- Vehicle switcher pills when customer has multiple vehicles
 - Worker/foreman selection dropdown
-- Fast stock item search per line
+- Fast stock item search per line with price auto-fill
 - Creates draft invoice directly
 
+**Customer & Vehicle Flow:**
+```
+Submit Order
+  ├── Existing customer selected?
+  │     ├── Plate changed (new vehicle)?
+  │     │     └── "New Vehicle Detected" modal → add vehicle to customer
+  │     ├── Mileage changed?
+  │     │     └── Auto-update vehicle mileage (silent)
+  │     └── Create invoice with customerId + vehicleId linked
+  │
+  └── No customer selected (new)?
+        ├── Phone or plate matches existing customer?
+        │     └── "Possible Duplicate" modal → select existing or skip
+        ├── No duplicates found?
+        │     └── "New Customer Record" modal → confirm creation
+        └── Auto-create Customer + Vehicle → then create invoice
+```
+
+**Vehicle Info Fields (matching AutoCount):**
+- Plate number, Make, Model, Color, Mileage (KM), Engine No
+
+All orders are recorded — no anonymous walk-ins. Customer database builds up naturally from daily orders.
+
 ### Debtor Tracking
-- List of customers with outstanding/partial/overdue invoices
-- Total owed per customer, grand total
+- Queries unpaid invoices directly from Document table (works regardless of customerId)
+- Groups by customer name/phone, sorted by total owed
 - Detail view shows all unpaid invoices per customer with payment history
 - Links to invoice view for recording payments
-- Works without customerId — groups by customer snapshot fields
 
 ### Payment Log (A/R)
 - Daily/date-range payment log with pagination
