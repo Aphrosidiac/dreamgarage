@@ -42,17 +42,7 @@
                 <div class="w-px h-6 bg-gold-500"></div>
                 <h3 class="text-white font-heading font-semibold text-lg tracking-wide">{{ service.title }}</h3>
               </div>
-              <!-- Brand Logos -->
-              <div class="flex flex-wrap items-center gap-4 pl-4">
-                <img
-                  v-for="brand in service.brands"
-                  :key="brand.name"
-                  :src="brand.logo"
-                  :alt="brand.name"
-                  class="h-6 opacity-50 group-hover:opacity-80 transition-opacity duration-300 object-contain"
-                  :title="brand.name"
-                />
-              </div>
+              <p class="text-dark-400 text-sm leading-relaxed pl-4">{{ service.desc }}</p>
             </div>
           </div>
         </div>
@@ -119,43 +109,32 @@ const services = [
   {
     title: 'Tyres & Alignment',
     image: '/images/bmw-m4-yellow-tyres.jpg',
-    brands: [
-      { name: 'Michelin', logo: '/images/brands/michelin.svg' },
-      { name: 'Continental', logo: '/images/brands/continental.svg' },
-      { name: 'Dunlop', logo: '/images/brands/dunlop.svg' },
-      { name: 'Hankook', logo: '/images/brands/hankook.svg' },
-    ],
+    desc: 'Supply & fitting, computerized wheel alignment, balancing, rotation, and nitrogen fill for all vehicle types.',
   },
   {
     title: 'General Servicing',
     image: '/images/mechanic-oil-service.jpg',
-    brands: [
-      { name: 'Motul', logo: '/images/brands/motul.png' },
-    ],
+    desc: 'Routine oil changes, filter replacements, fluid top-ups, and full periodic maintenance to keep your car running smooth.',
   },
   {
     title: 'Engine Diagnostics',
     image: '/images/mercedes-amg-engine-bay.jpg',
-    brands: [],
+    desc: 'Computerized engine scanning, fault code reading, and troubleshooting for all makes and models.',
   },
   {
     title: 'Brake Service',
     image: '/images/porsche-cayman-brake-service.jpg',
-    brands: [
-      { name: 'Brembo', logo: '/images/brands/brembo.svg' },
-    ],
+    desc: 'Brake pad and disc replacement, brake fluid flush, and full inspection to ensure safe stopping power.',
   },
   {
     title: 'Battery & Electrical',
     image: '/images/mustang-bilstein-shocks.jpg',
-    brands: [],
+    desc: 'Battery testing, replacement, alternator checks, and electrical system diagnostics.',
   },
   {
     title: 'Suspension & Ride',
     image: '/images/bmw-8-series-white.jpg',
-    brands: [
-      { name: 'Bilstein', logo: '/images/brands/bilstein.svg' },
-    ],
+    desc: 'Absorber replacement, strut upgrades, bushing work, and ride height adjustments for comfort and handling.',
   },
 ]
 
