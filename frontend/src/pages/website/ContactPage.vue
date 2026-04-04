@@ -107,3 +107,18 @@
     </section>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'Contact Us — Dream Garage (M) Sdn Bhd',
+  meta: [
+    { name: 'description', content: 'Visit Dream Garage at 22, Jalan Mutiara Emas 5/1, Taman Mount Austin, 81100 Johor Bahru. Open Mon-Fri 9:30am-7:30pm. Call +60 18-207 8080 or WhatsApp us.' },
+    { property: 'og:title', content: 'Contact Us — Dream Garage (M) Sdn Bhd' },
+    { property: 'og:description', content: 'Visit us at Taman Mount Austin, JB. Open Mon-Fri 9:30am-7:30pm. Call +60 18-207 8080.' },
+    { property: 'og:url', content: 'https://dreamgarage.my/contact' },
+  ],
+  link: [{ rel: 'canonical', href: 'https://dreamgarage.my/contact' }],
+})
+</script>

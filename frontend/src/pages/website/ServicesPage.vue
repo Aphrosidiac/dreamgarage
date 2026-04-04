@@ -102,6 +102,19 @@
 </template>
 
 <script setup lang="ts">
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'Services — Dream Garage (M) Sdn Bhd',
+  meta: [
+    { name: 'description', content: 'Dream Garage offers tyres & alignment, engine servicing, brake repair, suspension, air-con service, and battery replacement in Johor Bahru. Premium brands including Michelin, Continental, Motul, and Brembo.' },
+    { property: 'og:title', content: 'Services — Dream Garage (M) Sdn Bhd' },
+    { property: 'og:description', content: 'Tyres & alignment, engine servicing, brake repair, suspension, air-con, and battery replacement in JB.' },
+    { property: 'og:url', content: 'https://dreamgarage.my/services' },
+  ],
+  link: [{ rel: 'canonical', href: 'https://dreamgarage.my/services' }],
+})
+
 const services = [
   {
     title: 'Tyres & Alignment',

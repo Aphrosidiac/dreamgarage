@@ -243,6 +243,18 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'Dream Garage (M) Sdn Bhd — Trusted Car Workshop in Johor Bahru',
+  meta: [
+    { name: 'description', content: 'Dream Garage is a trusted car workshop in Taman Mount Austin, Johor Bahru. Specializing in tyres, wheel alignment, engine servicing, brake repair, and more since 2014.' },
+    { property: 'og:title', content: 'Dream Garage (M) Sdn Bhd — Trusted Car Workshop in Johor Bahru' },
+    { property: 'og:description', content: 'Your trusted car workshop in JB — tyres, wheel alignment, engine servicing, brake repair, and more since 2014.' },
+    { property: 'og:url', content: 'https://dreamgarage.my/' },
+  ],
+  link: [{ rel: 'canonical', href: 'https://dreamgarage.my/' }],
+})
 
 const visitTips = [
   { title: 'No Appointment Needed', desc: 'Just drive in during our operating hours. Walk-ins are welcome for most services.' },

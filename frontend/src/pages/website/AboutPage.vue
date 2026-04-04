@@ -122,6 +122,18 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useHead } from '@unhead/vue'
+
+useHead({
+  title: 'About Us — Dream Garage (M) Sdn Bhd',
+  meta: [
+    { name: 'description', content: 'Established in 2014, Dream Garage has been providing quality automotive services to the Johor Bahru community. Honest workmanship, transparent pricing, and a passion for cars.' },
+    { property: 'og:title', content: 'About Us — Dream Garage (M) Sdn Bhd' },
+    { property: 'og:description', content: 'Established in 2014, Dream Garage has been providing quality automotive services to the Johor Bahru community.' },
+    { property: 'og:url', content: 'https://dreamgarage.my/about' },
+  ],
+  link: [{ rel: 'canonical', href: 'https://dreamgarage.my/about' }],
+})
 
 const values = [
   { title: 'Honest Workmanship', desc: 'We believe in doing things right the first time. No shortcuts, no unnecessary upsells — just quality work you can trust.' },
