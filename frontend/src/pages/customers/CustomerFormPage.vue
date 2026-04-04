@@ -42,8 +42,12 @@
               <div>
                 <span class="font-mono text-gold-500 text-sm font-medium">{{ v.plate }}</span>
                 <BaseBadge v-if="v.isDefault" color="gold" class="ml-2">Default</BaseBadge>
-                <p v-if="v.model" class="text-dark-400 text-xs mt-0.5">{{ v.model }}</p>
-                <p v-if="v.mileage" class="text-dark-500 text-xs">{{ v.mileage }} KM</p>
+                <p v-if="v.make || v.model" class="text-dark-400 text-xs mt-0.5">{{ [v.make, v.model].filter(Boolean).join(' ') }}</p>
+                <div class="flex gap-3 text-dark-500 text-xs">
+                  <span v-if="v.color">{{ v.color }}</span>
+                  <span v-if="v.mileage">{{ v.mileage }} KM</span>
+                  <span v-if="v.engineNo">Eng: {{ v.engineNo }}</span>
+                </div>
               </div>
             </div>
             <div class="flex items-center gap-1">
@@ -65,8 +69,15 @@
       <BaseModal v-model="showVehicleModal" :title="editingVehicle ? 'Edit Vehicle' : 'Add Vehicle'" size="sm">
         <div class="space-y-4">
           <BaseInput v-model="vehicleForm.plate" label="Plate Number" placeholder="e.g. JUX 1589" required />
-          <BaseInput v-model="vehicleForm.model" label="Make & Model" placeholder="e.g. Proton X50" />
-          <BaseInput v-model="vehicleForm.mileage" label="Mileage (KM)" placeholder="e.g. 57028" />
+          <div class="grid grid-cols-2 gap-4">
+            <BaseInput v-model="vehicleForm.make" label="Make" placeholder="e.g. Honda, BMW" />
+            <BaseInput v-model="vehicleForm.model" label="Model" placeholder="e.g. Accord T2A, 320i" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <BaseInput v-model="vehicleForm.color" label="Color" placeholder="e.g. White" />
+            <BaseInput v-model="vehicleForm.mileage" label="Mileage (KM)" placeholder="e.g. 57028" />
+          </div>
+          <BaseInput v-model="vehicleForm.engineNo" label="Engine No" placeholder="e.g. R20A3-123456" />
         </div>
         <template #footer>
           <BaseButton variant="secondary" @click="closeVehicleModal">Cancel</BaseButton>
@@ -105,7 +116,7 @@ const editingVehicle = ref<string | null>(null)
 const vehicles = ref<Vehicle[]>([])
 
 const form = reactive({ name: '', phone: '', email: '' })
-const vehicleForm = reactive({ plate: '', model: '', mileage: '' })
+const vehicleForm = reactive({ plate: '', make: '', model: '', color: '', mileage: '', engineNo: '' })
 
 async function loadCustomer() {
   if (!route.params.id) return
@@ -146,8 +157,11 @@ async function handleSave() {
 function editVehicle(v: Vehicle) {
   editingVehicle.value = v.id
   vehicleForm.plate = v.plate
+  vehicleForm.make = v.make || ''
   vehicleForm.model = v.model || ''
+  vehicleForm.color = v.color || ''
   vehicleForm.mileage = v.mileage || ''
+  vehicleForm.engineNo = v.engineNo || ''
   showVehicleModal.value = true
 }
 
@@ -155,8 +169,11 @@ function closeVehicleModal() {
   showVehicleModal.value = false
   editingVehicle.value = null
   vehicleForm.plate = ''
+  vehicleForm.make = ''
   vehicleForm.model = ''
+  vehicleForm.color = ''
   vehicleForm.mileage = ''
+  vehicleForm.engineNo = ''
 }
 
 async function handleSaveVehicle() {

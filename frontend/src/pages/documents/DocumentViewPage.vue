@@ -108,7 +108,9 @@
             <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Vehicle</p>
             <p v-if="doc.vehiclePlate" class="font-medium">{{ doc.vehiclePlate }}</p>
             <p v-if="doc.vehicleModel" class="text-gray-500 text-xs mt-0.5">Make & Model: {{ doc.vehicleModel }}</p>
+            <p v-if="doc.vehicleColor" class="text-gray-500 text-xs">Color: {{ doc.vehicleColor }}</p>
             <p v-if="doc.vehicleMileage" class="text-gray-500 text-xs">Mileage: {{ doc.vehicleMileage }} KM</p>
+            <p v-if="doc.vehicleEngineNo" class="text-gray-500 text-xs">Engine No: {{ doc.vehicleEngineNo }}</p>
           </div>
         </div>
       </div>

@@ -94,7 +94,7 @@ export async function getCustomer(
 
 export async function createCustomer(
   request: FastifyRequest<{
-    Body: { name: string; phone?: string; email?: string; vehicles?: { plate: string; model?: string; mileage?: string }[] }
+    Body: { name: string; phone?: string; email?: string; vehicles?: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string }[] }
   }>,
   reply: FastifyReply
 ) {
@@ -113,7 +113,10 @@ export async function createCustomer(
         vehicles: {
           create: vehicles.map((v, i) => ({
             plate: v.plate.trim().toUpperCase(),
+            make: v.make?.trim() || null,
             model: v.model?.trim() || null,
+            color: v.color?.trim() || null,
+            engineNo: v.engineNo?.trim() || null,
             mileage: v.mileage?.trim() || null,
             isDefault: i === 0,
           })),
@@ -178,13 +181,13 @@ export async function deleteCustomer(
 export async function addVehicle(
   request: FastifyRequest<{
     Params: { id: string }
-    Body: { plate: string; model?: string; mileage?: string; isDefault?: boolean }
+    Body: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; isDefault?: boolean }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { plate, model, mileage, isDefault } = request.body
+  const { plate, make, model, color, engineNo, mileage, isDefault } = request.body
 
   const customer = await request.server.prisma.customer.findFirst({ where: { id, branchId } })
   if (!customer) {
@@ -207,7 +210,10 @@ export async function addVehicle(
     data: {
       customerId: id,
       plate: plate.trim().toUpperCase(),
+      make: make?.trim() || null,
       model: model?.trim() || null,
+      color: color?.trim() || null,
+      engineNo: engineNo?.trim() || null,
       mileage: mileage?.trim() || null,
       isDefault: isDefault || false,
     },
@@ -219,12 +225,12 @@ export async function addVehicle(
 export async function updateVehicle(
   request: FastifyRequest<{
     Params: { id: string; vid: string }
-    Body: { plate?: string; model?: string; mileage?: string; isDefault?: boolean }
+    Body: { plate?: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; isDefault?: boolean }
   }>,
   reply: FastifyReply
 ) {
   const { id, vid } = request.params
-  const { plate, model, mileage, isDefault } = request.body
+  const { plate, make, model, color, engineNo, mileage, isDefault } = request.body
 
   if (isDefault) {
     await request.server.prisma.vehicle.updateMany({
@@ -237,7 +243,10 @@ export async function updateVehicle(
     where: { id: vid },
     data: {
       ...(plate && { plate: plate.trim().toUpperCase() }),
+      ...(make !== undefined && { make: make?.trim() || null }),
       ...(model !== undefined && { model: model?.trim() || null }),
+      ...(color !== undefined && { color: color?.trim() || null }),
+      ...(engineNo !== undefined && { engineNo: engineNo?.trim() || null }),
       ...(mileage !== undefined && { mileage: mileage?.trim() || null }),
       ...(isDefault !== undefined && { isDefault }),
     },

@@ -210,7 +210,10 @@ model Vehicle {
   id         String   @id @default(cuid())
   customerId String
   plate      String
+  make       String?
   model      String?
+  color      String?
+  engineNo   String?
   mileage    String?
   isDefault  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -240,6 +243,8 @@ model Document {
   vehiclePlate   String?
   vehicleModel   String?
   vehicleMileage String?
+  vehicleColor   String?
+  vehicleEngineNo String?
   // Dates
   issueDate      DateTime     @default(now())
   dueDate        DateTime?

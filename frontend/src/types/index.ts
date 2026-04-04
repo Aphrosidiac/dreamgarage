@@ -126,6 +126,8 @@ export interface Document {
   vehiclePlate?: string
   vehicleModel?: string
   vehicleMileage?: string
+  vehicleColor?: string
+  vehicleEngineNo?: string
   issueDate: string
   dueDate?: string
   status: DocumentStatus
@@ -186,7 +188,10 @@ export interface Vehicle {
   id: string
   customerId: string
   plate: string
+  make?: string
   model?: string
+  color?: string
+  engineNo?: string
   mileage?: string
   isDefault: boolean
   createdAt: string
@@ -232,6 +237,8 @@ export interface DocumentFormData {
   vehiclePlate?: string
   vehicleModel?: string
   vehicleMileage?: string
+  vehicleColor?: string
+  vehicleEngineNo?: string
   foremanId?: string
   issueDate?: string
   dueDate?: string

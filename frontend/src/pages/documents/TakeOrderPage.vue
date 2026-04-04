@@ -43,14 +43,22 @@
 
           <div class="grid grid-cols-3 gap-4">
             <BaseInput v-model="form.customerPhone" label="Phone" placeholder="e.g. 012-3456789" />
-            <BaseInput v-model="form.vehiclePlate" label="Plate Number" placeholder="e.g. JQR 1234" />
-            <BaseInput v-model="form.vehicleModel" label="Vehicle Model" placeholder="e.g. BMW 320i" />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
             <BaseInput v-model="form.customerName" label="Name (optional)" placeholder="Walk-in customer" />
             <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select worker">
               <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }} ({{ w.role }})</option>
             </BaseSelect>
+          </div>
+
+          <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mt-6 mb-3">Vehicle Info</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <BaseInput v-model="form.vehiclePlate" label="Plate Number" placeholder="e.g. JQR 1234" />
+            <BaseInput v-model="form.vehicleMake" label="Make" placeholder="e.g. Honda, BMW" />
+            <BaseInput v-model="form.vehicleModel" label="Model" placeholder="e.g. Accord T2A, 320i" />
+          </div>
+          <div class="grid grid-cols-3 gap-4">
+            <BaseInput v-model="form.vehicleColor" label="Color" placeholder="e.g. White, Black" />
+            <BaseInput v-model="form.vehicleMileage" label="Current Mileage (KM)" placeholder="e.g. 112692" />
+            <BaseInput v-model="form.vehicleEngineNo" label="Engine No (optional)" placeholder="e.g. R20A3-123456" />
           </div>
         </div>
       </div>
@@ -183,7 +191,11 @@ const form = reactive({
   customerName: '',
   customerPhone: '',
   vehiclePlate: '',
+  vehicleMake: '',
   vehicleModel: '',
+  vehicleColor: '',
+  vehicleMileage: '',
+  vehicleEngineNo: '',
   foremanId: '',
   notes: '',
   items: [] as OrderItem[],
@@ -233,6 +245,7 @@ function selectCustomer(c: Customer) {
     const defaultV = c.vehicles.find((v) => v.isDefault) || c.vehicles[0]
     form.vehiclePlate = defaultV.plate
     form.vehicleModel = defaultV.model || ''
+    form.vehicleMileage = defaultV.mileage || ''
   }
   showResults.value = false
   customerSearch.value = ''
@@ -271,12 +284,16 @@ async function handleSubmit() {
   if (form.items.length === 0) return
   saving.value = true
   try {
+    const vehicleModelFull = [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || undefined
     const doc = await docStore.createDocument({
       documentType: 'INVOICE',
       customerName: form.customerName || undefined,
       customerPhone: form.customerPhone || undefined,
       vehiclePlate: form.vehiclePlate || undefined,
-      vehicleModel: form.vehicleModel || undefined,
+      vehicleModel: vehicleModelFull,
+      vehicleMileage: form.vehicleMileage || undefined,
+      vehicleColor: form.vehicleColor || undefined,
+      vehicleEngineNo: form.vehicleEngineNo || undefined,
       foremanId: form.foremanId || undefined,
       notes: form.notes || undefined,
       items: form.items.map((item, idx) => ({

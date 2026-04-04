@@ -32,6 +32,8 @@ interface CreateDocumentBody {
   vehiclePlate?: string
   vehicleModel?: string
   vehicleMileage?: string
+  vehicleColor?: string
+  vehicleEngineNo?: string
   foremanId?: string
   issueDate?: string
   dueDate?: string
@@ -185,6 +187,8 @@ export async function createDocument(
         vehiclePlate: body.vehiclePlate,
         vehicleModel: body.vehicleModel,
         vehicleMileage: body.vehicleMileage,
+        vehicleColor: body.vehicleColor,
+        vehicleEngineNo: body.vehicleEngineNo,
         issueDate: body.issueDate ? new Date(body.issueDate) : new Date(),
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         status: defaultStatus,
@@ -320,6 +324,8 @@ export async function updateDocument(
         vehiclePlate: body.vehiclePlate,
         vehicleModel: body.vehicleModel,
         vehicleMileage: body.vehicleMileage,
+        vehicleColor: body.vehicleColor,
+        vehicleEngineNo: body.vehicleEngineNo,
         issueDate: body.issueDate ? new Date(body.issueDate) : undefined,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         subtotal: docTotals.subtotal,
@@ -712,6 +718,8 @@ export async function convertDocument(
         vehiclePlate: source.vehiclePlate,
         vehicleModel: source.vehicleModel,
         vehicleMileage: source.vehicleMileage,
+        vehicleColor: source.vehicleColor,
+        vehicleEngineNo: source.vehicleEngineNo,
         issueDate: new Date(),
         dueDate: source.dueDate,
         status: defaultStatus,

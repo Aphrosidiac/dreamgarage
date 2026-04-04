@@ -59,7 +59,7 @@
         </div>
         <!-- Image -->
         <div class="relative rounded-2xl overflow-hidden aspect-square">
-          <img src="/images/mechanic-oil-service.jpg" alt="Dream Garage mechanic servicing engine" class="w-full h-full object-cover" />
+          <img src="/images/mechanic-oil-service.jpg" alt="Dream Garage engine bay service" class="w-full h-full object-cover scale-150 object-[30%_60%]" />
           <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl"></div>
         </div>
       </div>

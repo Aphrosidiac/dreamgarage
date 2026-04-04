@@ -64,9 +64,11 @@
           <div class="grid sm:grid-cols-2 gap-4">
             <BaseInput v-model="form.customerName" label="Customer Name" placeholder="e.g. Ahmad bin Ali" />
             <BaseInput v-model="form.customerPhone" label="Phone" placeholder="+60 12-345 6789" />
-            <BaseInput v-model="form.vehiclePlate" label="Vehicle Plate" placeholder="e.g. JUX 1589" />
-            <BaseInput v-model="form.vehicleModel" label="Make & Model" placeholder="e.g. Proton X50" />
-            <BaseInput v-model="form.vehicleMileage" label="Mileage (KM)" placeholder="e.g. 57,028" />
+            <BaseInput v-model="form.vehiclePlate" label="Plate Number" placeholder="e.g. JUX 1589" />
+            <BaseInput v-model="form.vehicleModel" label="Make & Model" placeholder="e.g. Honda Accord T2A" />
+            <BaseInput v-model="form.vehicleMileage" label="Mileage (KM)" placeholder="e.g. 57028" />
+            <BaseInput v-model="form.vehicleColor" label="Color" placeholder="e.g. White" />
+            <BaseInput v-model="form.vehicleEngineNo" label="Engine No" placeholder="e.g. R20A3-123456" />
             <BaseInput v-model="form.customerEmail" label="Email" type="email" placeholder="customer@email.com" />
           </div>
         </div>
@@ -307,8 +309,10 @@ function selectCustomer(c: Customer) {
   if (defaultVehicle) {
     selectedVehicleId.value = defaultVehicle.id
     form.vehiclePlate = defaultVehicle.plate
-    form.vehicleModel = defaultVehicle.model || ''
+    form.vehicleModel = [defaultVehicle.make, defaultVehicle.model].filter(Boolean).join(' ')
     form.vehicleMileage = defaultVehicle.mileage || ''
+    form.vehicleColor = defaultVehicle.color || ''
+    form.vehicleEngineNo = defaultVehicle.engineNo || ''
   }
 }
 
@@ -316,8 +320,10 @@ function applyVehicle() {
   const v = selectedCustomerVehicles.value.find((v) => v.id === selectedVehicleId.value)
   if (v) {
     form.vehiclePlate = v.plate
-    form.vehicleModel = v.model || ''
+    form.vehicleModel = [v.make, v.model].filter(Boolean).join(' ')
     form.vehicleMileage = v.mileage || ''
+    form.vehicleColor = v.color || ''
+    form.vehicleEngineNo = v.engineNo || ''
   }
 }
 
@@ -329,6 +335,8 @@ const form = reactive({
   vehiclePlate: '',
   vehicleModel: '',
   vehicleMileage: '',
+  vehicleColor: '',
+  vehicleEngineNo: '',
   issueDate: new Date().toISOString().split('T')[0],
   dueDate: '',
   notes: '',
@@ -412,6 +420,8 @@ async function loadDocument() {
     form.vehiclePlate = doc.vehiclePlate || ''
     form.vehicleModel = doc.vehicleModel || ''
     form.vehicleMileage = doc.vehicleMileage || ''
+    form.vehicleColor = doc.vehicleColor || ''
+    form.vehicleEngineNo = doc.vehicleEngineNo || ''
     form.issueDate = doc.issueDate.split('T')[0]
     form.dueDate = doc.dueDate?.split('T')[0] || ''
     form.notes = doc.notes || ''
