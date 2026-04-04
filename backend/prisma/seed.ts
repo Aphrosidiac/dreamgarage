@@ -121,6 +121,62 @@ async function main() {
   }
   console.log(`${paymentTerms.length} payment terms created`)
 
+  // Create workers
+  const workers = [
+    { name: 'Ahmad Foreman', phone: '+60 12-345 6001', role: 'Foreman' },
+    { name: 'Rizal Mechanic', phone: '+60 12-345 6002', role: 'Mechanic' },
+    { name: 'Jason Technician', phone: '+60 12-345 6003', role: 'Technician' },
+    { name: 'Muthu Mechanic', phone: '+60 12-345 6004', role: 'Mechanic' },
+    { name: 'Ali Salesman', phone: '+60 12-345 6005', role: 'Salesman' },
+    { name: 'Wei Liang Foreman', phone: '+60 12-345 6006', role: 'Foreman' },
+  ]
+
+  for (const w of workers) {
+    const existing = await prisma.worker.findFirst({
+      where: { branchId: branch.id, name: w.name },
+    })
+    if (!existing) {
+      await prisma.worker.create({
+        data: { branchId: branch.id, ...w },
+      })
+    }
+  }
+  console.log(`${workers.length} workers created`)
+
+  // Create brands under categories
+  const categoryBrands: Record<string, string[]> = {
+    'Tyres': ['Michelin', 'Continental', 'Bridgestone', 'Goodyear', 'Pirelli', 'Toyo', 'Kumho', 'Dunlop'],
+    'Engine Oil': ['Castrol', 'Shell Helix', 'Petronas Syntium', 'Motul', 'Liqui Moly', 'Mobil 1'],
+    'Brake Parts': ['Brembo', 'TRW', 'Bosch', 'Bendix'],
+    'Filters': ['Bosch', 'Mann-Filter', 'Denso', 'K&N'],
+    'Battery': ['Amaron', 'Century', 'Varta', 'Bosch'],
+    'Suspension': ['KYB', 'Bilstein', 'Monroe'],
+    'Air-Con Parts': ['Denso', 'Valeo', 'Sanden'],
+  }
+
+  for (const [catName, brandNames] of Object.entries(categoryBrands)) {
+    const category = await prisma.stockCategory.findFirst({
+      where: { branchId: branch.id, name: catName },
+    })
+    if (!category) continue
+
+    for (const brandName of brandNames) {
+      const existing = await prisma.brand.findFirst({
+        where: { branchId: branch.id, categoryId: category.id, name: brandName },
+      })
+      if (!existing) {
+        await prisma.brand.create({
+          data: {
+            branchId: branch.id,
+            categoryId: category.id,
+            name: brandName,
+          },
+        })
+      }
+    }
+  }
+  console.log(`Brands created across ${Object.keys(categoryBrands).length} categories`)
+
   console.log('Seed complete!')
 }
 
