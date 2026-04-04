@@ -45,10 +45,10 @@
       </template>
       <template #actions="{ row }">
         <div class="flex items-center gap-1 justify-end">
-          <button @click="openEdit(row)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Edit">
+          <button @click="openEdit(row as any)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Edit">
             <Pencil class="w-4 h-4" />
           </button>
-          <button @click="handleDelete(row)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors" title="Delete">
+          <button @click="handleDelete(row as any)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors" title="Delete">
             <Trash2 class="w-4 h-4" />
           </button>
         </div>
