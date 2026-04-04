@@ -231,6 +231,8 @@ export interface StockHistory {
 
 export interface DocumentFormData {
   documentType: DocumentType
+  customerId?: string
+  vehicleId?: string
   customerName?: string
   customerPhone?: string
   customerEmail?: string

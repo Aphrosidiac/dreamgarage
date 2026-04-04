@@ -494,6 +494,8 @@ async function proceedSubmit() {
     const vehicleModelFull = [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || undefined
     const doc = await docStore.createDocument({
       documentType: 'INVOICE',
+      customerId: selectedCustomer.value?.id || undefined,
+      vehicleId: selectedVehicleId.value || undefined,
       customerName: form.customerName || undefined,
       customerPhone: form.customerPhone || undefined,
       vehiclePlate: form.vehiclePlate || undefined,

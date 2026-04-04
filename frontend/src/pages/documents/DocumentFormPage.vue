@@ -26,9 +26,14 @@
               @input="handleCustomerSearch"
               @focus="showCustomerResults = true"
               type="text"
-              placeholder="Search customer by name or phone..."
+              placeholder="Search by phone, plate, name, or model..."
               class="w-full bg-dark-800 border border-dark-700 rounded-lg pl-10 pr-3 py-2.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-gold-500"
             />
+            <!-- Selected indicator -->
+            <div v-if="selectedCustomer" class="mt-2 flex items-center gap-2">
+              <span class="text-green-400 text-xs bg-green-400/10 px-2 py-1 rounded">Existing customer: {{ selectedCustomer.name }}</span>
+              <button type="button" @click="clearCustomer" class="text-dark-500 hover:text-red-400 text-xs">(clear)</button>
+            </div>
             <div
               v-if="showCustomerResults && customerResults.length"
               class="absolute z-20 mt-1 w-full bg-dark-800 border border-dark-700 rounded-lg shadow-xl max-h-48 overflow-y-auto"
@@ -40,25 +45,39 @@
                 @click="selectCustomer(c)"
                 class="w-full text-left px-4 py-2.5 hover:bg-dark-700 transition-colors"
               >
-                <span class="text-dark-100 text-sm font-medium">{{ c.name }}</span>
-                <span v-if="c.phone" class="text-dark-500 text-sm ml-2">{{ c.phone }}</span>
-                <span v-if="c.vehicles?.length" class="text-dark-600 text-xs ml-2">({{ c.vehicles.length }} vehicle{{ c.vehicles.length > 1 ? 's' : '' }})</span>
+                <div class="flex justify-between">
+                  <span class="text-dark-100 text-sm font-medium">{{ c.name }}</span>
+                  <span v-if="c.phone" class="text-dark-500 text-sm">{{ c.phone }}</span>
+                </div>
+                <div v-if="c.vehicles?.length" class="flex gap-2 mt-1">
+                  <span v-for="v in c.vehicles" :key="v.id" class="text-gold-500 text-xs bg-gold-500/10 px-2 py-0.5 rounded">
+                    {{ v.plate }} <span v-if="v.make || v.model" class="text-dark-400">({{ [v.make, v.model].filter(Boolean).join(' ') }})</span>
+                  </span>
+                </div>
               </button>
             </div>
           </div>
 
-          <!-- Vehicle Switcher (if selected customer has multiple vehicles) -->
-          <div v-if="selectedCustomerVehicles.length > 1" class="mb-4">
-            <label class="block text-sm font-medium text-dark-200 mb-1.5">Vehicle</label>
-            <select
-              v-model="selectedVehicleId"
-              @change="applyVehicle"
-              class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50"
-            >
-              <option v-for="v in selectedCustomerVehicles" :key="v.id" :value="v.id">
-                {{ v.plate }}{{ v.model ? ` — ${v.model}` : '' }}{{ v.isDefault ? ' (Default)' : '' }}
-              </option>
-            </select>
+          <!-- Vehicle Switcher -->
+          <div v-if="selectedCustomer && selectedCustomer.vehicles && selectedCustomer.vehicles.length > 1" class="mb-4">
+            <label class="block text-sm text-dark-300 mb-1">Select Vehicle</label>
+            <div class="flex gap-2 flex-wrap">
+              <button
+                v-for="v in selectedCustomer.vehicles"
+                :key="v.id"
+                type="button"
+                @click="applyVehicle(v)"
+                :class="[
+                  'px-3 py-2 rounded-lg text-sm border transition-colors',
+                  selectedVehicleId === v.id
+                    ? 'bg-gold-500/10 border-gold-500/40 text-gold-500'
+                    : 'bg-dark-800 border-dark-700 text-dark-300 hover:border-dark-600',
+                ]"
+              >
+                <span class="font-mono font-medium">{{ v.plate }}</span>
+                <span v-if="v.make || v.model" class="text-xs ml-1.5 opacity-70">{{ [v.make, v.model].filter(Boolean).join(' ') }}</span>
+              </button>
+            </div>
           </div>
 
           <div class="grid sm:grid-cols-2 gap-4">
@@ -71,17 +90,22 @@
             <BaseInput v-model="form.vehicleEngineNo" label="Engine No" placeholder="e.g. R20A3-123456" />
             <BaseInput v-model="form.customerEmail" label="Email" type="email" placeholder="customer@email.com" />
           </div>
+
+          <!-- Foreman -->
+          <div class="mt-4">
+            <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select worker">
+              <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }} ({{ w.role }})</option>
+            </BaseSelect>
+          </div>
         </div>
 
         <!-- Line Items -->
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Items</h3>
-            <div class="flex gap-2">
-              <button type="button" @click="addCustomItem" class="text-xs text-dark-400 hover:text-gold-500 transition-colors flex items-center gap-1">
-                <Plus class="w-3.5 h-3.5" /> Custom Item
-              </button>
-            </div>
+            <button type="button" @click="addCustomItem" class="text-xs text-dark-400 hover:text-gold-500 transition-colors flex items-center gap-1">
+              <Plus class="w-3.5 h-3.5" /> Custom Item
+            </button>
           </div>
 
           <!-- Stock Search -->
@@ -144,37 +168,17 @@
                   <td class="px-3 py-2">
                     <div class="flex flex-col gap-1">
                       <span v-if="item.itemCode" class="text-gold-500 font-mono text-xs">{{ item.itemCode }}</span>
-                      <input
-                        v-model="item.description"
-                        class="bg-transparent border-0 text-dark-200 text-sm p-0 focus:outline-none focus:ring-0 w-full"
-                        placeholder="Item description"
-                      />
+                      <input v-model="item.description" class="bg-transparent border-0 text-dark-200 text-sm p-0 focus:outline-none focus:ring-0 w-full" placeholder="Item description" />
                     </div>
                   </td>
-                  <td class="px-3 py-2">
-                    <input v-model.number="item.quantity" type="number" min="1" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input v-model="item.unit" class="w-14 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input v-model.number="item.unitPrice" type="number" step="0.01" min="0" class="w-24 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input v-model.number="item.discountPercent" type="number" step="0.1" min="0" max="100" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input v-model.number="item.taxRate" type="number" step="0.1" min="0" max="100" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input v-model="item.serviceDate" type="date" class="w-28 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
-                  </td>
+                  <td class="px-3 py-2"><input v-model.number="item.quantity" type="number" min="1" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
+                  <td class="px-3 py-2"><input v-model="item.unit" class="w-14 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
+                  <td class="px-3 py-2"><input v-model.number="item.unitPrice" type="number" step="0.01" min="0" class="w-24 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
+                  <td class="px-3 py-2"><input v-model.number="item.discountPercent" type="number" step="0.1" min="0" max="100" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
+                  <td class="px-3 py-2"><input v-model.number="item.taxRate" type="number" step="0.1" min="0" max="100" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
+                  <td class="px-3 py-2"><input v-model="item.serviceDate" type="date" class="w-28 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
                   <td class="px-3 py-2 text-right font-medium text-dark-100">{{ calcItemTotal(item).toFixed(2) }}</td>
-                  <td class="px-3 py-2">
-                    <button type="button" @click="form.items.splice(idx, 1)" class="text-dark-400 hover:text-red-400 transition-colors">
-                      <X class="w-4 h-4" />
-                    </button>
-                  </td>
+                  <td class="px-3 py-2"><button type="button" @click="form.items.splice(idx, 1)" class="text-dark-400 hover:text-red-400 transition-colors"><X class="w-4 h-4" /></button></td>
                 </tr>
               </tbody>
             </table>
@@ -198,25 +202,16 @@
 
       <!-- Sidebar (1/3) -->
       <div class="space-y-6">
-        <!-- Dates -->
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6 space-y-4">
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Details</h3>
           <BaseInput v-model="form.issueDate" label="Issue Date" type="date" required />
           <BaseInput v-model="form.dueDate" label="Due Date" type="date" />
         </div>
-
-        <!-- Totals -->
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">Summary</h3>
           <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-dark-400">Subtotal</span>
-              <span class="text-dark-200">RM {{ calcSubtotal.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-dark-400">Tax</span>
-              <span class="text-dark-200">RM {{ calcTax.toFixed(2) }}</span>
-            </div>
+            <div class="flex justify-between"><span class="text-dark-400">Subtotal</span><span class="text-dark-200">RM {{ calcSubtotal.toFixed(2) }}</span></div>
+            <div class="flex justify-between"><span class="text-dark-400">Tax</span><span class="text-dark-200">RM {{ calcTax.toFixed(2) }}</span></div>
             <div class="flex justify-between items-center">
               <span class="text-dark-400">Discount</span>
               <input v-model.number="form.discountAmount" type="number" step="0.01" min="0" class="w-24 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
@@ -227,8 +222,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Actions -->
         <div class="flex flex-col gap-2">
           <BaseButton variant="primary" type="submit" :loading="saving" :disabled="!form.items.length">
             {{ isEdit ? 'Update' : 'Create' }} {{ store.getDocTypeLabel(form.documentType) }}
@@ -237,6 +230,41 @@
         </div>
       </div>
     </form>
+
+    <!-- New Customer Confirmation Modal -->
+    <BaseModal v-model="showNewCustomerModal" title="New Customer Record" size="sm">
+      <p class="text-dark-300 text-sm">No existing customer selected. A <strong class="text-dark-100">new customer record</strong> will be created:</p>
+      <div class="mt-3 bg-dark-800/50 rounded-lg p-3 space-y-1 text-sm">
+        <p v-if="form.customerName" class="text-dark-200"><span class="text-dark-500">Name:</span> {{ form.customerName }}</p>
+        <p v-if="form.customerPhone" class="text-dark-200"><span class="text-dark-500">Phone:</span> {{ form.customerPhone }}</p>
+        <p v-if="form.vehiclePlate" class="text-gold-500"><span class="text-dark-500">Vehicle:</span> {{ form.vehiclePlate }} {{ form.vehicleModel }}</p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showNewCustomerModal = false">Cancel</BaseButton>
+        <BaseButton variant="primary" :loading="saving" @click="confirmNewCustomerAndSubmit">Confirm & Create</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Duplicate Warning Modal -->
+    <BaseModal v-model="showDuplicateModal" title="Possible Duplicate" size="sm">
+      <p class="text-dark-300 text-sm mb-3">We found an existing customer that may match:</p>
+      <div class="space-y-2">
+        <button v-for="c in duplicateMatches" :key="c.id" type="button" @click="useDuplicate(c)" class="w-full text-left bg-dark-800 border border-dark-700 rounded-lg px-4 py-3 hover:border-gold-500/40 transition-colors">
+          <div class="flex justify-between"><span class="text-dark-100 font-medium">{{ c.name }}</span><span class="text-dark-400 text-xs">{{ c.phone }}</span></div>
+          <div v-if="c.vehicles?.length" class="flex gap-2 mt-1"><span v-for="v in c.vehicles" :key="v.id" class="text-gold-500 text-xs bg-gold-500/10 px-2 py-0.5 rounded">{{ v.plate }}</span></div>
+        </button>
+      </div>
+      <template #footer><BaseButton variant="secondary" @click="showDuplicateModal = false; showNewCustomerModal = true">No, create new</BaseButton></template>
+    </BaseModal>
+
+    <!-- New Vehicle Modal -->
+    <BaseModal v-model="showNewVehicleModal" title="New Vehicle Detected" size="sm">
+      <p class="text-dark-300 text-sm">Plate <strong class="text-gold-500">{{ form.vehiclePlate }}</strong> is not registered for <strong class="text-dark-100">{{ selectedCustomer?.name }}</strong>. Add it?</p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showNewVehicleModal = false; doSubmit()">Skip</BaseButton>
+        <BaseButton variant="primary" @click="addNewVehicleAndSubmit">Yes, add vehicle</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -247,10 +275,41 @@ import { useDocumentStore } from '../../stores/documents'
 import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseInput from '../../components/base/BaseInput.vue'
+import BaseSelect from '../../components/base/BaseSelect.vue'
 import BaseButton from '../../components/base/BaseButton.vue'
+import BaseModal from '../../components/base/BaseModal.vue'
 import { ArrowLeft, Search, Plus, X, Users } from 'lucide-vue-next'
-import { useCustomerStore } from '../../stores/customers'
 import type { StockItem, DocumentType, Customer, Vehicle } from '../../types'
+
+const route = useRoute()
+const router = useRouter()
+const store = useDocumentStore()
+const toast = useToast()
+
+const isEdit = computed(() => !!route.params.id)
+const pageLoading = ref(false)
+const saving = ref(false)
+
+// Customer state
+const customerSearch = ref('')
+const customerResults = ref<Customer[]>([])
+const showCustomerResults = ref(false)
+const selectedCustomer = ref<Customer | null>(null)
+const selectedVehicleId = ref('')
+
+// Workers
+const workers = ref<{ id: string; name: string; role: string }[]>([])
+
+// Stock search
+const stockSearch = ref('')
+const stockResults = ref<StockItem[]>([])
+const showStockResults = ref(false)
+
+// Modals
+const showNewCustomerModal = ref(false)
+const showDuplicateModal = ref(false)
+const showNewVehicleModal = ref(false)
+const duplicateMatches = ref<Customer[]>([])
 
 interface FormItem {
   stockItemId?: string
@@ -261,70 +320,7 @@ interface FormItem {
   unitPrice: number
   discountPercent: number
   taxRate: number
-}
-
-const route = useRoute()
-const router = useRouter()
-const store = useDocumentStore()
-const customerStore = useCustomerStore()
-const toast = useToast()
-
-const isEdit = computed(() => !!route.params.id)
-const pageLoading = ref(false)
-const saving = ref(false)
-const stockSearch = ref('')
-const stockResults = ref<StockItem[]>([])
-const showStockResults = ref(false)
-
-// Customer search
-const customerSearch = ref('')
-const customerResults = ref<Customer[]>([])
-const showCustomerResults = ref(false)
-const selectedCustomerVehicles = ref<Vehicle[]>([])
-const selectedVehicleId = ref('')
-
-let customerSearchTimer: ReturnType<typeof setTimeout>
-function handleCustomerSearch() {
-  clearTimeout(customerSearchTimer)
-  if (!customerSearch.value) { customerResults.value = []; return }
-  customerSearchTimer = setTimeout(async () => {
-    try {
-      customerResults.value = await customerStore.searchCustomers(customerSearch.value)
-      showCustomerResults.value = true
-    } catch { customerResults.value = [] }
-  }, 200)
-}
-
-function selectCustomer(c: Customer) {
-  form.customerName = c.name
-  form.customerPhone = c.phone || ''
-  form.customerEmail = c.email || ''
-  selectedCustomerVehicles.value = c.vehicles || []
-  customerSearch.value = ''
-  customerResults.value = []
-  showCustomerResults.value = false
-
-  // Auto-select default vehicle
-  const defaultVehicle = c.vehicles?.find((v) => v.isDefault) || c.vehicles?.[0]
-  if (defaultVehicle) {
-    selectedVehicleId.value = defaultVehicle.id
-    form.vehiclePlate = defaultVehicle.plate
-    form.vehicleModel = [defaultVehicle.make, defaultVehicle.model].filter(Boolean).join(' ')
-    form.vehicleMileage = defaultVehicle.mileage || ''
-    form.vehicleColor = defaultVehicle.color || ''
-    form.vehicleEngineNo = defaultVehicle.engineNo || ''
-  }
-}
-
-function applyVehicle() {
-  const v = selectedCustomerVehicles.value.find((v) => v.id === selectedVehicleId.value)
-  if (v) {
-    form.vehiclePlate = v.plate
-    form.vehicleModel = [v.make, v.model].filter(Boolean).join(' ')
-    form.vehicleMileage = v.mileage || ''
-    form.vehicleColor = v.color || ''
-    form.vehicleEngineNo = v.engineNo || ''
-  }
+  serviceDate: string
 }
 
 const form = reactive({
@@ -337,6 +333,7 @@ const form = reactive({
   vehicleMileage: '',
   vehicleColor: '',
   vehicleEngineNo: '',
+  foremanId: '',
   issueDate: new Date().toISOString().split('T')[0],
   dueDate: '',
   notes: '',
@@ -346,25 +343,66 @@ const form = reactive({
   items: [] as FormItem[],
 })
 
-// Item calculations
+// ─── Calculations ─────────────────────────────────
 function calcItemTotal(item: FormItem): number {
   const sub = item.quantity * item.unitPrice * (1 - (item.discountPercent || 0) / 100)
-  const tax = sub * ((item.taxRate || 0) / 100)
-  return Math.round((sub + tax) * 100) / 100
+  return Math.round((sub + sub * ((item.taxRate || 0) / 100)) * 100) / 100
 }
-
-const calcSubtotal = computed(() =>
-  form.items.reduce((sum, i) => sum + i.quantity * i.unitPrice * (1 - (i.discountPercent || 0) / 100), 0)
-)
-const calcTax = computed(() =>
-  form.items.reduce((sum, i) => {
-    const sub = i.quantity * i.unitPrice * (1 - (i.discountPercent || 0) / 100)
-    return sum + sub * ((i.taxRate || 0) / 100)
-  }, 0)
-)
+const calcSubtotal = computed(() => form.items.reduce((s, i) => s + i.quantity * i.unitPrice * (1 - (i.discountPercent || 0) / 100), 0))
+const calcTax = computed(() => form.items.reduce((s, i) => { const sub = i.quantity * i.unitPrice * (1 - (i.discountPercent || 0) / 100); return s + sub * ((i.taxRate || 0) / 100) }, 0))
 const calcTotal = computed(() => Math.round((calcSubtotal.value + calcTax.value - (form.discountAmount || 0)) * 100) / 100)
 
-// Stock search
+// ─── Customer search ──────────────────────────────
+let customerSearchTimer: ReturnType<typeof setTimeout>
+function handleCustomerSearch() {
+  clearTimeout(customerSearchTimer)
+  if (!customerSearch.value) { customerResults.value = []; return }
+  customerSearchTimer = setTimeout(async () => {
+    try {
+      const { data } = await api.get('/customers/search', { params: { q: customerSearch.value } })
+      customerResults.value = data.data
+      showCustomerResults.value = true
+    } catch { customerResults.value = [] }
+  }, 200)
+}
+
+function selectCustomer(c: Customer) {
+  selectedCustomer.value = c
+  form.customerName = c.name
+  form.customerPhone = c.phone || ''
+  form.customerEmail = c.email || ''
+  customerSearch.value = ''
+  customerResults.value = []
+  showCustomerResults.value = false
+  if (c.vehicles?.length) {
+    const defaultV = c.vehicles.find((v) => v.isDefault) || c.vehicles[0]
+    applyVehicle(defaultV)
+  }
+}
+
+function applyVehicle(v: Vehicle) {
+  selectedVehicleId.value = v.id
+  form.vehiclePlate = v.plate
+  form.vehicleModel = [v.make, v.model].filter(Boolean).join(' ')
+  form.vehicleMileage = v.mileage || ''
+  form.vehicleColor = v.color || ''
+  form.vehicleEngineNo = v.engineNo || ''
+}
+
+function clearCustomer() {
+  selectedCustomer.value = null
+  selectedVehicleId.value = ''
+  form.customerName = ''
+  form.customerPhone = ''
+  form.customerEmail = ''
+  form.vehiclePlate = ''
+  form.vehicleModel = ''
+  form.vehicleMileage = ''
+  form.vehicleColor = ''
+  form.vehicleEngineNo = ''
+}
+
+// ─── Stock search ─────────────────────────────────
 let searchTimer: ReturnType<typeof setTimeout>
 function handleStockSearch() {
   clearTimeout(searchTimer)
@@ -380,34 +418,18 @@ function handleStockSearch() {
 
 function addStockItem(stock: StockItem) {
   form.items.push({
-    stockItemId: stock.id,
-    itemCode: stock.itemCode,
-    description: stock.description,
-    quantity: 1,
-    unit: stock.uom,
-    unitPrice: Number(stock.sellPrice),
-    discountPercent: 0,
-    taxRate: 0,
-    serviceDate: '',
+    stockItemId: stock.id, itemCode: stock.itemCode, description: stock.description,
+    quantity: 1, unit: stock.uom, unitPrice: Number(stock.sellPrice),
+    discountPercent: 0, taxRate: 0, serviceDate: '',
   })
-  stockSearch.value = ''
-  stockResults.value = []
-  showStockResults.value = false
+  stockSearch.value = ''; stockResults.value = []; showStockResults.value = false
 }
 
 function addCustomItem() {
-  form.items.push({
-    description: '',
-    quantity: 1,
-    unit: 'PCS',
-    unitPrice: 0,
-    discountPercent: 0,
-    taxRate: 0,
-    serviceDate: '',
-  })
+  form.items.push({ description: '', quantity: 1, unit: 'PCS', unitPrice: 0, discountPercent: 0, taxRate: 0, serviceDate: '' })
 }
 
-// Load existing document for edit
+// ─── Load document (edit mode) ────────────────────
 async function loadDocument() {
   if (!route.params.id) return
   pageLoading.value = true
@@ -422,6 +444,7 @@ async function loadDocument() {
     form.vehicleMileage = doc.vehicleMileage || ''
     form.vehicleColor = doc.vehicleColor || ''
     form.vehicleEngineNo = doc.vehicleEngineNo || ''
+    form.foremanId = doc.foremanId || ''
     form.issueDate = doc.issueDate.split('T')[0]
     form.dueDate = doc.dueDate?.split('T')[0] || ''
     form.notes = doc.notes || ''
@@ -429,16 +452,19 @@ async function loadDocument() {
     form.footerNote = doc.footerNote || ''
     form.discountAmount = Number(doc.discountAmount)
     form.items = (doc.items || []).map((i) => ({
-      stockItemId: i.stockItemId || undefined,
-      itemCode: i.itemCode || undefined,
-      description: i.description,
-      quantity: i.quantity,
-      unit: i.unit,
-      unitPrice: Number(i.unitPrice),
-      discountPercent: Number(i.discountPercent),
-      taxRate: Number(i.taxRate),
-      serviceDate: i.serviceDate?.split('T')[0] || '',
+      stockItemId: i.stockItemId || undefined, itemCode: i.itemCode || undefined,
+      description: i.description, quantity: i.quantity, unit: i.unit,
+      unitPrice: Number(i.unitPrice), discountPercent: Number(i.discountPercent),
+      taxRate: Number(i.taxRate), serviceDate: i.serviceDate?.split('T')[0] || '',
     }))
+    // Restore customer link if exists
+    if ((doc as any).customerId) {
+      try {
+        const { data } = await api.get(`/customers/${(doc as any).customerId}`)
+        selectedCustomer.value = data.data
+        selectedVehicleId.value = (doc as any).vehicleId || ''
+      } catch { /* ignore */ }
+    }
   } catch {
     toast.error('Failed to load document')
     router.push('/app/documents')
@@ -447,11 +473,87 @@ async function loadDocument() {
   }
 }
 
+// ─── Submit flow ──────────────────────────────────
 async function handleSubmit() {
   if (!form.items.length) return
+
+  // Edit mode — submit directly
+  if (isEdit.value) { await doSubmit(); return }
+
+  if (selectedCustomer.value) {
+    // Check for new vehicle
+    const plate = form.vehiclePlate.trim().toUpperCase()
+    const known = selectedCustomer.value.vehicles?.map((v) => v.plate.toUpperCase()) || []
+    if (plate && !known.includes(plate)) { showNewVehicleModal.value = true; return }
+    // Update mileage
+    await updateMileage()
+    await doSubmit()
+  } else {
+    // Check for duplicates
+    if (form.customerPhone || form.vehiclePlate) {
+      try {
+        const { data } = await api.get('/customers/search', { params: { q: form.customerPhone || form.vehiclePlate } })
+        if (data.data.length > 0) { duplicateMatches.value = data.data; showDuplicateModal.value = true; return }
+      } catch { /* ignore */ }
+    }
+    showNewCustomerModal.value = true
+  }
+}
+
+function useDuplicate(c: Customer) {
+  selectCustomer(c)
+  showDuplicateModal.value = false
+  toast.info('Customer selected — review and submit again')
+}
+
+async function confirmNewCustomerAndSubmit() {
+  showNewCustomerModal.value = false
   saving.value = true
   try {
-    const payload = { ...form, items: form.items.map((i, idx) => ({ ...i, sortOrder: idx })) }
+    const vehicles = form.vehiclePlate ? [{ plate: form.vehiclePlate, model: form.vehicleModel || undefined, mileage: form.vehicleMileage || undefined, color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined }] : undefined
+    const { data } = await api.post('/customers', { name: form.customerName || form.customerPhone || 'Walk-in', phone: form.customerPhone || undefined, email: form.customerEmail || undefined, vehicles })
+    selectedCustomer.value = data.data
+    if (data.data.vehicles?.length) selectedVehicleId.value = data.data.vehicles[0].id
+    toast.success(`Customer "${data.data.name}" created`)
+    await doSubmit()
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to create customer')
+    saving.value = false
+  }
+}
+
+async function addNewVehicleAndSubmit() {
+  showNewVehicleModal.value = false
+  if (selectedCustomer.value) {
+    try {
+      const { data } = await api.post(`/customers/${selectedCustomer.value.id}/vehicles`, {
+        plate: form.vehiclePlate, model: form.vehicleModel || undefined, mileage: form.vehicleMileage || undefined,
+        color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined,
+      })
+      selectedVehicleId.value = data.data.id
+      toast.success(`Vehicle ${form.vehiclePlate} added`)
+    } catch { /* continue */ }
+  }
+  await doSubmit()
+}
+
+async function updateMileage() {
+  if (!selectedCustomer.value || !selectedVehicleId.value || !form.vehicleMileage) return
+  const v = selectedCustomer.value.vehicles?.find((v) => v.id === selectedVehicleId.value)
+  if (v && form.vehicleMileage !== (v.mileage || '')) {
+    try { await api.put(`/customers/${selectedCustomer.value.id}/vehicles/${selectedVehicleId.value}`, { mileage: form.vehicleMileage }) } catch { /* silent */ }
+  }
+}
+
+async function doSubmit() {
+  saving.value = true
+  try {
+    const payload = {
+      ...form,
+      customerId: selectedCustomer.value?.id || undefined,
+      vehicleId: selectedVehicleId.value || undefined,
+      items: form.items.map((i, idx) => ({ ...i, sortOrder: idx })),
+    }
     if (isEdit.value) {
       await store.updateDocument(route.params.id as string, payload)
       toast.success('Document updated')
@@ -469,11 +571,11 @@ async function handleSubmit() {
   }
 }
 
-// Close dropdown on click outside
 function closeDropdown() { showStockResults.value = false; showCustomerResults.value = false }
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', closeDropdown)
   loadDocument()
+  try { const { data } = await api.get('/workers'); workers.value = data.data } catch { /* ignore */ }
 })
 onUnmounted(() => {
   document.removeEventListener('click', closeDropdown)

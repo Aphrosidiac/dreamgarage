@@ -26,6 +26,8 @@ interface DocumentItemInput {
 
 interface CreateDocumentBody {
   documentType: DocumentType
+  customerId?: string
+  vehicleId?: string
   customerName?: string
   customerPhone?: string
   customerEmail?: string
@@ -181,6 +183,8 @@ export async function createDocument(
         branchId,
         documentType,
         documentNumber,
+        customerId: body.customerId || null,
+        vehicleId: body.vehicleId || null,
         customerName: body.customerName,
         customerPhone: body.customerPhone,
         customerEmail: body.customerEmail,
@@ -318,6 +322,8 @@ export async function updateDocument(
     const updated = await tx.document.update({
       where: { id },
       data: {
+        customerId: body.customerId !== undefined ? (body.customerId || null) : undefined,
+        vehicleId: body.vehicleId !== undefined ? (body.vehicleId || null) : undefined,
         customerName: body.customerName,
         customerPhone: body.customerPhone,
         customerEmail: body.customerEmail,
