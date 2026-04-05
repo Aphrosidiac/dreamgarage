@@ -391,14 +391,46 @@ async function exportExcel() {
 async function exportPdf() {
   const all = await getAllPayments()
   const doc = new jsPDF()
+  const pw = doc.internal.pageSize.width
 
+  // Header bar
+  doc.setFillColor(17, 18, 23)
+  doc.rect(0, 0, pw, 28, 'F')
+  doc.setTextColor(255, 215, 0)
   doc.setFontSize(14)
-  doc.text('DREAM GARAGE (M) SDN BHD', 14, 15)
-  doc.setFontSize(10)
-  doc.text('Payment Log', 14, 22)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DREAM GARAGE (M) SDN BHD', 14, 12)
+  doc.setTextColor(200, 200, 200)
   doc.setFontSize(8)
-  doc.text(`Period: ${fmtDate(dateFrom.value)} — ${fmtDate(dateTo.value)}${activeMethod.value ? '  |  Method: ' + fmtMethod(activeMethod.value) : ''}`, 14, 28)
+  doc.setFont('helvetica', 'normal')
+  doc.text('22, Jalan Mutiara Emas 5/1, Taman Mount Austin, 81100 Johor Bahru, Johor', 14, 18)
+  doc.text('Tel: +60 18-207 8080', 14, 23)
 
+  // Title + filters
+  doc.setTextColor(0)
+  doc.setFontSize(13)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PAYMENT LOG', 14, 38)
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(100)
+  const filterParts = [`Period: ${fmtDate(dateFrom.value)} — ${fmtDate(dateTo.value)}`]
+  if (activeMethod.value) filterParts.push(`Method: ${fmtMethod(activeMethod.value)}`)
+  if (search.value) filterParts.push(`Search: ${search.value}`)
+  doc.text(filterParts.join('  |  '), 14, 44)
+  doc.text(`Printed: ${fmtDate(new Date().toISOString().split('T')[0])}`, pw - 14, 44, { align: 'right' })
+
+  // Summary line
+  if (summary.value) {
+    doc.setTextColor(0)
+    const summaryParts = [`Transactions: ${summary.value.totalPayments}`]
+    for (const [method, info] of Object.entries(summary.value.byMethod)) {
+      summaryParts.push(`${fmtMethod(method)}: RM ${info.total.toFixed(2)} (${info.count})`)
+    }
+    doc.text(summaryParts.join('   |   '), 14, 50)
+  }
+
+  // Table
   const rows = all.map((p: any, i: number) => [
     i + 1,
     fmtDateTime(p.createdAt),
@@ -410,20 +442,58 @@ async function exportPdf() {
   ])
 
   autoTable(doc, {
-    startY: 32,
+    startY: 56,
     head: [['No', 'Date/Time', 'Invoice', 'Customer', 'Method', 'Ref', 'Amount (RM)']],
     body: rows,
-    styles: { fontSize: 7 },
-    headStyles: { fillColor: [30, 30, 30] },
+    styles: { fontSize: 7, cellPadding: 2.5 },
+    headStyles: { fillColor: [17, 18, 23], textColor: [255, 215, 0], fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: { 6: { halign: 'right' } },
   })
 
-  // Add total
+  // Totals
+  const finalY = (doc as any).lastAutoTable?.finalY || 200
   if (summary.value) {
-    const finalY = (doc as any).lastAutoTable?.finalY || 200
-    doc.setFontSize(9)
-    doc.text(`Grand Total: RM ${summary.value.grandTotal.toFixed(2)}`, 14, finalY + 8)
+    let y = finalY + 6
+    doc.setFontSize(8)
+    for (const [method, info] of Object.entries(summary.value.byMethod)) {
+      doc.setTextColor(100)
+      doc.text(fmtMethod(method), pw - 70, y)
+      doc.setTextColor(0)
+      doc.text(`RM ${info.total.toFixed(2)}`, pw - 14, y, { align: 'right' })
+      y += 5
+    }
+    doc.setDrawColor(17, 18, 23)
+    doc.setLineWidth(0.5)
+    doc.line(pw - 70, y, pw - 14, y)
+    y += 5
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Grand Total', pw - 70, y)
+    doc.text(`RM ${summary.value.grandTotal.toFixed(2)}`, pw - 14, y, { align: 'right' })
+    y += 12
+
+    // Signature lines
+    const sigY = y + 20
+    doc.setDrawColor(150)
+    doc.setLineWidth(0.3)
+    doc.line(14, sigY, 80, sigY)
+    doc.line(pw - 80, sigY, pw - 14, sigY)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(80)
+    doc.text('PREPARED BY', 47, sigY + 5, { align: 'center' })
+    doc.text('VERIFIED BY', pw - 47, sigY + 5, { align: 'center' })
   }
+
+  // Footer bar
+  const ph = doc.internal.pageSize.height
+  doc.setFillColor(255, 215, 0)
+  doc.rect(0, ph - 12, pw, 12, 'F')
+  doc.setTextColor(30, 30, 30)
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Dream Garage (M) Sdn Bhd — Payment Log', pw / 2, ph - 5, { align: 'center' })
 
   doc.save(`payment-log-${dateFrom.value}-to-${dateTo.value}.pdf`)
 }

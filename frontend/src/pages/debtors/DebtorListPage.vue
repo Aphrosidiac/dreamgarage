@@ -60,6 +60,17 @@
         </span>
         <span v-else class="text-dark-500">—</span>
       </template>
+      <template #cell-daysOverdue="{ row }">
+        <template v-if="row.oldestDueDate && daysOverdue(row.oldestDueDate) > 0">
+          <span :class="[
+            'font-semibold text-sm',
+            daysOverdue(row.oldestDueDate) > 30 ? 'text-red-400' : daysOverdue(row.oldestDueDate) > 7 ? 'text-yellow-500' : 'text-dark-300'
+          ]">
+            {{ daysOverdue(row.oldestDueDate) }}d
+          </span>
+        </template>
+        <span v-else class="text-dark-500 text-sm">—</span>
+      </template>
       <template #cell-totalOwed="{ value }">
         <span class="text-red-400 font-semibold">RM {{ value.toFixed(2) }}</span>
       </template>
@@ -102,6 +113,7 @@ const columns = [
   { key: 'invoiceCount', label: 'Invoices' },
   { key: 'latestIssueDate', label: 'Last Issued' },
   { key: 'oldestDueDate', label: 'Due Date' },
+  { key: 'daysOverdue', label: 'Overdue' },
   { key: 'totalOwed', label: 'Outstanding' },
 ]
 
@@ -114,6 +126,11 @@ function formatDate(d: string) {
 
 function isOverdue(d: string) {
   return new Date(d) < new Date()
+}
+
+function daysOverdue(d: string): number {
+  const diff = Date.now() - new Date(d).getTime()
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
 }
 
 function clearFilters() {

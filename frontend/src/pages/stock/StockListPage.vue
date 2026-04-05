@@ -133,47 +133,42 @@
             <div class="flex items-center gap-3">
               <ChevronRight :class="['w-4 h-4 text-dark-400 transition-transform', group.expanded && 'rotate-90']" />
               <h3 class="text-dark-100 font-semibold text-sm">{{ group.category }}</h3>
-              <BaseBadge color="gray">{{ group.items.length }} items</BaseBadge>
+              <BaseBadge color="gray">{{ group.totalItems }} items</BaseBadge>
+              <span v-if="group.brands.length > 1" class="text-dark-500 text-xs">{{ group.brands.length }} brands</span>
             </div>
             <span class="text-dark-400 text-xs">Total Qty: {{ group.totalQty }}</span>
           </button>
-          <!-- Items -->
+          <!-- Brands & Items -->
           <div v-if="group.expanded" class="border-t border-dark-800">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-dark-800">
-                  <th class="text-left px-5 py-2 text-dark-400 text-xs font-medium uppercase">Code</th>
-                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">Description</th>
-                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">Brand</th>
-                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">UOM</th>
-                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Cost</th>
-                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Price</th>
-                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Qty</th>
-                  <th class="text-right px-5 py-2 text-dark-400 text-xs font-medium uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in group.items" :key="item.id" class="border-b border-dark-800/50 hover:bg-dark-800/30">
-                  <td class="px-5 py-2"><span class="font-mono text-gold-500 text-xs">{{ item.itemCode }}</span></td>
-                  <td class="px-3 py-2 text-dark-200">{{ item.description }}</td>
-                  <td class="px-3 py-2 text-dark-400 text-xs">{{ item.brand?.name || '—' }}</td>
-                  <td class="px-3 py-2 text-dark-400">{{ item.uom }}</td>
-                  <td class="px-3 py-2 text-right text-dark-300">RM {{ Number(item.costPrice).toFixed(2) }}</td>
-                  <td class="px-3 py-2 text-right text-dark-300">RM {{ Number(item.sellPrice).toFixed(2) }}</td>
-                  <td class="px-3 py-2 text-right">
-                    <span :class="item.quantity <= (item.minStock ?? 5) ? 'text-red-400 font-semibold' : 'text-dark-200'">{{ item.quantity }}</span>
-                    <span v-if="item.holdQuantity > 0" class="text-yellow-500 text-xs ml-1">({{ item.holdQuantity }} held)</span>
-                  </td>
-                  <td class="px-5 py-2">
-                    <div class="flex items-center gap-1 justify-end">
-                      <button @click="$router.push(`/app/stock/${item.id}/history`)" class="p-1 text-dark-400 hover:text-blue-400 transition-colors"><History class="w-3.5 h-3.5" /></button>
-                      <button @click="$router.push(`/app/stock/${item.id}/edit`)" class="p-1 text-dark-400 hover:text-gold-500 transition-colors"><Pencil class="w-3.5 h-3.5" /></button>
-                      <button @click="confirmDelete(item)" class="p-1 text-dark-400 hover:text-red-400 transition-colors"><Trash2 class="w-3.5 h-3.5" /></button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div v-for="brandGroup in group.brands" :key="brandGroup.brand">
+              <!-- Brand sub-header -->
+              <div v-if="group.brands.length > 1" class="px-5 py-1.5 bg-dark-800/40 border-b border-dark-800/50 flex items-center gap-2">
+                <span class="text-gold-500/70 text-xs font-medium">{{ brandGroup.brand }}</span>
+                <span class="text-dark-500 text-xs">({{ brandGroup.items.length }})</span>
+              </div>
+              <table class="w-full text-sm">
+                <tbody>
+                  <tr v-for="item in brandGroup.items" :key="item.id" class="border-b border-dark-800/50 hover:bg-dark-800/30">
+                    <td class="px-5 py-2" style="width: 120px;"><span class="font-mono text-gold-500 text-xs">{{ item.itemCode }}</span></td>
+                    <td class="px-3 py-2 text-dark-200">{{ item.description }}</td>
+                    <td class="px-3 py-2 text-dark-400" style="width: 60px;">{{ item.uom }}</td>
+                    <td class="px-3 py-2 text-right text-dark-300" style="width: 100px;">RM {{ Number(item.costPrice).toFixed(2) }}</td>
+                    <td class="px-3 py-2 text-right text-dark-300" style="width: 100px;">RM {{ Number(item.sellPrice).toFixed(2) }}</td>
+                    <td class="px-3 py-2 text-right" style="width: 80px;">
+                      <span :class="item.quantity <= (item.minStock ?? 5) ? 'text-red-400 font-semibold' : 'text-dark-200'">{{ item.quantity }}</span>
+                      <span v-if="item.holdQuantity > 0" class="text-yellow-500 text-xs ml-1">({{ item.holdQuantity }} held)</span>
+                    </td>
+                    <td class="px-5 py-2" style="width: 100px;">
+                      <div class="flex items-center gap-1 justify-end">
+                        <button @click="$router.push(`/app/stock/${item.id}/history`)" class="p-1 text-dark-400 hover:text-blue-400 transition-colors"><History class="w-3.5 h-3.5" /></button>
+                        <button @click="$router.push(`/app/stock/${item.id}/edit`)" class="p-1 text-dark-400 hover:text-gold-500 transition-colors"><Pencil class="w-3.5 h-3.5" /></button>
+                        <button @click="confirmDelete(item)" class="p-1 text-dark-400 hover:text-red-400 transition-colors"><Trash2 class="w-3.5 h-3.5" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -294,7 +289,9 @@ const toast = useToast()
 
 const viewMode = ref<'flat' | 'grouped'>('flat')
 const groupedLoading = ref(false)
-const groupedItems = ref<{ category: string; items: StockItem[]; totalQty: number; expanded: boolean }[]>([])
+interface BrandGroup { brand: string; items: StockItem[] }
+interface CategoryGroup { category: string; brands: BrandGroup[]; totalQty: number; totalItems: number; expanded: boolean }
+const groupedItems = ref<CategoryGroup[]>([])
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -449,18 +446,26 @@ async function switchToGrouped() {
       params: { limit: 9999, search: search.value || undefined, categoryId: categoryFilter.value || undefined, brandId: brandFilter.value || undefined },
     }))
     const allItems = data.data as StockItem[]
-    const groups = new Map<string, StockItem[]>()
+    const catMap = new Map<string, Map<string, StockItem[]>>()
     for (const item of allItems) {
       const cat = (item as any).category?.name || 'Uncategorized'
-      if (!groups.has(cat)) groups.set(cat, [])
-      groups.get(cat)!.push(item)
+      const brand = (item as any).brand?.name || 'No Brand'
+      if (!catMap.has(cat)) catMap.set(cat, new Map())
+      const brandMap = catMap.get(cat)!
+      if (!brandMap.has(brand)) brandMap.set(brand, [])
+      brandMap.get(brand)!.push(item)
     }
-    groupedItems.value = Array.from(groups.entries()).map(([category, items]) => ({
-      category,
-      items,
-      totalQty: items.reduce((s, i) => s + i.quantity, 0),
-      expanded: true,
-    }))
+    groupedItems.value = Array.from(catMap.entries()).map(([category, brandMap]) => {
+      const brands = Array.from(brandMap.entries()).map(([brand, items]) => ({ brand, items }))
+      const allCatItems = brands.flatMap(b => b.items)
+      return {
+        category,
+        brands,
+        totalQty: allCatItems.reduce((s, i) => s + i.quantity, 0),
+        totalItems: allCatItems.length,
+        expanded: true,
+      }
+    })
   } catch { /* ignore */ } finally {
     groupedLoading.value = false
   }

@@ -435,6 +435,11 @@ function selectStock(idx: number, s: StockItem) {
 async function handleSubmit() {
   if (form.items.length === 0) return
 
+  if (!selectedCustomer.value && !form.customerPhone.trim() && !form.vehiclePlate.trim()) {
+    toast.error('Please enter at least a phone number or plate number')
+    return
+  }
+
   if (selectedCustomer.value) {
     // Existing customer — check if plate changed (new vehicle?)
     const currentPlate = form.vehiclePlate.trim().toUpperCase()
