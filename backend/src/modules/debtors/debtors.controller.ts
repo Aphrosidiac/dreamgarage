@@ -1,7 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 
-export async function listDebtors(request: FastifyRequest, reply: FastifyReply) {
+export async function listDebtors(
+  request: FastifyRequest<{ Querystring: Record<string, any> }>,
+  reply: FastifyReply
+) {
   const { branchId } = request.user
+  const { from, to } = request.query as any
 
   // Query unpaid invoices directly — don't rely on customerId relation
   const unpaidInvoices = await request.server.prisma.document.findMany({
@@ -9,6 +13,12 @@ export async function listDebtors(request: FastifyRequest, reply: FastifyReply) 
       branchId,
       documentType: 'INVOICE',
       status: { in: ['OUTSTANDING', 'PARTIAL', 'OVERDUE'] },
+      ...(from || to ? {
+        issueDate: {
+          ...(from ? { gte: new Date(from) } : {}),
+          ...(to ? { lte: new Date(to + 'T23:59:59.999Z') } : {}),
+        },
+      } : {}),
     },
     select: {
       id: true,
@@ -60,6 +70,11 @@ export async function listDebtors(request: FastifyRequest, reply: FastifyReply) 
       (sum, doc) => sum + (doc.totalAmount.toNumber() - doc.paidAmount.toNumber()),
       0
     )
+    const oldestDueDate = d.documents
+      .filter((doc) => doc.dueDate)
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())[0]?.dueDate || null
+    const latestIssueDate = d.documents[0]?.issueDate || null
+
     return {
       id: d.customerId || d.key,
       name: d.name,
@@ -67,6 +82,8 @@ export async function listDebtors(request: FastifyRequest, reply: FastifyReply) 
       plate: d.plate,
       invoiceCount: d.documents.length,
       totalOwed: Math.round(totalOwed * 100) / 100,
+      oldestDueDate,
+      latestIssueDate,
       documents: d.documents.map((doc) => ({
         id: doc.id,
         documentNumber: doc.documentNumber,

@@ -94,54 +94,81 @@
       <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Items</h3>
-          <BaseButton variant="secondary" size="sm" type="button" @click="addItem">
-            <Plus class="w-4 h-4 mr-1" /> Add Item
-          </BaseButton>
+          <div class="flex gap-2">
+            <BaseButton variant="secondary" size="sm" type="button" @click="addCustomItem">
+              <Plus class="w-4 h-4 mr-1" /> Custom Item
+            </BaseButton>
+            <BaseButton variant="secondary" size="sm" type="button" @click="addItem">
+              <Plus class="w-4 h-4 mr-1" /> Add Item
+            </BaseButton>
+          </div>
         </div>
 
         <div class="space-y-3">
-          <div v-for="(item, idx) in form.items" :key="idx" class="flex items-start gap-3 bg-dark-800/50 rounded-lg p-3">
-            <div class="flex-1 grid grid-cols-12 gap-2">
-              <div class="col-span-5 relative">
-                <input
-                  v-model="item.searchTerm"
-                  @input="(e) => searchStock(idx, (e.target as HTMLInputElement).value)"
-                  @focus="item.showDropdown = true"
-                  type="text"
-                  placeholder="Search stock item..."
-                  class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
-                />
-                <div v-if="item.showDropdown && item.stockResults.length" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded shadow-lg max-h-40 overflow-y-auto">
-                  <button
-                    v-for="s in item.stockResults"
-                    :key="s.id"
-                    type="button"
-                    @click="selectStock(idx, s)"
-                    class="w-full px-3 py-2 text-left hover:bg-dark-700 text-sm transition-colors"
-                  >
-                    <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
-                    <span class="text-dark-200 ml-2">{{ s.description }}</span>
-                    <span class="text-dark-500 ml-2">RM{{ Number(s.sellPrice).toFixed(2) }}</span>
+          <div v-for="(item, idx) in form.items" :key="idx" class="bg-dark-800/50 rounded-lg p-3">
+            <div class="flex items-start gap-3">
+              <div class="flex-1 grid grid-cols-12 gap-2">
+                <!-- Stock search or custom description -->
+                <div class="col-span-5 relative">
+                  <template v-if="item.isCustom">
+                    <input
+                      v-model="item.description"
+                      type="text"
+                      placeholder="Enter custom description..."
+                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                    />
+                  </template>
+                  <template v-else>
+                    <input
+                      v-model="item.searchTerm"
+                      @input="(e) => searchStock(idx, (e.target as HTMLInputElement).value)"
+                      @focus="item.showDropdown = true"
+                      type="text"
+                      placeholder="Search stock item..."
+                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                    />
+                    <div v-if="item.showDropdown && item.stockResults.length" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded shadow-lg max-h-40 overflow-y-auto">
+                      <button
+                        v-for="s in item.stockResults"
+                        :key="s.id"
+                        type="button"
+                        @click="selectStock(idx, s)"
+                        class="w-full px-3 py-2 text-left hover:bg-dark-700 text-sm transition-colors"
+                      >
+                        <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
+                        <span class="text-dark-200 ml-2">{{ s.description }}</span>
+                        <span class="text-dark-500 ml-2">RM{{ Number(s.sellPrice).toFixed(2) }}</span>
+                      </button>
+                    </div>
+                  </template>
+                </div>
+                <div v-if="!item.isCustom" class="col-span-2">
+                  <input v-model="item.description" placeholder="Description" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none" />
+                </div>
+                <div :class="item.isCustom ? 'col-span-2' : 'col-span-1'">
+                  <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-center focus:outline-none" />
+                </div>
+                <div class="col-span-2">
+                  <input v-model.number="item.unitPrice" type="number" step="0.01" min="0" placeholder="Price" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-right focus:outline-none" />
+                </div>
+                <div class="col-span-1 text-right text-dark-300 text-sm py-1.5">
+                  RM {{ ((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2) }}
+                </div>
+                <div class="col-span-1 flex justify-end">
+                  <button type="button" @click="removeItem(idx)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
+                    <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
               </div>
-              <div class="col-span-2">
-                <input v-model="item.description" placeholder="Description" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none" />
-              </div>
-              <div class="col-span-1">
-                <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-center focus:outline-none" />
-              </div>
-              <div class="col-span-2">
-                <input v-model.number="item.unitPrice" type="number" step="0.01" min="0" placeholder="Price" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-right focus:outline-none" />
-              </div>
-              <div class="col-span-1 text-right text-dark-300 text-sm py-1.5">
-                RM {{ ((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2) }}
-              </div>
-              <div class="col-span-1 flex justify-end">
-                <button type="button" @click="removeItem(idx)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
-                  <Trash2 class="w-4 h-4" />
-                </button>
-              </div>
+            </div>
+            <!-- Service Date row -->
+            <div class="mt-2 flex items-center gap-2 pl-1">
+              <label class="text-dark-500 text-xs">Service Date:</label>
+              <input
+                v-model="item.serviceDate"
+                type="date"
+                class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+              />
             </div>
           </div>
         </div>
@@ -272,8 +299,10 @@ interface OrderItem {
   quantity: number
   unitPrice: number
   unit: string
+  serviceDate: string
   showDropdown: boolean
   stockResults: StockItem[]
+  isCustom?: boolean
 }
 
 const form = reactive({
@@ -297,7 +326,14 @@ const orderTotal = computed(() =>
 function addItem() {
   form.items.push({
     searchTerm: '', description: '', quantity: 1, unitPrice: 0,
-    unit: 'PCS', showDropdown: false, stockResults: [],
+    unit: 'PCS', serviceDate: '', showDropdown: false, stockResults: [],
+  })
+}
+
+function addCustomItem() {
+  form.items.push({
+    searchTerm: '', description: '', quantity: 1, unitPrice: 0,
+    unit: 'PCS', serviceDate: '', showDropdown: false, stockResults: [], isCustom: true,
   })
 }
 
@@ -512,6 +548,7 @@ async function proceedSubmit() {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         unit: item.unit,
+        serviceDate: item.serviceDate || undefined,
         sortOrder: idx,
       })),
     })

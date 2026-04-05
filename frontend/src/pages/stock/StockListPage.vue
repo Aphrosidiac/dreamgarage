@@ -50,56 +50,134 @@
       </div>
     </div>
 
-    <!-- Table -->
-    <BaseTable :columns="columns" :data="stock.items" :loading="stock.loading" empty-text="No stock items found.">
-      <template #cell-itemCode="{ value }">
-        <span class="font-mono text-gold-500">{{ value }}</span>
-      </template>
-      <template #cell-category="{ row }">
-        <div class="flex flex-col gap-0.5">
-          <BaseBadge v-if="row.category" color="gray">{{ row.category.name }}</BaseBadge>
-          <span v-else class="text-dark-500">—</span>
-          <span v-if="row.brand" class="text-dark-400 text-xs">{{ row.brand.name }}</span>
-        </div>
-      </template>
-      <template #cell-countryOfOrigin="{ value }">
-        <span v-if="value" :title="value">{{ countryFlag(value) }}</span>
-        <span v-else class="text-dark-600">—</span>
-      </template>
-      <template #cell-costPrice="{ value }">
-        RM {{ Number(value).toFixed(2) }}
-      </template>
-      <template #cell-sellPrice="{ value }">
-        RM {{ Number(value).toFixed(2) }}
-      </template>
-      <template #cell-quantity="{ value, row }">
-        <div>
-          <span :class="value <= (row.minStock ?? 5) ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
-          <span v-if="row.holdQuantity > 0" class="text-yellow-500 text-xs ml-1" title="On Hold">({{ row.holdQuantity }} held)</span>
-        </div>
-      </template>
-      <template #actions="{ row }">
-        <div class="flex items-center gap-1 justify-end">
-          <button @click="$router.push(`/app/stock/${row.id}/history`)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors" title="History">
-            <History class="w-4 h-4" />
-          </button>
-          <button @click="$router.push(`/app/stock/${row.id}/edit`)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Edit">
-            <Pencil class="w-4 h-4" />
-          </button>
-          <button @click="confirmDelete(row as any)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors" title="Delete">
-            <Trash2 class="w-4 h-4" />
-          </button>
-        </div>
-      </template>
-    </BaseTable>
+    <!-- View Toggle -->
+    <div class="flex items-center gap-2 mb-4">
+      <button
+        @click="viewMode = 'flat'"
+        :class="['px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', viewMode === 'flat' ? 'bg-gold-500/10 text-gold-500 border border-gold-500/30' : 'text-dark-400 border border-dark-700 hover:text-dark-200']"
+      >
+        List View
+      </button>
+      <button
+        @click="switchToGrouped"
+        :class="['px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', viewMode === 'grouped' ? 'bg-gold-500/10 text-gold-500 border border-gold-500/30' : 'text-dark-400 border border-dark-700 hover:text-dark-200']"
+      >
+        Group by Category
+      </button>
+    </div>
 
-    <!-- Pagination -->
-    <BasePagination
-      :page="stock.page"
-      :total="stock.total"
-      :limit="stock.limit"
-      @update:page="(p) => { stock.page = p; fetchData() }"
-    />
+    <!-- Flat Table View -->
+    <template v-if="viewMode === 'flat'">
+      <BaseTable :columns="columns" :data="stock.items" :loading="stock.loading" empty-text="No stock items found.">
+        <template #cell-itemCode="{ value }">
+          <span class="font-mono text-gold-500">{{ value }}</span>
+        </template>
+        <template #cell-category="{ row }">
+          <div class="flex flex-col gap-0.5">
+            <BaseBadge v-if="row.category" color="gray">{{ row.category.name }}</BaseBadge>
+            <span v-else class="text-dark-500">—</span>
+            <span v-if="row.brand" class="text-dark-400 text-xs">{{ row.brand.name }}</span>
+          </div>
+        </template>
+        <template #cell-countryOfOrigin="{ value }">
+          <span v-if="value" :title="value">{{ countryFlag(value) }}</span>
+          <span v-else class="text-dark-600">—</span>
+        </template>
+        <template #cell-costPrice="{ value }">
+          RM {{ Number(value).toFixed(2) }}
+        </template>
+        <template #cell-sellPrice="{ value }">
+          RM {{ Number(value).toFixed(2) }}
+        </template>
+        <template #cell-quantity="{ value, row }">
+          <div>
+            <span :class="value <= (row.minStock ?? 5) ? 'text-red-400 font-semibold' : ''">{{ value }}</span>
+            <span v-if="row.holdQuantity > 0" class="text-yellow-500 text-xs ml-1" title="On Hold">({{ row.holdQuantity }} held)</span>
+          </div>
+        </template>
+        <template #actions="{ row }">
+          <div class="flex items-center gap-1 justify-end">
+            <button @click="$router.push(`/app/stock/${row.id}/history`)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors" title="History">
+              <History class="w-4 h-4" />
+            </button>
+            <button @click="$router.push(`/app/stock/${row.id}/edit`)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Edit">
+              <Pencil class="w-4 h-4" />
+            </button>
+            <button @click="confirmDelete(row as any)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors" title="Delete">
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+        </template>
+      </BaseTable>
+
+      <!-- Pagination -->
+      <BasePagination
+        :page="stock.page"
+        :total="stock.total"
+        :limit="stock.limit"
+        @update:page="(p) => { stock.page = p; fetchData() }"
+      />
+    </template>
+
+    <!-- Grouped View -->
+    <template v-else>
+      <div v-if="groupedLoading" class="text-dark-400 text-center py-12">Loading all items...</div>
+      <div v-else-if="!groupedItems.length" class="text-dark-400 text-center py-12">No stock items found.</div>
+      <div v-else class="space-y-6">
+        <div v-for="group in groupedItems" :key="group.category" class="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden">
+          <!-- Category Header -->
+          <button
+            @click="group.expanded = !group.expanded"
+            class="w-full flex items-center justify-between px-5 py-3 hover:bg-dark-800/50 transition-colors"
+          >
+            <div class="flex items-center gap-3">
+              <ChevronRight :class="['w-4 h-4 text-dark-400 transition-transform', group.expanded && 'rotate-90']" />
+              <h3 class="text-dark-100 font-semibold text-sm">{{ group.category }}</h3>
+              <BaseBadge color="gray">{{ group.items.length }} items</BaseBadge>
+            </div>
+            <span class="text-dark-400 text-xs">Total Qty: {{ group.totalQty }}</span>
+          </button>
+          <!-- Items -->
+          <div v-if="group.expanded" class="border-t border-dark-800">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-dark-800">
+                  <th class="text-left px-5 py-2 text-dark-400 text-xs font-medium uppercase">Code</th>
+                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">Description</th>
+                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">Brand</th>
+                  <th class="text-left px-3 py-2 text-dark-400 text-xs font-medium uppercase">UOM</th>
+                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Cost</th>
+                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Price</th>
+                  <th class="text-right px-3 py-2 text-dark-400 text-xs font-medium uppercase">Qty</th>
+                  <th class="text-right px-5 py-2 text-dark-400 text-xs font-medium uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in group.items" :key="item.id" class="border-b border-dark-800/50 hover:bg-dark-800/30">
+                  <td class="px-5 py-2"><span class="font-mono text-gold-500 text-xs">{{ item.itemCode }}</span></td>
+                  <td class="px-3 py-2 text-dark-200">{{ item.description }}</td>
+                  <td class="px-3 py-2 text-dark-400 text-xs">{{ item.brand?.name || '—' }}</td>
+                  <td class="px-3 py-2 text-dark-400">{{ item.uom }}</td>
+                  <td class="px-3 py-2 text-right text-dark-300">RM {{ Number(item.costPrice).toFixed(2) }}</td>
+                  <td class="px-3 py-2 text-right text-dark-300">RM {{ Number(item.sellPrice).toFixed(2) }}</td>
+                  <td class="px-3 py-2 text-right">
+                    <span :class="item.quantity <= (item.minStock ?? 5) ? 'text-red-400 font-semibold' : 'text-dark-200'">{{ item.quantity }}</span>
+                    <span v-if="item.holdQuantity > 0" class="text-yellow-500 text-xs ml-1">({{ item.holdQuantity }} held)</span>
+                  </td>
+                  <td class="px-5 py-2">
+                    <div class="flex items-center gap-1 justify-end">
+                      <button @click="$router.push(`/app/stock/${item.id}/history`)" class="p-1 text-dark-400 hover:text-blue-400 transition-colors"><History class="w-3.5 h-3.5" /></button>
+                      <button @click="$router.push(`/app/stock/${item.id}/edit`)" class="p-1 text-dark-400 hover:text-gold-500 transition-colors"><Pencil class="w-3.5 h-3.5" /></button>
+                      <button @click="confirmDelete(item)" class="p-1 text-dark-400 hover:text-red-400 transition-colors"><Trash2 class="w-3.5 h-3.5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Category Modal -->
     <BaseModal v-model="showCategoryModal" title="Manage Categories" size="md">
@@ -207,12 +285,16 @@ import BaseTable from '../../components/base/BaseTable.vue'
 import BasePagination from '../../components/base/BasePagination.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
-import { Search, Plus, Pencil, Trash2, Tags, History, FileDown, Award } from 'lucide-vue-next'
+import { Search, Plus, Pencil, Trash2, Tags, History, FileDown, Award, ChevronRight } from 'lucide-vue-next'
 import { exportStockListPdf } from '../../lib/pdf-export'
 import type { StockItem } from '../../types'
 
 const stock = useStockStore()
 const toast = useToast()
+
+const viewMode = ref<'flat' | 'grouped'>('flat')
+const groupedLoading = ref(false)
+const groupedItems = ref<{ category: string; items: StockItem[]; totalQty: number; expanded: boolean }[]>([])
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -356,6 +438,31 @@ async function handleDeleteBrand(id: string) {
     await loadBrandsForCategory()
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed to delete brand')
+  }
+}
+
+async function switchToGrouped() {
+  viewMode.value = 'grouped'
+  groupedLoading.value = true
+  try {
+    const { data } = await import('../../lib/api').then(m => m.default.get('/stock', {
+      params: { limit: 9999, search: search.value || undefined, categoryId: categoryFilter.value || undefined, brandId: brandFilter.value || undefined },
+    }))
+    const allItems = data.data as StockItem[]
+    const groups = new Map<string, StockItem[]>()
+    for (const item of allItems) {
+      const cat = (item as any).category?.name || 'Uncategorized'
+      if (!groups.has(cat)) groups.set(cat, [])
+      groups.get(cat)!.push(item)
+    }
+    groupedItems.value = Array.from(groups.entries()).map(([category, items]) => ({
+      category,
+      items,
+      totalQty: items.reduce((s, i) => s + i.quantity, 0),
+      expanded: true,
+    }))
+  } catch { /* ignore */ } finally {
+    groupedLoading.value = false
   }
 }
 

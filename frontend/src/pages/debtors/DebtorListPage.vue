@@ -4,6 +4,19 @@
       <h2 class="text-lg font-semibold text-dark-100">Debtors</h2>
     </div>
 
+    <!-- Filters -->
+    <div class="flex items-end gap-4 mb-6">
+      <div>
+        <label class="block text-xs text-dark-400 mb-1">From</label>
+        <input v-model="filterFrom" type="date" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50" />
+      </div>
+      <div>
+        <label class="block text-xs text-dark-400 mb-1">To</label>
+        <input v-model="filterTo" type="date" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50" />
+      </div>
+      <button @click="clearFilters" class="text-dark-400 hover:text-dark-200 text-sm px-3 py-2 transition-colors">Clear</button>
+    </div>
+
     <!-- Summary -->
     <div v-if="debtors.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
       <div class="bg-dark-900 border border-dark-800 rounded-xl p-4">
@@ -37,6 +50,16 @@
       <template #cell-invoiceCount="{ value }">
         {{ value }}
       </template>
+      <template #cell-latestIssueDate="{ value }">
+        <span v-if="value" class="text-dark-300 text-sm">{{ formatDate(value) }}</span>
+        <span v-else class="text-dark-500">—</span>
+      </template>
+      <template #cell-oldestDueDate="{ value }">
+        <span v-if="value" :class="isOverdue(value) ? 'text-red-400 font-medium' : 'text-dark-300'" class="text-sm">
+          {{ formatDate(value) }}
+        </span>
+        <span v-else class="text-dark-500">—</span>
+      </template>
       <template #cell-totalOwed="{ value }">
         <span class="text-red-400 font-semibold">RM {{ value.toFixed(2) }}</span>
       </template>
@@ -50,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '../../lib/api'
 import BaseTable from '../../components/base/BaseTable.vue'
@@ -63,28 +86,54 @@ interface Debtor {
   plate?: string
   invoiceCount: number
   totalOwed: number
+  oldestDueDate?: string
+  latestIssueDate?: string
 }
 
 const debtors = ref<Debtor[]>([])
 const loading = ref(true)
+const filterFrom = ref('')
+const filterTo = ref('')
 
 const columns = [
   { key: 'name', label: 'Customer' },
   { key: 'phone', label: 'Phone' },
   { key: 'plate', label: 'Vehicle' },
   { key: 'invoiceCount', label: 'Invoices' },
+  { key: 'latestIssueDate', label: 'Last Issued' },
+  { key: 'oldestDueDate', label: 'Due Date' },
   { key: 'totalOwed', label: 'Outstanding' },
 ]
 
 const grandTotal = computed(() => debtors.value.reduce((sum, d) => sum + d.totalOwed, 0))
 const totalInvoices = computed(() => debtors.value.reduce((sum, d) => sum + d.invoiceCount, 0))
 
-onMounted(async () => {
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function isOverdue(d: string) {
+  return new Date(d) < new Date()
+}
+
+function clearFilters() {
+  filterFrom.value = ''
+  filterTo.value = ''
+}
+
+async function fetchDebtors() {
+  loading.value = true
   try {
-    const { data } = await api.get('/debtors')
+    const params: Record<string, string> = {}
+    if (filterFrom.value) params.from = filterFrom.value
+    if (filterTo.value) params.to = filterTo.value
+    const { data } = await api.get('/debtors', { params })
     debtors.value = data.data
   } catch { /* ignore */ } finally {
     loading.value = false
   }
-})
+}
+
+watch([filterFrom, filterTo], () => fetchDebtors())
+onMounted(() => fetchDebtors())
 </script>

@@ -14,9 +14,9 @@
       <form @submit.prevent="handleSave" class="bg-dark-900 border border-dark-800 rounded-xl p-6 space-y-4 mb-6">
         <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Customer Info</h3>
         <div class="grid sm:grid-cols-2 gap-4">
-          <BaseInput v-model="form.name" label="Name" placeholder="Customer name" required />
-          <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" />
-          <BaseInput v-model="form.email" label="Email" type="email" placeholder="customer@email.com" class="sm:col-span-2" />
+          <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" required />
+          <BaseInput v-model="form.name" label="Name (optional)" placeholder="Customer name" />
+          <BaseInput v-model="form.email" label="Email (optional)" type="email" placeholder="customer@email.com" class="sm:col-span-2" />
         </div>
         <div class="flex justify-end">
           <BaseButton variant="primary" type="submit" :loading="saving">

@@ -191,7 +191,7 @@ model Worker {
 model Customer {
   id        String   @id @default(cuid())
   branchId  String
-  name      String
+  name      String   @default("")
   phone     String?
   email     String?
   createdAt DateTime @default(now())

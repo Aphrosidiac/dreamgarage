@@ -3,9 +3,17 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-lg font-semibold text-dark-100">Payment Log</h2>
-      <BaseButton variant="secondary" size="md" @click="printLog">
-        <Printer class="w-4 h-4 mr-1.5" /> Print
-      </BaseButton>
+      <div class="flex gap-2">
+        <BaseButton variant="secondary" size="md" @click="exportExcel">
+          <FileSpreadsheet class="w-4 h-4 mr-1.5" /> Excel
+        </BaseButton>
+        <BaseButton variant="secondary" size="md" @click="exportPdf">
+          <FileText class="w-4 h-4 mr-1.5" /> PDF
+        </BaseButton>
+        <BaseButton variant="secondary" size="md" @click="printLog">
+          <Printer class="w-4 h-4 mr-1.5" /> Print
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Method Tabs -->
@@ -211,7 +219,10 @@ import BaseButton from '../../components/base/BaseButton.vue'
 import BaseTable from '../../components/base/BaseTable.vue'
 import BasePagination from '../../components/base/BasePagination.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
-import { Search, Printer } from 'lucide-vue-next'
+import { Search, Printer, FileSpreadsheet, FileText } from 'lucide-vue-next'
+import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const activeMethod = ref('')
 const search = ref('')
@@ -330,6 +341,91 @@ async function printLog() {
   // Wait for DOM update then print
   await nextTick()
   window.print()
+}
+
+async function getAllPayments() {
+  try {
+    const { data } = await api.get('/reports/payment-log', {
+      params: {
+        page: 1, limit: 9999,
+        from: dateFrom.value || undefined,
+        to: dateTo.value || undefined,
+        method: activeMethod.value || undefined,
+        search: search.value || undefined,
+      },
+    })
+    return data.data as any[]
+  } catch {
+    return payments.value
+  }
+}
+
+async function exportExcel() {
+  const all = await getAllPayments()
+  const rows = all.map((p: any, i: number) => ({
+    'No': i + 1,
+    'Date/Time': fmtDateTime(p.createdAt),
+    'Invoice': p.documentNumber,
+    'Customer': p.customerName || '—',
+    'Vehicle': p.vehiclePlate || '—',
+    'Method': fmtMethod(p.paymentMethod),
+    'Reference': p.referenceNumber || '—',
+    'Amount (RM)': Number(p.amount).toFixed(2),
+  }))
+
+  // Add summary rows
+  rows.push({} as any)
+  if (summary.value) {
+    for (const [method, info] of Object.entries(summary.value.byMethod)) {
+      rows.push({ 'No': '' as any, 'Date/Time': '', 'Invoice': '', 'Customer': '', 'Vehicle': '', 'Method': fmtMethod(method), 'Reference': 'Subtotal', 'Amount (RM)': info.total.toFixed(2) })
+    }
+    rows.push({ 'No': '' as any, 'Date/Time': '', 'Invoice': '', 'Customer': '', 'Vehicle': '', 'Method': '', 'Reference': 'Grand Total', 'Amount (RM)': summary.value.grandTotal.toFixed(2) })
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Payment Log')
+  XLSX.writeFile(wb, `payment-log-${dateFrom.value}-to-${dateTo.value}.xlsx`)
+}
+
+async function exportPdf() {
+  const all = await getAllPayments()
+  const doc = new jsPDF()
+
+  doc.setFontSize(14)
+  doc.text('DREAM GARAGE (M) SDN BHD', 14, 15)
+  doc.setFontSize(10)
+  doc.text('Payment Log', 14, 22)
+  doc.setFontSize(8)
+  doc.text(`Period: ${fmtDate(dateFrom.value)} — ${fmtDate(dateTo.value)}${activeMethod.value ? '  |  Method: ' + fmtMethod(activeMethod.value) : ''}`, 14, 28)
+
+  const rows = all.map((p: any, i: number) => [
+    i + 1,
+    fmtDateTime(p.createdAt),
+    p.documentNumber,
+    p.customerName || '—',
+    fmtMethod(p.paymentMethod),
+    p.referenceNumber || '—',
+    Number(p.amount).toFixed(2),
+  ])
+
+  autoTable(doc, {
+    startY: 32,
+    head: [['No', 'Date/Time', 'Invoice', 'Customer', 'Method', 'Ref', 'Amount (RM)']],
+    body: rows,
+    styles: { fontSize: 7 },
+    headStyles: { fillColor: [30, 30, 30] },
+    columnStyles: { 6: { halign: 'right' } },
+  })
+
+  // Add total
+  if (summary.value) {
+    const finalY = (doc as any).lastAutoTable?.finalY || 200
+    doc.setFontSize(9)
+    doc.text(`Grand Total: RM ${summary.value.grandTotal.toFixed(2)}`, 14, finalY + 8)
+  }
+
+  doc.save(`payment-log-${dateFrom.value}-to-${dateTo.value}.pdf`)
 }
 
 onMounted(() => fetchData())
