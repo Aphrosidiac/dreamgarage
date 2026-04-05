@@ -133,7 +133,7 @@
           <tbody>
             <tr v-for="(item, idx) in doc.items" :key="item.id" class="border-b border-gray-100">
               <td class="py-2">{{ idx + 1 }}</td>
-              <td class="py-2">
+              <td class="py-2" style="white-space: pre-line;">
                 <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
                 {{ item.description }}
                 <span v-if="item.serviceDate" class="block text-gray-400 text-xs mt-0.5">Service: {{ fmtDate(item.serviceDate) }}</span>

@@ -111,11 +111,13 @@
                 <!-- Stock search or custom description -->
                 <div class="col-span-5 relative">
                   <template v-if="item.isCustom">
-                    <input
+                    <textarea
                       v-model="item.description"
-                      type="text"
+                      @input="autoResize"
+                      rows="1"
                       placeholder="Enter custom description..."
-                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50 resize-none overflow-hidden"
+                      style="max-height: 120px;"
                     />
                   </template>
                   <template v-else>
@@ -143,7 +145,14 @@
                   </template>
                 </div>
                 <div v-if="!item.isCustom" class="col-span-2">
-                  <input v-model="item.description" placeholder="Description" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none" />
+                  <textarea
+                    v-model="item.description"
+                    @input="autoResize"
+                    rows="1"
+                    placeholder="Description"
+                    class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none resize-none overflow-hidden"
+                    style="max-height: 120px;"
+                  />
                 </div>
                 <div :class="item.isCustom ? 'col-span-2' : 'col-span-1'">
                   <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-center focus:outline-none" />
@@ -322,6 +331,12 @@ const form = reactive({
 const orderTotal = computed(() =>
   form.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0), 0)
 )
+
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
 
 function addItem() {
   form.items.push({

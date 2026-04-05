@@ -168,7 +168,7 @@
                   <td class="px-3 py-2">
                     <div class="flex flex-col gap-1">
                       <span v-if="item.itemCode" class="text-gold-500 font-mono text-xs">{{ item.itemCode }}</span>
-                      <input v-model="item.description" class="bg-transparent border-0 text-dark-200 text-sm p-0 focus:outline-none focus:ring-0 w-full" placeholder="Item description" />
+                      <textarea v-model="item.description" @input="autoResize" rows="1" class="bg-transparent border-0 text-dark-200 text-sm p-0 focus:outline-none focus:ring-0 w-full resize-none overflow-hidden" style="max-height: 120px;" placeholder="Item description" />
                     </div>
                   </td>
                   <td class="px-3 py-2"><input v-model.number="item.quantity" type="number" min="1" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
@@ -342,6 +342,12 @@ const form = reactive({
   discountAmount: 0,
   items: [] as FormItem[],
 })
+
+function autoResize(e: Event) {
+  const el = e.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
 
 // ─── Calculations ─────────────────────────────────
 function calcItemTotal(item: FormItem): number {
