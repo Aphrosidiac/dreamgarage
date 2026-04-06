@@ -52,6 +52,13 @@ const router = createRouter({
         { path: 'profile', name: 'profile', component: () => import('../pages/profile/ProfilePage.vue') },
       ],
     },
+    // Shop Display — fullscreen, no layout wrapper
+    {
+      path: '/app/shop-display',
+      name: 'shop-display',
+      component: () => import('../pages/display/ShopDisplayPage.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

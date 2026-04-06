@@ -16,6 +16,9 @@
         <RouterLink to="/app/documents/new?type=QUOTATION" class="inline-flex items-center gap-1.5 bg-dark-800 text-dark-200 border border-dark-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-dark-700 transition-colors">
           <Plus class="w-4 h-4" /> New Quotation
         </RouterLink>
+        <a href="/app/shop-display" target="_blank" class="inline-flex items-center gap-1.5 bg-dark-800 text-gold-500 border border-gold-500/30 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gold-500/10 transition-colors ml-auto">
+          <Monitor class="w-4 h-4" /> Shop Display
+        </a>
       </div>
 
       <!-- Stats Row 1 — Revenue -->
@@ -175,7 +178,7 @@ import { RouterLink } from 'vue-router'
 import { useDashboardStore } from '../../stores/dashboard'
 import BaseCard from '../../components/base/BaseCard.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Monitor } from 'lucide-vue-next'
 import { Bar, Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement,
