@@ -113,6 +113,31 @@
                   <div class="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-dark-950/95 border-r border-b border-white/10 rotate-45"></div>
                 </div>
               </Transition>
+              <!-- Promo CTA Popup (for brands without image) -->
+              <Transition name="brand-popup">
+                <div
+                  v-if="activeBrand === brand.name && !brand.image"
+                  class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-3"
+                >
+                  <div
+                    class="w-72 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(255,215,0,0.08)] border border-gold-500/20"
+                    :style="{
+                      transform: `perspective(800px) rotateY(${tiltX}deg) rotateX(${-tiltY}deg) scale(1)`,
+                      transition: 'transform 0.15s ease-out',
+                    }"
+                  >
+                    <div class="bg-gradient-to-br from-dark-950 to-dark-900 px-5 py-6 text-center">
+                      <p class="text-gold-500 font-heading font-bold text-sm tracking-wider mb-2">Want to know more?</p>
+                      <p class="text-dark-300 text-xs leading-relaxed mb-4">Visit us at Taman Mount Austin or WhatsApp us to explore our full range of brands and products.</p>
+                      <a href="https://wa.me/60182078080" target="_blank" class="inline-flex items-center gap-1.5 bg-gold-500 text-dark-950 px-4 py-2 rounded-full text-xs font-bold tracking-wide hover:bg-gold-400 transition-colors pointer-events-auto">
+                        WhatsApp Us
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-dark-950 border-r border-b border-gold-500/20 rotate-45"></div>
+                </div>
+              </Transition>
             </div>
           </div>
         </div>
