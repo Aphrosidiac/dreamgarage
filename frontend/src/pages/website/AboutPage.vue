@@ -75,16 +75,44 @@
           </p>
           <div class="grid grid-cols-3 gap-3">
             <div
-              v-for="(brand, i) in brands"
-              :key="brand"
-              class="brand-card group relative bg-dark-900 border border-dark-800 rounded-xl py-5 px-4 text-center overflow-hidden cursor-default transition-all duration-300 hover:border-gold-500/40 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(255,215,0,0.08)]"
-              :style="{ animationDelay: `${i * 80}ms` }"
+              v-for="brand in brands"
+              :key="brand.name"
+              class="relative"
+              @mouseenter="activeBrand = brand.name"
+              @mouseleave="activeBrand = ''; tiltX = 0; tiltY = 0"
+              @mousemove="handleTilt"
             >
-              <!-- Shimmer sweep -->
-              <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-gold-500/5 to-transparent"></div>
-              <!-- Gold top accent line -->
-              <div class="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gold-500 group-hover:w-full transition-all duration-300"></div>
-              <span class="relative z-10 text-dark-400 font-heading font-semibold text-xs tracking-widest group-hover:text-gold-500 transition-colors duration-300">{{ brand }}</span>
+              <div
+                :class="[
+                  'relative bg-dark-900 border rounded-xl py-5 px-4 text-center cursor-pointer transition-all duration-300',
+                  activeBrand === brand.name ? 'border-gold-500/50 -translate-y-1 shadow-[0_8px_30px_rgba(255,215,0,0.12)]' : 'border-dark-800 hover:border-dark-700',
+                ]"
+              >
+                <span :class="['font-heading font-semibold text-xs tracking-widest transition-colors duration-300', activeBrand === brand.name ? 'text-gold-500' : 'text-dark-400']">{{ brand.name }}</span>
+              </div>
+              <!-- 3D Product Popup -->
+              <Transition name="brand-popup">
+                <div
+                  v-if="activeBrand === brand.name && brand.image"
+                  class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-none"
+                >
+                  <div
+                    class="w-72 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(255,215,0,0.08)] border border-white/10"
+                    :style="{
+                      transform: `perspective(800px) rotateY(${tiltX}deg) rotateX(${-tiltY}deg) scale(1)`,
+                      transition: 'transform 0.15s ease-out',
+                    }"
+                  >
+                    <img :src="brand.image" :alt="brand.name + ' product'" class="w-full h-44 object-cover" />
+                    <div class="bg-dark-950/95 backdrop-blur-sm px-4 py-2.5 border-t border-white/5">
+                      <p class="text-gold-500 font-heading font-bold text-xs tracking-wider">{{ brand.name }}</p>
+                      <p class="text-dark-400 text-[11px] mt-0.5">{{ brand.tagline }}</p>
+                    </div>
+                  </div>
+                  <!-- Arrow -->
+                  <div class="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-dark-950/95 border-r border-b border-white/10 rotate-45"></div>
+                </div>
+              </Transition>
             </div>
           </div>
         </div>
@@ -121,6 +149,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useHead } from '@unhead/vue'
 
@@ -141,5 +170,45 @@ const values = [
   { title: 'Customer First', desc: 'Your satisfaction drives everything we do. We take the time to explain, advise, and ensure you\'re confident in every decision.' },
 ]
 
-const brands = ['MICHELIN', 'MOTUL', 'BREMBO', 'BILSTEIN', 'BMC', 'CONTINENTAL', 'DUNLOP', 'HANKOOK', 'DENSO']
+const brands = [
+  { name: 'MICHELIN', image: '/images/brands/products/michelin.jpg', tagline: 'Premium Performance Tyres' },
+  { name: 'MOTUL', image: '/images/brands/products/motul.jpg', tagline: 'High-Performance Engine Oil' },
+  { name: 'BREMBO', image: '/images/brands/products/brembo.jpg', tagline: 'Racing Brake Systems' },
+  { name: 'BILSTEIN', image: '/images/brands/products/bilstein.jpg', tagline: 'Precision Shock Absorbers' },
+  { name: 'BMC', image: '', tagline: 'Performance Air Filters' },
+  { name: 'CONTINENTAL', image: '/images/brands/products/continental.jpg', tagline: 'German-Engineered Tyres' },
+  { name: 'DUNLOP', image: '/images/brands/products/dunlop.jpg', tagline: 'Trusted Tyre Technology' },
+  { name: 'HANKOOK', image: '/images/brands/products/hankook.jpg', tagline: 'Track-Ready Tyre Performance' },
+  { name: 'DENSO', image: '/images/brands/products/denso.jpg', tagline: 'OEM Electrical Components' },
+]
+
+const activeBrand = ref('')
+const tiltX = ref(0)
+const tiltY = ref(0)
+
+function handleTilt(e: MouseEvent) {
+  const el = (e.currentTarget as HTMLElement)
+  const rect = el.getBoundingClientRect()
+  const x = (e.clientX - rect.left) / rect.width - 0.5
+  const y = (e.clientY - rect.top) / rect.height - 0.5
+  tiltX.value = x * 15
+  tiltY.value = y * 10
+}
 </script>
+
+<style scoped>
+.brand-popup-enter-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.brand-popup-leave-active {
+  transition: all 0.15s ease-in;
+}
+.brand-popup-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px) scale(0.9);
+}
+.brand-popup-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px) scale(0.95);
+}
+</style>
