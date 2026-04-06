@@ -127,8 +127,8 @@
                     }"
                   >
                     <div class="bg-gradient-to-br from-dark-950 to-dark-900 px-5 py-6 text-center">
-                      <p class="text-gold-500 font-heading font-bold text-sm tracking-wider mb-2">Want to know more?</p>
-                      <p class="text-dark-300 text-xs leading-relaxed mb-4">Visit us at Taman Mount Austin or WhatsApp us to explore our full range of brands and products.</p>
+                      <p class="text-gold-500 font-heading font-bold text-sm tracking-wider mb-2">We carry even more brands.</p>
+                      <p class="text-dark-300 text-xs leading-relaxed mb-4">Can't find what you need? We source parts from a wide range of suppliers. Just ask.</p>
                       <a href="https://wa.me/60182078080" target="_blank" class="inline-flex items-center gap-1.5 bg-gold-500 text-dark-950 px-4 py-2 rounded-full text-xs font-bold tracking-wide hover:bg-gold-400 transition-colors pointer-events-auto">
                         WhatsApp Us
                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -200,7 +200,7 @@ const brands = [
   { name: 'MOTUL', image: '/images/brands/products/motul.jpg', tagline: 'High-Performance Engine Oil' },
   { name: 'BREMBO', image: '/images/brands/products/brembo.jpg', tagline: 'Racing Brake Systems' },
   { name: 'BILSTEIN', image: '/images/brands/products/bilstein.jpg', tagline: 'Precision Shock Absorbers' },
-  { name: 'BMC', image: '', tagline: 'Performance Air Filters' },
+  { name: 'MORE', image: '', tagline: '' },
   { name: 'CONTINENTAL', image: '/images/brands/products/continental.jpg', tagline: 'German-Engineered Tyres' },
   { name: 'DUNLOP', image: '/images/brands/products/dunlop.jpg', tagline: 'Trusted Tyre Technology' },
   { name: 'HANKOOK', image: '/images/brands/products/hankook.jpg', tagline: 'Track-Ready Tyre Performance' },
