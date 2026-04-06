@@ -117,8 +117,10 @@
               <Transition name="brand-popup">
                 <div
                   v-if="activeBrand === brand.name && !brand.image"
-                  class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-3"
+                  class="absolute z-30 bottom-full left-1/2 -translate-x-1/2 pb-3"
                 >
+                  <!-- Invisible bridge to connect popup to button -->
+                  <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-4"></div>
                   <div
                     class="w-72 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(255,215,0,0.08)] border border-gold-500/20"
                     :style="{
