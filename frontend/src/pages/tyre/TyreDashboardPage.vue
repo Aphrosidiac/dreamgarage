@@ -45,7 +45,7 @@
             </div>
             <div class="flex items-center gap-3 ml-4">
               <span class="text-dark-200 text-sm font-semibold">{{ item.quantity }} pcs</span>
-              <button @click="copyItem(item, group.tyreSize)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Copy item">
+              <button @click="copyItem(item)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Copy item">
                 <Copy class="w-4 h-4" />
               </button>
             </div>
@@ -119,7 +119,7 @@ async function fetchTyreStock() {
   }
 }
 
-function formatItem(item: TyreItem, tyreSize: string): string {
+function formatItem(item: TyreItem): string {
   const brand = item.brand?.name || ''
   const dots = item.tyreDots?.map((d) => `DOT${d.dotCode}(${d.quantity})`).join(' ') || ''
   return `${brand} ${item.description} - RM${Number(item.sellPrice).toFixed(0)} - ${dots} - ${item.quantity}pcs`
@@ -128,13 +128,13 @@ function formatItem(item: TyreItem, tyreSize: string): string {
 function formatGroup(group: TyreGroup): string {
   const lines = [group.tyreSize]
   for (const item of group.items) {
-    lines.push(`  ${formatItem(item, group.tyreSize)}`)
+    lines.push(`  ${formatItem(item)}`)
   }
   return lines.join('\n')
 }
 
-async function copyItem(item: TyreItem, tyreSize: string) {
-  await navigator.clipboard.writeText(formatItem(item, tyreSize))
+async function copyItem(item: TyreItem) {
+  await navigator.clipboard.writeText(formatItem(item))
   flashCopied()
 }
 

@@ -34,7 +34,7 @@
       </template>
     </BaseTable>
 
-    <BasePagination v-if="totalPages > 1" :page="page" :total-pages="totalPages" @update:page="(p: number) => { page = p; fetchSuppliers() }" />
+    <BasePagination v-if="totalPages > 1" :page="page" :total="totalPages * 20" :limit="20" @update:page="(p: number) => { page = p; fetchSuppliers() }" />
   </div>
 </template>
 

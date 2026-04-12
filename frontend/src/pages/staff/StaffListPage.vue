@@ -52,10 +52,10 @@
       </template>
       <template #actions="{ row }">
         <div class="flex items-center gap-1">
-          <button @click="openEditModal(row)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors">
+          <button @click="openEditModal(row as User)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors">
             <Pencil class="w-4 h-4" />
           </button>
-          <button @click="openResetModal(row)" class="p-1.5 text-dark-400 hover:text-yellow-400 transition-colors" title="Reset Password">
+          <button @click="openResetModal(row as User)" class="p-1.5 text-dark-400 hover:text-yellow-400 transition-colors" title="Reset Password">
             <KeyRound class="w-4 h-4" />
           </button>
         </div>

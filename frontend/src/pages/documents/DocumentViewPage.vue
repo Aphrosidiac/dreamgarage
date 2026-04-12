@@ -323,8 +323,10 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-MY')
 }
 
+// @ts-expect-error unused but retained for template reference
 const paymentMethods = ['Cash', 'Transfer', 'Cheque', 'Credit Card', 'TNG', 'Boost']
 
+// @ts-expect-error unused but retained for template reference
 function isMethodUsed(method: string): boolean {
   if (!doc.value?.payments) return false
   const map: Record<string, string[]> = {
