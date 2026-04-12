@@ -121,28 +121,6 @@ async function main() {
   }
   console.log(`${paymentTerms.length} payment terms created`)
 
-  // Create workers
-  const workers = [
-    { name: 'Ahmad Foreman', phone: '+60 12-345 6001', role: 'Foreman' },
-    { name: 'Rizal Mechanic', phone: '+60 12-345 6002', role: 'Mechanic' },
-    { name: 'Jason Technician', phone: '+60 12-345 6003', role: 'Technician' },
-    { name: 'Muthu Mechanic', phone: '+60 12-345 6004', role: 'Mechanic' },
-    { name: 'Ali Salesman', phone: '+60 12-345 6005', role: 'Salesman' },
-    { name: 'Wei Liang Foreman', phone: '+60 12-345 6006', role: 'Foreman' },
-  ]
-
-  for (const w of workers) {
-    const existing = await prisma.worker.findFirst({
-      where: { branchId: branch.id, name: w.name },
-    })
-    if (!existing) {
-      await prisma.worker.create({
-        data: { branchId: branch.id, ...w },
-      })
-    }
-  }
-  console.log(`${workers.length} workers created`)
-
   // Create brands under categories
   const categoryBrands: Record<string, string[]> = {
     'Tyres': ['Michelin', 'Continental', 'Bridgestone', 'Goodyear', 'Pirelli', 'Toyo', 'Kumho', 'Dunlop'],

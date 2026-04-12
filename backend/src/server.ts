@@ -5,8 +5,10 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { env } from './config/env.js'
 import prismaPlugin from './plugins/prisma.js'
+import redisPlugin from './plugins/redis.js'
 import authPlugin from './plugins/auth.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
+import cacheInvalidationPlugin from './plugins/cache-invalidation.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import categoryRoutes from './modules/categories/categories.routes.js'
 import stockRoutes from './modules/stock/stock.routes.js'
@@ -17,9 +19,13 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js'
 import profileRoutes from './modules/profile/profile.routes.js'
 import customerRoutes from './modules/customers/customers.routes.js'
 import brandRoutes from './modules/brands/brands.routes.js'
-import workerRoutes from './modules/workers/workers.routes.js'
+import staffRoutes from './modules/staff/staff.routes.js'
 import debtorRoutes from './modules/debtors/debtors.routes.js'
 import reportRoutes from './modules/reports/reports.routes.js'
+import tyreDotRoutes from './modules/tyre-dots/tyre-dots.routes.js'
+import supplierRoutes from './modules/suppliers/suppliers.routes.js'
+import purchaseInvoiceRoutes from './modules/purchase-invoices/purchase-invoices.routes.js'
+import supplierPaymentRoutes from './modules/supplier-payments/supplier-payments.routes.js'
 
 const isProd = env.NODE_ENV === 'production'
 
@@ -30,19 +36,26 @@ const app = Fastify({
 })
 
 async function start() {
-  // Security
-  await app.register(helmet, { contentSecurityPolicy: false })
-  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
-
-  // Plugins
+  // Plugins (Redis first — rate limiter and cache depend on it)
   await app.register(cors, {
     origin: isProd ? env.CORS_ORIGIN.split(',') : env.CORS_ORIGIN,
     credentials: true,
   })
   await app.register(formbody)
   await app.register(prismaPlugin)
+  await app.register(redisPlugin)
+
+  // Security (rate limiter uses Redis store for cluster-wide state)
+  await app.register(helmet, { contentSecurityPolicy: false })
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+    redis: app.redis,
+  })
+
   await app.register(authPlugin)
   await app.register(errorHandlerPlugin)
+  await app.register(cacheInvalidationPlugin)
 
   // Routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' })
@@ -55,9 +68,13 @@ async function start() {
   await app.register(profileRoutes, { prefix: '/api/v1/profile' })
   await app.register(customerRoutes, { prefix: '/api/v1/customers' })
   await app.register(brandRoutes, { prefix: '/api/v1/brands' })
-  await app.register(workerRoutes, { prefix: '/api/v1/workers' })
+  await app.register(staffRoutes, { prefix: '/api/v1/staff' })
   await app.register(debtorRoutes, { prefix: '/api/v1/debtors' })
   await app.register(reportRoutes, { prefix: '/api/v1/reports' })
+  await app.register(tyreDotRoutes, { prefix: '/api/v1' })
+  await app.register(supplierRoutes, { prefix: '/api/v1/suppliers' })
+  await app.register(purchaseInvoiceRoutes, { prefix: '/api/v1/purchase-invoices' })
+  await app.register(supplierPaymentRoutes, { prefix: '/api/v1/supplier-payments' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
@@ -65,11 +82,24 @@ async function start() {
   // Start
   try {
     await app.listen({ port: env.PORT, host: '0.0.0.0' })
-    console.log(`\n  Dream Garage API running on http://localhost:${env.PORT}\n`)
+    console.log(`\n  Dream Garage API running on http://localhost:${env.PORT} (PID: ${process.pid})\n`)
+
+    // Tell PM2 this instance is ready (for zero-downtime reloads)
+    if (process.send) process.send('ready')
   } catch (err) {
     app.log.error(err)
     process.exit(1)
   }
+
+  // Graceful shutdown for PM2 cluster mode
+  const shutdown = async (signal: string) => {
+    app.log.info(`${signal} received — shutting down gracefully`)
+    await app.close()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
 }
 
 start()

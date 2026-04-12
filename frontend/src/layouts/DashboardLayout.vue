@@ -75,34 +75,46 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, HardHat, LogOut, Menu } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Truck, Wallet, CreditCard } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
 
-const navItems = [
-  { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/app/take-order', label: 'Take Order', icon: ClipboardList },
-  { path: '/app/stock', label: 'Stock', icon: Package },
-  { path: '/app/workers', label: 'Workers', icon: HardHat },
-  { path: '/app/customers', label: 'Customers', icon: Users },
-  { path: '/app/documents', label: 'Documents', icon: FileText },
-  { path: '/app/debtors', label: 'Debtors', icon: AlertCircle },
-  { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3 },
+const allNavItems = [
+  { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/customers', label: 'Customers', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'], section: 'Purchasing' },
+  { path: '/app/purchase-invoices', label: 'Purchase Invoices', icon: Wallet, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/supplier-payments', label: 'A/P Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/staff', label: 'Staff', icon: UserCog, roles: ['ADMIN'] },
 ]
+
+const navItems = computed(() =>
+  allNavItems.filter((item) => item.roles.includes(auth.user?.role || 'WORKER'))
+)
 
 const isActive = (path: string) => route.path.startsWith(path)
 
 const pageTitle = computed(() => {
   const name = route.name as string
   if (name?.startsWith('stock')) return 'Stock Management'
-  if (name?.startsWith('worker')) return 'Workers'
+  if (name?.startsWith('staff')) return 'Staff Management'
   if (name?.startsWith('customer')) return 'Customers'
   if (name?.startsWith('document')) return 'Documents'
+  if (name?.startsWith('supplier-payment')) return 'A/P Payments'
+  if (name?.startsWith('supplier')) return 'Suppliers'
+  if (name?.startsWith('purchase-invoice')) return 'Purchase Invoices'
   if (name === 'take-order') return 'Take Order'
   if (name === 'dashboard') return 'Dashboard'
+  if (name === 'tyre-dashboard') return 'Tyre Dashboard'
   if (name?.startsWith('debtor')) return 'Debtors'
   if (name === 'payment-log') return 'Payment Log'
   if (name === 'profile') return 'Profile'

@@ -93,8 +93,8 @@
 
           <!-- Foreman -->
           <div class="mt-4">
-            <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select worker">
-              <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }} ({{ w.role }})</option>
+            <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select staff">
+              <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }}{{ w.jobTitle ? ` (${w.jobTitle})` : '' }}</option>
             </BaseSelect>
           </div>
         </div>
@@ -298,7 +298,7 @@ const selectedCustomer = ref<Customer | null>(null)
 const selectedVehicleId = ref('')
 
 // Workers
-const workers = ref<{ id: string; name: string; role: string }[]>([])
+const workers = ref<{ id: string; name: string; jobTitle?: string }[]>([])
 
 // Stock search
 const stockSearch = ref('')
@@ -326,6 +326,7 @@ interface FormItem {
 const form = reactive({
   documentType: (route.query.type as DocumentType) || 'INVOICE',
   customerName: '',
+  customerCompanyName: '',
   customerPhone: '',
   customerEmail: '',
   vehiclePlate: '',
@@ -375,6 +376,7 @@ function handleCustomerSearch() {
 function selectCustomer(c: Customer) {
   selectedCustomer.value = c
   form.customerName = c.name
+  form.customerCompanyName = c.companyName || ''
   form.customerPhone = c.phone || ''
   form.customerEmail = c.email || ''
   customerSearch.value = ''
@@ -399,6 +401,7 @@ function clearCustomer() {
   selectedCustomer.value = null
   selectedVehicleId.value = ''
   form.customerName = ''
+  form.customerCompanyName = ''
   form.customerPhone = ''
   form.customerEmail = ''
   form.vehiclePlate = ''
@@ -443,6 +446,7 @@ async function loadDocument() {
     const doc = await store.getDocument(route.params.id as string)
     form.documentType = doc.documentType
     form.customerName = doc.customerName || ''
+    form.customerCompanyName = doc.customerCompanyName || ''
     form.customerPhone = doc.customerPhone || ''
     form.customerEmail = doc.customerEmail || ''
     form.vehiclePlate = doc.vehiclePlate || ''
@@ -581,7 +585,7 @@ function closeDropdown() { showStockResults.value = false; showCustomerResults.v
 onMounted(async () => {
   document.addEventListener('click', closeDropdown)
   loadDocument()
-  try { const { data } = await api.get('/workers'); workers.value = data.data } catch { /* ignore */ }
+  try { const { data } = await api.get('/staff', { params: { limit: '100' } }); workers.value = data.data } catch { /* ignore */ }
 })
 onUnmounted(() => {
   document.removeEventListener('click', closeDropdown)

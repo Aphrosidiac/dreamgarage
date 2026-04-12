@@ -5,7 +5,7 @@ export async function listDebtors(
   reply: FastifyReply
 ) {
   const { branchId } = request.user
-  const { from, to } = request.query as any
+  const { from, to, search } = request.query as any
 
   // Query unpaid invoices directly — don't rely on customerId relation
   const unpaidInvoices = await request.server.prisma.document.findMany({
@@ -19,6 +19,15 @@ export async function listDebtors(
           ...(to ? { lte: new Date(to + 'T23:59:59.999Z') } : {}),
         },
       } : {}),
+      ...(search && {
+        OR: [
+          { customerName: { contains: search, mode: 'insensitive' } },
+          { customerCompanyName: { contains: search, mode: 'insensitive' } },
+          { customerPhone: { contains: search, mode: 'insensitive' } },
+          { vehiclePlate: { contains: search, mode: 'insensitive' } },
+          { documentNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     },
     select: {
       id: true,

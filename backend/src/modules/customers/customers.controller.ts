@@ -15,6 +15,7 @@ export async function listCustomers(
     ...(search && {
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { vehicles: { some: { plate: { contains: search, mode: 'insensitive' } } } },
@@ -56,6 +57,7 @@ export async function searchCustomers(
       branchId,
       OR: [
         { name: { contains: q, mode: 'insensitive' } },
+        { companyName: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { vehicles: { some: { plate: { contains: q, mode: 'insensitive' } } } },
@@ -94,12 +96,12 @@ export async function getCustomer(
 
 export async function createCustomer(
   request: FastifyRequest<{
-    Body: { name: string; phone?: string; email?: string; vehicles?: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string }[] }
+    Body: { name: string; phone?: string; email?: string; companyName?: string; vehicles?: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string }[] }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
-  const { name, phone, email, vehicles } = request.body
+  const { name, phone, email, companyName, vehicles } = request.body
 
   const customerName = name?.trim() || phone?.trim() || 'Walk-in'
 
@@ -107,6 +109,7 @@ export async function createCustomer(
     data: {
       branchId,
       name: customerName,
+      companyName: companyName?.trim() || null,
       phone: phone?.trim() || null,
       email: email?.trim() || null,
       ...(vehicles?.length && {
@@ -130,12 +133,12 @@ export async function createCustomer(
 }
 
 export async function updateCustomer(
-  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; phone?: string; email?: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body: { name?: string; phone?: string; email?: string; companyName?: string } }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { name, phone, email } = request.body
+  const { name, phone, email, companyName } = request.body
 
   const existing = await request.server.prisma.customer.findFirst({ where: { id, branchId } })
   if (!existing) {
@@ -146,6 +149,7 @@ export async function updateCustomer(
     where: { id },
     data: {
       ...(name && { name: name.trim() }),
+      ...(companyName !== undefined && { companyName: companyName?.trim() || null }),
       ...(phone !== undefined && { phone: phone?.trim() || null }),
       ...(email !== undefined && { email: email?.trim() || null }),
     },

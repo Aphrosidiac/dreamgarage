@@ -9,6 +9,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
+  const isManager = computed(() => user.value?.role === 'MANAGER')
+  const isWorker = computed(() => user.value?.role === 'WORKER')
+  const canManageStaff = computed(() => user.value?.role === 'ADMIN')
+  const canAccessFullApp = computed(() => user.value?.role === 'ADMIN' || user.value?.role === 'MANAGER')
 
   async function login(email: string, password: string) {
     const { data } = await api.post('/auth/login', { email, password })
@@ -32,5 +36,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('dg_token')
   }
 
-  return { user, token, isAuthenticated, isAdmin, login, fetchProfile, logout }
+  return { user, token, isAuthenticated, isAdmin, isManager, isWorker, canManageStaff, canAccessFullApp, login, fetchProfile, logout }
 })

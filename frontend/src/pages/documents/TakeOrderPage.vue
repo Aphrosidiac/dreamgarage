@@ -49,8 +49,8 @@
           <div class="grid grid-cols-3 gap-4">
             <BaseInput v-model="form.customerPhone" label="Phone" placeholder="e.g. 012-3456789" />
             <BaseInput v-model="form.customerName" label="Name (optional)" placeholder="Customer name" />
-            <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select worker">
-              <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }} ({{ w.role }})</option>
+            <BaseSelect v-model="form.foremanId" label="Foreman / Salesperson" placeholder="Select staff">
+              <option v-for="w in workers" :key="w.id" :value="w.id">{{ w.name }}{{ w.jobTitle ? ` (${w.jobTitle})` : '' }}</option>
             </BaseSelect>
           </div>
 
@@ -285,7 +285,7 @@ const docStore = useDocumentStore()
 const toast = useToast()
 const saving = ref(false)
 
-const workers = ref<{ id: string; name: string; role: string }[]>([])
+const workers = ref<{ id: string; name: string; jobTitle?: string }[]>([])
 const customerSearch = ref('')
 const searchResults = ref<Customer[]>([])
 const showResults = ref(false)
@@ -584,7 +584,7 @@ async function proceedSubmit() {
 onMounted(async () => {
   addItem()
   try {
-    const { data } = await api.get('/workers')
+    const { data } = await api.get('/staff', { params: { limit: '100' } })
     workers.value = data.data
   } catch { /* ignore */ }
 })

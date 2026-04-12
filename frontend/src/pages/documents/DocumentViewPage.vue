@@ -21,6 +21,9 @@
           <BaseButton v-if="doc.status === 'OUTSTANDING'" variant="secondary" size="sm" @click="handleRevertDraft" :loading="statusLoading">
             <RotateCcw class="w-4 h-4 mr-1" /> Revert to Draft
           </BaseButton>
+          <BaseButton v-if="['PARTIAL', 'PAID'].includes(doc.status) && auth.isAdmin" variant="secondary" size="sm" @click="handleRevertPaidDraft" :loading="statusLoading">
+            <RotateCcw class="w-4 h-4 mr-1" /> Revert to Draft
+          </BaseButton>
           <BaseButton v-if="doc.status !== 'VOID' && doc.status !== 'DRAFT'" variant="danger" size="sm" @click="handleStatus('VOID')" :loading="statusLoading">
             Void
           </BaseButton>
@@ -74,21 +77,25 @@
 
     <div v-if="loadingDoc" class="text-dark-400">Loading...</div>
 
-    <!-- Document Template -->
-    <div v-else-if="doc" id="document-template" class="text-gray-900 overflow-hidden max-w-3xl mx-auto rounded-xl print:max-w-full print:shadow-none print:rounded-none" style="width: 800px;">
-      <!-- Header -->
-      <div class="bg-gray-900 text-white px-8 py-5 flex items-center gap-4">
-        <img src="/logo-doc.png" alt="Dream Garage" class="h-14" />
-        <div class="flex-1">
-          <h1 class="text-lg font-bold text-yellow-400">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</h1>
-          <p v-if="branch?.ssmNumber" class="text-gray-400 text-xs">({{ branch.ssmNumber }})</p>
-          <p class="text-gray-300 text-xs mt-1">{{ branch?.address || '' }}</p>
-          <p v-if="branch?.phone" class="text-gray-300 text-xs">Tel: {{ branch.phone }}</p>
+    <!-- Document Template — Clean White Professional -->
+    <div v-else-if="doc" id="document-template" class="bg-white text-gray-900 overflow-hidden max-w-3xl mx-auto border border-gray-300 print:max-w-full print:shadow-none print:border-none" style="width: 800px;">
+      <!-- Header: Logo + Company Info -->
+      <div class="px-8 pt-6 pb-4 flex items-start justify-between">
+        <img src="/logo-invoice.png" alt="Dream Garage" class="h-16" />
+        <div class="text-right text-xs text-gray-700">
+          <p class="text-sm font-bold text-gray-900">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</p>
+          <p v-if="branch?.ssmNumber" class="text-gray-500">({{ branch.ssmNumber }})</p>
+          <p class="mt-1">{{ branch?.address || '' }}</p>
+          <p v-if="branch?.phone">Tel: {{ branch.phone }}</p>
+          <p v-if="branch?.email">{{ branch.email }}</p>
         </div>
       </div>
 
-      <!-- Doc Info + Customer/Vehicle -->
-      <div class="bg-white px-8 py-4 border-b border-gray-200">
+      <!-- Divider -->
+      <div class="border-t-2 border-gray-900 mx-8"></div>
+
+      <!-- Doc Type + Number/Date + Customer/Vehicle -->
+      <div class="px-8 py-4">
         <div class="flex justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-900 uppercase">{{ store.getDocTypeLabel(doc.documentType) }}</h2>
           <div class="text-right text-sm space-y-0.5">
@@ -97,10 +104,11 @@
             <p v-if="doc.dueDate"><span class="text-gray-500">Due:</span> {{ fmtDate(doc.dueDate) }}</p>
           </div>
         </div>
-        <div v-if="doc.customerName || doc.vehiclePlate" class="grid grid-cols-2 gap-6 text-sm border-t border-gray-100 pt-3">
+        <div v-if="doc.customerName || doc.vehiclePlate" class="grid grid-cols-2 gap-6 text-sm border-t border-gray-200 pt-3">
           <div>
             <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Sold To</p>
             <p class="font-medium">{{ doc.customerName || '—' }}</p>
+            <p v-if="doc.customerCompanyName" class="text-gray-600 text-xs mt-0.5">{{ doc.customerCompanyName }}</p>
             <p v-if="doc.customerPhone" class="text-gray-500 text-xs mt-0.5">Tel: {{ doc.customerPhone }}</p>
             <p v-if="doc.customerEmail" class="text-gray-500 text-xs">{{ doc.customerEmail }}</p>
           </div>
@@ -116,10 +124,10 @@
       </div>
 
       <!-- Items Table -->
-      <div class="bg-white px-8 py-4">
-        <table class="w-full text-sm">
+      <div class="px-8 py-2">
+        <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="border-b-2 border-gray-900">
+            <tr class="border-t border-b border-gray-900">
               <th class="text-left py-2 font-semibold w-8">No</th>
               <th class="text-left py-2 font-semibold">Description / Part No</th>
               <th class="text-center py-2 font-semibold w-12">Qty</th>
@@ -131,7 +139,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, idx) in doc.items" :key="item.id" class="border-b border-gray-100">
+            <tr v-for="(item, idx) in doc.items" :key="item.id" class="border-b border-gray-200">
               <td class="py-2">{{ idx + 1 }}</td>
               <td class="py-2" style="white-space: pre-line;">
                 <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
@@ -149,96 +157,75 @@
         </table>
       </div>
 
-      <!-- Amount in Words + Totals (hidden for Delivery Orders) -->
-      <div class="bg-white px-8 py-4">
-        <p v-if="!isDeliveryOrder" class="text-xs text-gray-500 italic mb-3">{{ amountInWords }}</p>
+      <!-- Amount in Words + Totals + T&C -->
+      <div class="px-8 py-4">
+        <div class="border-t border-gray-900"></div>
+        <p v-if="!isDeliveryOrder" class="text-xs text-gray-600 font-medium mt-3 mb-3">{{ amountInWords }}</p>
         <div class="flex justify-between items-start">
-          <!-- Notes & Bank Details (left) -->
-          <div class="text-xs text-gray-500 max-w-[55%] space-y-3">
-            <div v-if="doc.notes">
-              <p class="whitespace-pre-line">{{ doc.notes }}</p>
-            </div>
-            <div v-if="doc.documentType === 'INVOICE' && branch?.bankAccount">
-              <p class="font-semibold text-gray-700">{{ branch.bankName || 'BANK' }} A/C : {{ branch.bankAccount }}</p>
-              <p>{{ branch.name }}</p>
+          <!-- T&C + Notes (left) -->
+          <div class="text-xs text-gray-600 max-w-[55%] space-y-3">
+            <div v-if="doc.notes" class="whitespace-pre-line">{{ doc.notes }}</div>
+            <div class="leading-relaxed">
+              <p class="font-bold text-gray-800">1. ALL GOODS SOLD ARE NOT RETURNABLE. RM50.00 (1PC) WILL BE CHARGE FOR CANCELLATION.</p>
+              <p class="font-bold text-gray-800">2. ALL CHEQUES SHOULD BE CROSSED AND MADE PAYABLE TO:</p>
+              <p class="ml-3 font-bold text-gray-800">DREAM GARAGE (M) SDN BHD</p>
+              <p class="font-bold text-gray-900 mt-1">PUBLIC BANK A/C : 3228 486 517</p>
             </div>
           </div>
-          <!-- Totals (right) — hidden for Delivery Orders -->
+          <!-- Totals (right) -->
           <div v-if="!isDeliveryOrder" class="w-56 space-y-1 text-sm">
-            <div class="flex justify-between"><span class="text-gray-500">Subtotal</span><span>{{ Number(doc.subtotal).toFixed(2) }}</span></div>
-            <div v-if="Number(doc.taxAmount) > 0" class="flex justify-between"><span class="text-gray-500">Tax</span><span>{{ Number(doc.taxAmount).toFixed(2) }}</span></div>
-            <div v-if="Number(doc.discountAmount) > 0" class="flex justify-between"><span class="text-gray-500">Discount</span><span class="text-red-600">-{{ Number(doc.discountAmount).toFixed(2) }}</span></div>
-            <div class="flex justify-between py-2 border-t-2 border-gray-900 font-bold">
-              <span>Total</span><span>RM {{ Number(doc.totalAmount).toFixed(2) }}</span>
+            <div class="flex justify-between border border-gray-400 px-3 py-1.5"><span class="text-gray-600">SubTotal</span><span>{{ Number(doc.subtotal).toFixed(2) }}</span></div>
+            <div v-if="Number(doc.taxAmount) > 0" class="flex justify-between border border-gray-400 px-3 py-1.5"><span class="text-gray-600">Tax</span><span>{{ Number(doc.taxAmount).toFixed(2) }}</span></div>
+            <div v-if="Number(doc.discountAmount) > 0" class="flex justify-between border border-gray-400 px-3 py-1.5"><span class="text-gray-600">Discount</span><span class="text-red-600">-{{ Number(doc.discountAmount).toFixed(2) }}</span></div>
+            <div class="flex justify-between border-2 border-gray-900 px-3 py-1.5 font-bold">
+              <span>Total</span><span>{{ Number(doc.totalAmount).toFixed(2) }}</span>
             </div>
-            <template v-if="doc.payments?.length">
-              <div v-for="p in doc.payments" :key="p.id" class="flex justify-between text-green-700 text-xs">
-                <span>{{ fmtPaymentMethod(p.paymentMethod) }}</span>
-                <span>-RM {{ Number(p.amount).toFixed(2) }}</span>
-              </div>
-              <div class="flex justify-between pt-1 border-t border-gray-300 font-semibold">
-                <span>Balance Due</span>
-                <span>RM {{ Math.max(0, Number(doc.totalAmount) - Number(doc.paidAmount)).toFixed(2) }}</span>
-              </div>
-            </template>
           </div>
         </div>
       </div>
 
-      <!-- Payment Status + Method (for invoices) -->
-      <div v-if="doc.documentType === 'INVOICE'" class="bg-white px-8 py-3 border-t border-gray-200">
-        <div class="flex items-center justify-between text-xs">
-          <div class="flex items-center gap-4">
-            <span class="font-semibold text-gray-700">Payment:</span>
-            <span v-for="m in paymentMethods" :key="m" class="flex items-center gap-1">
-              <span :class="['w-3 h-3 border border-gray-400 inline-block', isMethodUsed(m) ? 'bg-gray-900' : 'bg-white']"></span>
-              {{ m }}
-            </span>
+      <!-- Payment Status (for invoices) -->
+      <div v-if="doc.documentType === 'INVOICE'" class="px-8 py-3">
+        <div class="flex items-center justify-between text-xs border border-gray-400">
+          <div class="flex items-center border-r border-gray-400">
+            <span :class="['px-3 py-1.5 font-bold border-r border-gray-400', Number(doc.paidAmount) >= Number(doc.totalAmount) ? 'bg-gray-900 text-white' : '']">PAID</span>
+            <span class="px-3 py-1.5">CASH / Transfer / Cheque / Credit Card</span>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="flex items-center gap-1">
-              <span :class="['w-3 h-3 border border-gray-400 inline-block', Number(doc.paidAmount) >= Number(doc.totalAmount) ? 'bg-gray-900' : 'bg-white']"></span>
-              <span class="font-semibold">PAID</span>
-            </span>
-            <span class="flex items-center gap-1">
-              <span :class="['w-3 h-3 border border-gray-400 inline-block', Number(doc.paidAmount) < Number(doc.totalAmount) ? 'bg-gray-900' : 'bg-white']"></span>
-              <span class="font-semibold">UNPAID</span>
-            </span>
+          <div class="flex items-center">
+            <span :class="['px-3 py-1.5 font-bold border-l border-gray-400', Number(doc.paidAmount) < Number(doc.totalAmount) ? 'bg-gray-900 text-white' : '']">UNPAID</span>
+            <span class="px-3 py-1.5 border-l border-gray-400">TNG / BOOST</span>
           </div>
         </div>
       </div>
 
-      <!-- Signature Section -->
-      <div class="bg-white px-8 py-6 border-t border-gray-200">
-        <div class="grid grid-cols-2 gap-12">
-          <!-- Authorised Signatory -->
+      <!-- Signature Section: Stamp + E&O.E. + Recipient -->
+      <div class="px-8 py-6">
+        <p v-if="doc.documentType === 'INVOICE'" class="text-xs font-bold text-gray-700 text-right mb-2">RECIPIENT'S SIGNATURE</p>
+        <div class="grid grid-cols-3 gap-6 items-end">
+          <!-- Left: Stamp -->
           <div class="text-center">
-            <div class="h-16"></div>
-            <div class="border-t border-gray-400 pt-2">
-              <p class="text-xs font-semibold text-gray-700">AUTHORISED SIGNATORY</p>
-              <p class="text-xs text-gray-500">E. & O.E.</p>
-            </div>
+            <img src="/stamp-company.png" alt="Company Stamp" class="h-20 mx-auto opacity-80" />
+            <p class="text-xs font-bold text-gray-700 mt-2">AUTHORISED SIGNATORY</p>
           </div>
-          <!-- Recipient -->
+          <!-- Center: E&O.E. + page -->
+          <div class="text-center">
+            <p class="text-xs font-semibold text-gray-700">E & O.E.</p>
+            <p class="text-xs text-gray-500 mt-1">1/1</p>
+          </div>
+          <!-- Right: Name + IC -->
           <div>
-            <p class="text-xs font-semibold text-gray-700 mb-3">RECIPIENT'S SIGNATURE</p>
-            <div class="h-12 border-b border-gray-300 mb-2"></div>
-            <div class="flex gap-4 text-xs text-gray-500">
-              <p>NAME : ________________</p>
-              <p>I/C NO. : ________________</p>
+            <div class="h-12 border-b border-gray-400 mb-3"></div>
+            <div class="space-y-2 text-xs text-gray-700">
+              <p><strong>NAME</strong> : ________________________________</p>
+              <p><strong>I/C NO.</strong> : ________________________________</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Terms -->
-      <div v-if="doc.terms" class="bg-white px-8 py-3 border-t border-gray-200">
+      <!-- Terms (only if custom terms set) -->
+      <div v-if="doc.terms" class="px-8 py-3 border-t border-gray-200">
         <p class="text-xs text-gray-500 whitespace-pre-line">{{ doc.terms }}</p>
-      </div>
-
-      <!-- Footer -->
-      <div class="bg-yellow-400 print:bg-transparent px-8 py-3 text-center border-t border-gray-200">
-        <p class="text-gray-800 print:text-gray-500 text-sm font-medium print:font-normal">{{ doc.footerNote || 'Thank you for choosing Dream Garage!' }}</p>
       </div>
     </div>
 
@@ -290,6 +277,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../../stores/documents'
+import { useAuthStore } from '../../stores/auth'
 import { useToast } from '../../composables/useToast'
 import { domToPng } from 'modern-screenshot'
 import api from '../../lib/api'
@@ -307,6 +295,7 @@ import type { Document, DocumentType, DocumentStatus } from '../../types'
 const route = useRoute()
 const router = useRouter()
 const store = useDocumentStore()
+const auth = useAuthStore()
 const toast = useToast()
 
 const doc = ref<Document | null>(null)
@@ -426,6 +415,12 @@ async function handleStatus(status: DocumentStatus) {
 async function handleRevertDraft() {
   if (!doc.value) return
   if (!confirm('Are you sure you want to revert this document to DRAFT? Stock changes will be reversed.')) return
+  await handleStatus('DRAFT')
+}
+
+async function handleRevertPaidDraft() {
+  if (!doc.value) return
+  if (!confirm('WARNING: This will DELETE all payment records and revert the invoice to DRAFT. Stock will be restored. Are you sure?')) return
   await handleStatus('DRAFT')
 }
 

@@ -16,6 +16,7 @@
         <div class="grid sm:grid-cols-2 gap-4">
           <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" required />
           <BaseInput v-model="form.name" label="Name (optional)" placeholder="Customer name" />
+          <BaseInput v-model="form.companyName" label="Company Name (optional)" placeholder="Company name" class="sm:col-span-2" />
           <BaseInput v-model="form.email" label="Email (optional)" type="email" placeholder="customer@email.com" class="sm:col-span-2" />
         </div>
         <div class="flex justify-end">
@@ -115,7 +116,7 @@ const showVehicleModal = ref(false)
 const editingVehicle = ref<string | null>(null)
 const vehicles = ref<Vehicle[]>([])
 
-const form = reactive({ name: '', phone: '', email: '' })
+const form = reactive({ name: '', companyName: '', phone: '', email: '' })
 const vehicleForm = reactive({ plate: '', make: '', model: '', color: '', mileage: '', engineNo: '' })
 
 async function loadCustomer() {
@@ -124,6 +125,7 @@ async function loadCustomer() {
   try {
     const customer = await store.getCustomer(route.params.id as string)
     form.name = customer.name
+    form.companyName = customer.companyName || ''
     form.phone = customer.phone || ''
     form.email = customer.email || ''
     vehicles.value = customer.vehicles || []

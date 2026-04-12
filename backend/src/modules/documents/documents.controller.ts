@@ -29,6 +29,7 @@ interface CreateDocumentBody {
   customerId?: string
   vehicleId?: string
   customerName?: string
+  customerCompanyName?: string
   customerPhone?: string
   customerEmail?: string
   vehiclePlate?: string
@@ -63,6 +64,7 @@ export async function listDocuments(
       OR: [
         { documentNumber: { contains: search, mode: 'insensitive' } },
         { customerName: { contains: search, mode: 'insensitive' } },
+        { customerCompanyName: { contains: search, mode: 'insensitive' } },
         { vehiclePlate: { contains: search, mode: 'insensitive' } },
       ],
     }),
@@ -79,7 +81,7 @@ export async function listDocuments(
       where,
       include: {
         createdBy: { select: { id: true, name: true } },
-        foreman: { select: { id: true, name: true, role: true, phone: true } },
+        foreman: { select: { id: true, name: true, jobTitle: true, phone: true } },
         _count: { select: { items: true, payments: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -107,7 +109,7 @@ export async function getDocument(
         orderBy: { createdAt: 'desc' },
       },
       createdBy: { select: { id: true, name: true } },
-      foreman: { select: { id: true, name: true, role: true, phone: true } },
+      foreman: { select: { id: true, name: true, jobTitle: true, phone: true } },
     },
   })
 
@@ -186,6 +188,7 @@ export async function createDocument(
         customerId: body.customerId || null,
         vehicleId: body.vehicleId || null,
         customerName: body.customerName,
+        customerCompanyName: body.customerCompanyName,
         customerPhone: body.customerPhone,
         customerEmail: body.customerEmail,
         vehiclePlate: body.vehiclePlate,
@@ -210,7 +213,7 @@ export async function createDocument(
       include: {
         items: { orderBy: { sortOrder: 'asc' } },
         createdBy: { select: { id: true, name: true } },
-        foreman: { select: { id: true, name: true, role: true, phone: true } },
+        foreman: { select: { id: true, name: true, jobTitle: true, phone: true } },
       },
     })
 
@@ -325,6 +328,7 @@ export async function updateDocument(
         customerId: body.customerId !== undefined ? (body.customerId || null) : undefined,
         vehicleId: body.vehicleId !== undefined ? (body.vehicleId || null) : undefined,
         customerName: body.customerName,
+        customerCompanyName: body.customerCompanyName,
         customerPhone: body.customerPhone,
         customerEmail: body.customerEmail,
         vehiclePlate: body.vehiclePlate,
@@ -347,7 +351,7 @@ export async function updateDocument(
       include: {
         items: { orderBy: { sortOrder: 'asc' } },
         createdBy: { select: { id: true, name: true } },
-        foreman: { select: { id: true, name: true, role: true, phone: true } },
+        foreman: { select: { id: true, name: true, jobTitle: true, phone: true } },
       },
     })
 
@@ -557,6 +561,59 @@ export async function updateDocumentStatus(
       }
     }
 
+    // Invoice: PARTIAL/PAID → DRAFT (admin only) — delete payments, restore stock, re-hold
+    if (existing.documentType === 'INVOICE' && ['PARTIAL', 'PAID'].includes(existing.status) && status === 'DRAFT') {
+      if (request.user.role !== 'ADMIN') {
+        throw Object.assign(
+          new Error('Only admin can revert paid/partial invoices'),
+          { statusCode: 403 }
+        )
+      }
+      // Delete all payments
+      await tx.payment.deleteMany({ where: { documentId: existing.id } })
+      // Restore stock and re-apply holds (same logic as OUTSTANDING → DRAFT)
+      for (const item of existing.items) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          const prevQty = stock?.quantity || 0
+          const newQty = prevQty + item.quantity
+          await tx.stockItem.update({
+            where: { id: item.stockItemId },
+            data: { quantity: newQty, holdQuantity: (stock?.holdQuantity || 0) + item.quantity },
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'IN',
+            quantity: item.quantity,
+            previousQty: prevQty,
+            newQty,
+            reason: `Admin revert to draft ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
+          })
+          await recordStockHistory({
+            prisma: tx,
+            branchId,
+            stockItemId: item.stockItemId,
+            type: 'HOLD',
+            quantity: item.quantity,
+            previousQty: newQty,
+            newQty,
+            reason: `Re-hold for draft ${existing.documentNumber}`,
+            documentId: existing.id,
+            createdById: userId,
+          })
+        }
+      }
+      // Reset paid amount
+      await tx.document.update({
+        where: { id: existing.id },
+        data: { paidAmount: 0 },
+      })
+    }
+
     // Any type: COMPLETED → DRAFT
     if (existing.status === 'COMPLETED' && status === 'DRAFT') {
       const paymentCount = await tx.payment.count({ where: { documentId: existing.id } })
@@ -719,6 +776,7 @@ export async function convertDocument(
         documentType: targetType,
         documentNumber,
         customerName: source.customerName,
+        customerCompanyName: source.customerCompanyName,
         customerPhone: source.customerPhone,
         customerEmail: source.customerEmail,
         vehiclePlate: source.vehiclePlate,

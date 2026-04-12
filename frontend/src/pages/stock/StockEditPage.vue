@@ -42,6 +42,14 @@
         <BaseInput v-model="form.dotCode" label="DOT Code" placeholder="e.g. 12/06" />
       </div>
 
+      <div class="flex items-center gap-4 pt-2">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" v-model="form.isTyre" class="accent-gold-500" />
+          <span class="text-dark-300 text-sm">This is a tyre item</span>
+        </label>
+        <BaseInput v-if="form.isTyre" v-model="form.tyreSize" label="Tyre Size" placeholder="e.g. 185/65R15" class="flex-1 max-w-xs" />
+      </div>
+
       <div class="flex justify-end gap-3 pt-2">
         <BaseButton variant="secondary" type="button" @click="$router.back()">Cancel</BaseButton>
         <BaseButton variant="primary" type="submit" :loading="saving">Update Item</BaseButton>
@@ -99,6 +107,8 @@ const form = reactive({
   brandId: '',
   countryOfOrigin: '',
   dotCode: '',
+  isTyre: false,
+  tyreSize: '',
 })
 
 async function loadItem() {
@@ -116,6 +126,8 @@ async function loadItem() {
     form.brandId = item.brandId || ''
     form.countryOfOrigin = item.countryOfOrigin || ''
     form.dotCode = item.dotCode || ''
+    form.isTyre = item.isTyre || false
+    form.tyreSize = item.tyreSize || ''
     if (item.categoryId) stock.fetchBrands(item.categoryId)
   } catch {
     toast.error('Failed to load item')
@@ -140,6 +152,8 @@ async function handleSubmit() {
       brandId: form.brandId || undefined,
       countryOfOrigin: form.countryOfOrigin || undefined,
       dotCode: form.dotCode || undefined,
+      isTyre: form.isTyre,
+      tyreSize: form.isTyre ? form.tyreSize || undefined : undefined,
     } as any)
     toast.success('Item updated successfully')
     router.push('/app/stock')

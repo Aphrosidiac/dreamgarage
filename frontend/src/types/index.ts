@@ -2,8 +2,13 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'ADMIN' | 'STAFF'
+  phone?: string
+  jobTitle?: string
+  role: 'ADMIN' | 'MANAGER' | 'WORKER'
   branchId: string
+  isActive?: boolean
+  _count?: { foremanDocuments: number }
+  createdAt?: string
 }
 
 export interface Branch {
@@ -55,21 +60,10 @@ export interface StockItem {
   dotCode?: string
   dotWeek?: number
   dotYear?: number
+  isTyre?: boolean
+  tyreSize?: string
   branchId: string
   isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-// ─── WORKER ───────────────────────────────────────────────
-export interface Worker {
-  id: string
-  branchId: string
-  name: string
-  phone?: string
-  role: string
-  isActive: boolean
-  _count?: { documents: number }
   createdAt: string
   updatedAt: string
 }
@@ -121,6 +115,7 @@ export interface Document {
   documentType: DocumentType
   documentNumber: string
   customerName?: string
+  customerCompanyName?: string
   customerPhone?: string
   customerEmail?: string
   vehiclePlate?: string
@@ -141,7 +136,7 @@ export interface Document {
   footerNote?: string
   createdBy?: User
   foremanId?: string
-  foreman?: { id: string; name: string; role: string; phone?: string }
+  foreman?: { id: string; name: string; jobTitle?: string; phone?: string }
   items?: DocumentItem[]
   payments?: Payment[]
   convertedFromId?: string
@@ -202,6 +197,7 @@ export interface Customer {
   id: string
   branchId: string
   name: string
+  companyName?: string
   phone?: string
   email?: string
   vehicles?: Vehicle[]
@@ -234,6 +230,7 @@ export interface DocumentFormData {
   customerId?: string
   vehicleId?: string
   customerName?: string
+  customerCompanyName?: string
   customerPhone?: string
   customerEmail?: string
   vehiclePlate?: string

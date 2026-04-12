@@ -79,12 +79,14 @@ export async function createStock(
       brandId?: string
       countryOfOrigin?: string
       dotCode?: string
+      isTyre?: boolean
+      tyreSize?: string
     }
   }>,
   reply: FastifyReply
 ) {
   const { branchId, userId } = request.user
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode, isTyre, tyreSize } = request.body
 
   if (!itemCode || !description) {
     return reply.status(400).send({ success: false, message: 'Item code and description are required' })
@@ -123,6 +125,8 @@ export async function createStock(
       dotCode: dotCode?.trim() || null,
       dotWeek,
       dotYear,
+      isTyre: isTyre || false,
+      tyreSize: tyreSize?.trim() || null,
     },
     include: { category: true, brand: true },
   })
@@ -151,7 +155,7 @@ export async function updateStock(
 ) {
   const { branchId, userId } = request.user
   const { id } = request.params
-  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode } = request.body
+  const { itemCode, description, uom, costPrice, sellPrice, quantity, minStock, categoryId, brandId, countryOfOrigin, dotCode, isTyre, tyreSize } = request.body
 
   const existing = await request.server.prisma.stockItem.findFirst({
     where: { id, branchId },
@@ -202,6 +206,8 @@ export async function updateStock(
       ...(brandId !== undefined && { brandId: brandId || null }),
       ...(countryOfOrigin !== undefined && { countryOfOrigin: countryOfOrigin?.trim() || null }),
       ...(dotCode !== undefined && { dotCode: dotCode?.trim() || null, dotWeek, dotYear }),
+      ...(isTyre !== undefined && { isTyre }),
+      ...(tyreSize !== undefined && { tyreSize: tyreSize?.trim() || null }),
     },
     include: { category: true, brand: true },
   })

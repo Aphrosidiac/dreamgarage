@@ -4,8 +4,12 @@
       <h2 class="text-lg font-semibold text-dark-100">Debtors</h2>
     </div>
 
-    <!-- Filters -->
+    <!-- Search + Filters -->
     <div class="flex items-end gap-4 mb-6">
+      <div class="flex-1 max-w-xs">
+        <label class="block text-xs text-dark-400 mb-1">Search</label>
+        <input v-model="searchQuery" type="text" placeholder="Name, company, plate, phone..." class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
+      </div>
       <div>
         <label class="block text-xs text-dark-400 mb-1">From</label>
         <input v-model="filterFrom" type="date" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50" />
@@ -103,8 +107,16 @@ interface Debtor {
 
 const debtors = ref<Debtor[]>([])
 const loading = ref(true)
+const searchQuery = ref('')
+const debouncedSearch = ref('')
 const filterFrom = ref('')
 const filterTo = ref('')
+
+let searchTimeout: ReturnType<typeof setTimeout>
+watch(searchQuery, (val) => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => { debouncedSearch.value = val }, 300)
+})
 
 const columns = [
   { key: 'name', label: 'Customer' },
@@ -134,6 +146,8 @@ function daysOverdue(d: string): number {
 }
 
 function clearFilters() {
+  searchQuery.value = ''
+  debouncedSearch.value = ''
   filterFrom.value = ''
   filterTo.value = ''
 }
@@ -142,6 +156,7 @@ async function fetchDebtors() {
   loading.value = true
   try {
     const params: Record<string, string> = {}
+    if (debouncedSearch.value) params.search = debouncedSearch.value
     if (filterFrom.value) params.from = filterFrom.value
     if (filterTo.value) params.to = filterTo.value
     const { data } = await api.get('/debtors', { params })
@@ -151,6 +166,6 @@ async function fetchDebtors() {
   }
 }
 
-watch([filterFrom, filterTo], () => fetchDebtors())
+watch([debouncedSearch, filterFrom, filterTo], () => fetchDebtors())
 onMounted(() => fetchDebtors())
 </script>

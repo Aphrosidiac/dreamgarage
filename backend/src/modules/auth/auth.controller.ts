@@ -35,6 +35,8 @@ export async function login(request: FastifyRequest<{ Body: { email: string; pas
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        jobTitle: user.jobTitle,
         role: user.role,
         branchId: user.branchId,
       },
@@ -47,7 +49,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply) {
 
   const user = await request.server.prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, branchId: true },
+    select: { id: true, email: true, name: true, phone: true, jobTitle: true, role: true, branchId: true },
   })
 
   if (!user) {

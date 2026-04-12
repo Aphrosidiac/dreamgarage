@@ -2,6 +2,11 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 
 export async function getStats(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
+  const cacheKey = `dashboard:stats:${branchId}`
+
+  // Check cache first (30s TTL — fresh enough for dashboard)
+  const cached = await request.server.cache.get(cacheKey)
+  if (cached) return reply.send({ success: true, data: cached })
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -49,26 +54,30 @@ export async function getStats(request: FastifyRequest, reply: FastifyReply) {
     docCounts.map((d) => [d.documentType, d._count])
   )
 
-  return reply.send({
-    success: true,
-    data: {
-      totalItems,
-      totalCustomers,
-      invoicesToday: invoicesToday.length,
-      invoicesThisMonth: invoicesMonth.length,
-      revenueToday,
-      revenueThisMonth,
-      outstandingInvoices,
-      overdueInvoices,
-      pendingQuotations,
-      draftDocuments,
-      documentBreakdown,
-    },
-  })
+  const data = {
+    totalItems,
+    totalCustomers,
+    invoicesToday: invoicesToday.length,
+    invoicesThisMonth: invoicesMonth.length,
+    revenueToday,
+    revenueThisMonth,
+    outstandingInvoices,
+    overdueInvoices,
+    pendingQuotations,
+    draftDocuments,
+    documentBreakdown,
+  }
+
+  await request.server.cache.set(cacheKey, data, 30)
+  return reply.send({ success: true, data })
 }
 
 export async function getRevenueChart(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
+  const cacheKey = `dashboard:revenue:${branchId}`
+
+  const cached = await request.server.cache.get(cacheKey)
+  if (cached) return reply.send({ success: true, data: cached })
 
   // Last 7 days revenue
   const days: { date: string; revenue: number; count: number }[] = []
@@ -96,11 +105,16 @@ export async function getRevenueChart(request: FastifyRequest, reply: FastifyRep
     })
   }
 
+  await request.server.cache.set(cacheKey, days, 60)
   return reply.send({ success: true, data: days })
 }
 
 export async function getLowStock(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
+  const cacheKey = `dashboard:lowstock:${branchId}`
+
+  const cached = await request.server.cache.get(cacheKey)
+  if (cached) return reply.send({ success: true, data: cached })
 
   const items = await request.server.prisma.$queryRaw`
     SELECT si.*, sc.name as "categoryName"
@@ -113,6 +127,7 @@ export async function getLowStock(request: FastifyRequest, reply: FastifyReply) 
     LIMIT 20
   `
 
+  await request.server.cache.set(cacheKey, items, 60)
   return reply.send({ success: true, data: items })
 }
 

@@ -18,14 +18,23 @@ sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
-echo "=== 3. Install Node.js 20 ==="
+echo "=== 3. Install Redis ==="
+sudo apt install -y redis-server
+# Enable Redis to start on boot and bind to localhost only
+sudo sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf
+sudo sed -i 's/^# maxmemory .*/maxmemory 128mb/' /etc/redis/redis.conf
+sudo sed -i 's/^# maxmemory-policy .*/maxmemory-policy allkeys-lru/' /etc/redis/redis.conf
+sudo systemctl enable redis-server
+sudo systemctl restart redis-server
+
+echo "=== 4. Install Node.js 20 ==="
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
-echo "=== 4. Install PM2 ==="
+echo "=== 5. Install PM2 ==="
 sudo npm install -g pm2
 
-echo "=== 5. Clone & Setup ==="
+echo "=== 6. Clone & Setup ==="
 cd /home/digitalscape
 git clone https://github.com/Aphrosidiac/dreamgarage.git DreamGarage
 cd $APP_DIR/backend
@@ -35,6 +44,7 @@ echo ""
 echo "=== MANUAL STEPS ==="
 echo "1. Edit $APP_DIR/backend/.env with real values:"
 echo "   DATABASE_URL=\"postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME\""
+echo "   REDIS_URL=\"redis://127.0.0.1:6379\""
 echo "   JWT_SECRET=\"$(openssl rand -base64 32)\""
 echo "   CORS_ORIGIN=\"https://dreamgarage.my\""
 echo ""
