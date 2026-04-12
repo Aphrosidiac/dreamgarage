@@ -68,6 +68,7 @@
         <RouterView />
       </main>
     </div>
+    <AssistantWidget />
   </div>
 </template>
 
@@ -76,6 +77,7 @@ import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Truck, Wallet, CreditCard } from 'lucide-vue-next'
+import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
 const route = useRoute()

@@ -26,6 +26,7 @@ import tyreDotRoutes from './modules/tyre-dots/tyre-dots.routes.js'
 import supplierRoutes from './modules/suppliers/suppliers.routes.js'
 import purchaseInvoiceRoutes from './modules/purchase-invoices/purchase-invoices.routes.js'
 import supplierPaymentRoutes from './modules/supplier-payments/supplier-payments.routes.js'
+import assistantRoutes from './modules/assistant/assistant.routes.js'
 
 const isProd = env.NODE_ENV === 'production'
 
@@ -75,6 +76,7 @@ async function start() {
   await app.register(supplierRoutes, { prefix: '/api/v1/suppliers' })
   await app.register(purchaseInvoiceRoutes, { prefix: '/api/v1/purchase-invoices' })
   await app.register(supplierPaymentRoutes, { prefix: '/api/v1/supplier-payments' })
+  await app.register(assistantRoutes, { prefix: '/api/v1/assistant' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
