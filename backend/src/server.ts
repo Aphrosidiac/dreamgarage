@@ -9,6 +9,7 @@ import redisPlugin from './plugins/redis.js'
 import authPlugin from './plugins/auth.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
 import cacheInvalidationPlugin from './plugins/cache-invalidation.js'
+import auditHookPlugin from './plugins/audit-hook.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import categoryRoutes from './modules/categories/categories.routes.js'
 import stockRoutes from './modules/stock/stock.routes.js'
@@ -27,6 +28,7 @@ import supplierRoutes from './modules/suppliers/suppliers.routes.js'
 import purchaseInvoiceRoutes from './modules/purchase-invoices/purchase-invoices.routes.js'
 import supplierPaymentRoutes from './modules/supplier-payments/supplier-payments.routes.js'
 import assistantRoutes from './modules/assistant/assistant.routes.js'
+import auditRoutes from './modules/audit/audit.routes.js'
 
 const isProd = env.NODE_ENV === 'production'
 
@@ -57,6 +59,7 @@ async function start() {
   await app.register(authPlugin)
   await app.register(errorHandlerPlugin)
   await app.register(cacheInvalidationPlugin)
+  await app.register(auditHookPlugin)
 
   // Routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' })
@@ -77,6 +80,7 @@ async function start() {
   await app.register(purchaseInvoiceRoutes, { prefix: '/api/v1/purchase-invoices' })
   await app.register(supplierPaymentRoutes, { prefix: '/api/v1/supplier-payments' })
   await app.register(assistantRoutes, { prefix: '/api/v1/assistant' })
+  await app.register(auditRoutes, { prefix: '/api/v1/audit' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))

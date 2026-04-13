@@ -38,6 +38,7 @@ const router = createRouter({
         { path: 'stock/:id/edit', name: 'stock-edit', component: () => import('../pages/stock/StockEditPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'stock/:id/history', name: 'stock-history', component: () => import('../pages/stock/StockHistoryPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'staff', name: 'staff-list', component: () => import('../pages/staff/StaffListPage.vue'), meta: { roles: ['ADMIN'] } },
+        { path: 'audit', name: 'audit-list', component: () => import('../pages/audit/AuditLogPage.vue'), meta: { roles: ['ADMIN'] } },
         { path: 'customers', name: 'customer-list', component: () => import('../pages/customers/CustomerListPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'customers/new', name: 'customer-create', component: () => import('../pages/customers/CustomerFormPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'customers/:id/edit', name: 'customer-edit', component: () => import('../pages/customers/CustomerFormPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },

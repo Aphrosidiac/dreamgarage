@@ -320,6 +320,23 @@ export async function chat(request: FastifyRequest, reply: FastifyReply) {
       if (block.type === 'tool_use') {
         const result = await runTool(ctx, block.name, block.input)
         toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result })
+        try {
+          await ctx.prisma.auditLog.create({
+            data: {
+              branchId: request.user.branchId,
+              userId: request.user.userId,
+              action: 'ASSISTANT_TOOL',
+              entity: 'assistant',
+              method: request.method,
+              path: request.url,
+              ipAddress: request.ip,
+              userAgent: (request.headers['user-agent'] as string | undefined) ?? null,
+              changes: { tool: block.name, input: block.input } as any,
+            },
+          })
+        } catch (err) {
+          request.log.error({ err }, 'assistant audit log failed')
+        }
       }
     }
     apiMessages.push({ role: 'user', content: toolResults })

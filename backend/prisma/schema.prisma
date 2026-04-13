@@ -552,3 +552,26 @@ model SupplierPayment {
   @@index([supplierId])
   @@map("supplier_payments")
 }
+
+// ─── AUDIT LOG ─────────────────────────────────────────────
+model AuditLog {
+  id         String   @id @default(cuid())
+  branchId   String?
+  userId     String?
+  userEmail  String?
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, ASSISTANT_TOOL, REQUEST
+  entity     String   // document, payment, stock, user, supplier, purchase-invoice, assistant, auth
+  entityId   String?
+  method     String?
+  path       String?
+  statusCode Int?
+  ipAddress  String?
+  userAgent  String?
+  changes    Json?    // { before?, after?, input? }
+  createdAt  DateTime @default(now())
+
+  @@index([branchId, createdAt])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
