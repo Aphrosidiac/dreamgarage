@@ -18,7 +18,7 @@
         <p class="text-xs text-dark-400">
           Pages each role can access. This reflects the current app configuration; to change it, edit <code class="text-dark-200">router/index.ts</code> and <code class="text-dark-200">DashboardLayout.vue</code>.
         </p>
-        <div class="overflow-x-auto border border-dark-800 rounded-lg">
+        <div class="overflow-auto border border-dark-800 rounded-lg max-h-[60vh]">
           <table class="w-full text-sm">
             <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800">
               <tr>
