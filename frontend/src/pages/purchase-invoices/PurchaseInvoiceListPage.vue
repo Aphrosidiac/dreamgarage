@@ -1,9 +1,9 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-dark-100">Purchase Invoices</h2>
-      <BaseButton variant="primary" size="sm" @click="$router.push('/app/purchase-invoices/new')">
-        <Plus class="w-4 h-4 mr-1" /> New Purchase Invoice
+      <h2 class="text-lg font-semibold text-dark-100">Purchase Orders</h2>
+      <BaseButton variant="primary" size="sm" @click="$router.push('/app/purchase-orders/new')">
+        <Plus class="w-4 h-4 mr-1" /> New Purchase Order
       </BaseButton>
     </div>
 
@@ -28,7 +28,7 @@
     <!-- Table -->
     <BaseTable :columns="columns" :data="invoices" :loading="loading" empty-text="No purchase invoices found.">
       <template #cell-internalNumber="{ row }">
-        <RouterLink :to="`/app/purchase-invoices/${row.id}`" class="text-dark-100 hover:text-gold-500 font-medium font-mono transition-colors">
+        <RouterLink :to="`/app/purchase-orders/${row.id}`" class="text-dark-100 hover:text-gold-500 font-medium font-mono transition-colors">
           {{ row.internalNumber }}
         </RouterLink>
       </template>
@@ -50,7 +50,7 @@
         <span class="text-dark-400 text-sm">{{ formatDate(value) }}</span>
       </template>
       <template #actions="{ row }">
-        <RouterLink :to="`/app/purchase-invoices/${row.id}`" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors">
+        <RouterLink :to="`/app/purchase-orders/${row.id}`" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors">
           <Eye class="w-4 h-4" />
         </RouterLink>
       </template>

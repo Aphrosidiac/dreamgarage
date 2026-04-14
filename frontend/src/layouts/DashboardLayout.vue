@@ -76,7 +76,7 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Truck, Wallet, CreditCard, ShieldCheck, Archive, TrendingUp } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Truck, CreditCard, ShieldCheck, Archive, TrendingUp } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -93,7 +93,6 @@ const allNavItems = [
   { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'], section: 'Purchasing' },
-  { path: '/app/purchase-invoices', label: 'Purchase Invoices', icon: Wallet, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/supplier-payments', label: 'A/P Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER'] },
@@ -116,7 +115,7 @@ const pageTitle = computed(() => {
   if (name?.startsWith('document')) return 'Documents'
   if (name?.startsWith('supplier-payment')) return 'A/P Payments'
   if (name?.startsWith('supplier')) return 'Suppliers'
-  if (name?.startsWith('purchase-invoice')) return 'Purchase Invoices'
+  if (name?.startsWith('purchase-order')) return 'Purchase Orders'
   if (name === 'take-order') return 'Take Order'
   if (name === 'dashboard') return 'Dashboard'
   if (name === 'tyre-dashboard') return 'Tyre Dashboard'

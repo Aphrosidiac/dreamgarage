@@ -118,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../../stores/documents'
 import { useToast } from '../../composables/useToast'
 import BaseButton from '../../components/base/BaseButton.vue'
@@ -131,6 +131,7 @@ import type { DocumentType } from '../../types'
 const store = useDocumentStore()
 const toast = useToast()
 const route = useRoute()
+const router = useRouter()
 
 const activeType = ref<DocumentType>((route.query.type as DocumentType) || 'INVOICE')
 const search = ref('')
@@ -143,6 +144,7 @@ const docTypes = [
   { value: 'INVOICE' as const, label: 'Invoices' },
   { value: 'RECEIPT' as const, label: 'Receipts' },
   { value: 'DELIVERY_ORDER' as const, label: 'Delivery Orders' },
+  { value: 'PURCHASE_ORDER' as any, label: 'Purchase Orders' },
 ]
 
 const availableStatuses = computed(() => {
@@ -170,7 +172,11 @@ const columns = computed(() => {
   return base
 })
 
-function switchType(type: DocumentType) {
+function switchType(type: DocumentType | 'PURCHASE_ORDER') {
+  if (type === 'PURCHASE_ORDER') {
+    router.push('/app/purchase-orders')
+    return
+  }
   activeType.value = type
   statusFilter.value = ''
   store.page = 1

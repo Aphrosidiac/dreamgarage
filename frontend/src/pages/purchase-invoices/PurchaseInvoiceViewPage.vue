@@ -4,7 +4,7 @@
       <button @click="$router.back()" class="text-dark-400 hover:text-dark-200 transition-colors">
         <ArrowLeft class="w-5 h-5" />
       </button>
-      <h2 class="text-lg font-semibold text-dark-100">{{ pi?.internalNumber || 'Purchase Invoice' }}</h2>
+      <h2 class="text-lg font-semibold text-dark-100">{{ pi?.internalNumber || 'Purchase Order' }}</h2>
       <BaseBadge v-if="pi" :color="statusColor">{{ pi.status.replace('_', ' ') }}</BaseBadge>
     </div>
 
@@ -13,7 +13,7 @@
     <template v-else-if="pi">
       <!-- Actions -->
       <div class="flex items-center gap-3 mb-6">
-        <BaseButton v-if="pi.status === 'ON_HOLD'" variant="secondary" size="sm" @click="$router.push(`/app/purchase-invoices/${pi.id}/edit`)">
+        <BaseButton v-if="pi.status === 'ON_HOLD'" variant="secondary" size="sm" @click="$router.push(`/app/purchase-orders/${pi.id}/edit`)">
           <Pencil class="w-4 h-4 mr-1" /> Edit
         </BaseButton>
         <BaseButton v-if="pi.status === 'ON_HOLD'" variant="primary" size="sm" @click="handleCheckAll" :loading="actionLoading">
@@ -30,46 +30,105 @@
         </BaseButton>
       </div>
 
-      <!-- Invoice Info -->
-      <div class="bg-dark-900 border border-dark-800 rounded-xl p-6 mb-6">
-        <div class="grid sm:grid-cols-2 gap-4 text-sm">
-          <div><span class="text-dark-400">Supplier:</span> <span class="text-dark-100 font-medium">{{ pi.supplier?.companyName }}</span></div>
-          <div><span class="text-dark-400">Supplier Inv#:</span> <span class="text-dark-100">{{ pi.invoiceNumber }}</span></div>
-          <div><span class="text-dark-400">Date:</span> <span class="text-dark-100">{{ formatDate(pi.issueDate) }}</span></div>
-          <div v-if="pi.receivedDate"><span class="text-dark-400">Received:</span> <span class="text-dark-100">{{ formatDate(pi.receivedDate) }}</span></div>
-          <div><span class="text-dark-400">Total:</span> <span class="text-gold-500 font-bold">RM {{ Number(pi.totalAmount).toFixed(2) }}</span></div>
-          <div v-if="pi.notes"><span class="text-dark-400">Notes:</span> <span class="text-dark-300">{{ pi.notes }}</span></div>
-        </div>
-      </div>
-
-      <!-- Items with checking -->
-      <div class="bg-dark-900 border border-dark-800 rounded-xl p-6 mb-6">
-        <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">Items ({{ checkedCount }}/{{ pi.items?.length || 0 }} checked)</h3>
-        <div class="space-y-2">
-          <div v-for="item in pi.items" :key="item.id" class="flex items-center gap-3 bg-dark-800/30 rounded-lg px-4 py-3">
-            <button v-if="pi.status === 'ON_HOLD'" @click="toggleCheck(item)" class="flex-shrink-0">
-              <div :class="['w-5 h-5 rounded border-2 flex items-center justify-center transition-colors', item.isChecked ? 'bg-green-600 border-green-600' : 'border-dark-500']">
-                <Check v-if="item.isChecked" class="w-3 h-3 text-white" />
-              </div>
-            </button>
-            <div v-else class="flex-shrink-0">
-              <div :class="['w-5 h-5 rounded border-2 flex items-center justify-center', item.isChecked ? 'bg-green-600 border-green-600' : 'border-dark-500']">
-                <Check v-if="item.isChecked" class="w-3 h-3 text-white" />
-              </div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-dark-100 text-sm">
-                <span v-if="item.itemCode" class="font-mono text-dark-400 text-xs mr-1">{{ item.itemCode }}</span>
-                {{ item.description }}
-              </p>
-              <p class="text-dark-500 text-xs">
-                {{ item.quantity }} x RM{{ Number(item.unitPrice).toFixed(2) }}
-                <span v-if="item.dotCode" class="ml-2">DOT: {{ item.dotCode }}</span>
-                <span v-if="item.brandName" class="ml-2">Brand: {{ item.brandName }}</span>
-              </p>
-            </div>
-            <span class="text-dark-200 text-sm font-medium">RM {{ Number(item.total).toFixed(2) }}</span>
+      <!-- Document Template -->
+      <div id="document-template" class="bg-white text-gray-900 overflow-hidden max-w-3xl mx-auto border border-gray-300 print:max-w-full print:shadow-none print:border-none mb-6" style="width: 800px;">
+        <!-- Header -->
+        <div class="px-8 pt-6 pb-4 flex items-start justify-between">
+          <img src="/logo-invoice.png" alt="Dream Garage" class="h-16" />
+          <div class="text-right text-xs text-gray-700">
+            <p class="text-sm font-bold text-gray-900">DREAM GARAGE (M) SDN BHD</p>
+            <p class="mt-1">22, Jalan Mutiara Emas 5/1, Taman Mount Austin,</p>
+            <p>81100 Johor Bahru, Johor</p>
           </div>
+        </div>
+        <div class="border-t-2 border-gray-900 mx-8"></div>
+
+        <!-- Title + Meta -->
+        <div class="px-8 py-4">
+          <div class="flex justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 uppercase">Purchase Order</h2>
+            <div class="text-right text-sm space-y-0.5">
+              <p><span class="text-gray-500">No:</span> <strong>{{ pi.internalNumber }}</strong></p>
+              <p><span class="text-gray-500">Date:</span> {{ formatDate(pi.issueDate) }}</p>
+              <p v-if="pi.receivedDate"><span class="text-gray-500">Received:</span> {{ formatDate(pi.receivedDate) }}</p>
+              <p v-if="pi.invoiceNumber"><span class="text-gray-500">Supplier Inv#:</span> {{ pi.invoiceNumber }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-6 text-sm border-t border-gray-200 pt-3">
+            <div>
+              <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Supplier</p>
+              <p class="font-medium">{{ pi.supplier?.companyName }}</p>
+              <p v-if="pi.supplier?.contactName" class="text-gray-600 text-xs mt-0.5">{{ pi.supplier.contactName }}</p>
+              <p v-if="pi.supplier?.phone" class="text-gray-500 text-xs">Tel: {{ pi.supplier.phone }}</p>
+              <p v-if="pi.supplier?.email" class="text-gray-500 text-xs">{{ pi.supplier.email }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase font-semibold mb-1">Status</p>
+              <p class="font-medium">{{ pi.status.replace('_', ' ') }}</p>
+              <p class="text-gray-500 text-xs mt-0.5">{{ checkedCount }}/{{ pi.items?.length || 0 }} items checked</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div class="px-8 py-2">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="border-t border-b border-gray-900">
+                <th class="text-left py-2 font-semibold w-8 print:hidden"></th>
+                <th class="text-left py-2 font-semibold w-8">No</th>
+                <th class="text-left py-2 font-semibold">Description</th>
+                <th class="text-center py-2 font-semibold w-12">Qty</th>
+                <th class="text-right py-2 font-semibold w-20">Price RM</th>
+                <th class="text-right py-2 font-semibold w-24">Amount RM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in (pi.items as any[])" :key="item.id" class="border-b border-gray-200">
+                <td class="py-2 print:hidden">
+                  <button v-if="pi.status === 'ON_HOLD'" @click="toggleCheck(item)">
+                    <div :class="['w-4 h-4 rounded border flex items-center justify-center transition-colors', item.isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-gray-400']">
+                      <Check v-if="item.isChecked" class="w-2.5 h-2.5 text-white" />
+                    </div>
+                  </button>
+                  <div v-else :class="['w-4 h-4 rounded border flex items-center justify-center', item.isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-gray-400']">
+                    <Check v-if="item.isChecked" class="w-2.5 h-2.5 text-white" />
+                  </div>
+                </td>
+                <td class="py-2">{{ idx + 1 }}</td>
+                <td class="py-2">
+                  <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
+                  {{ item.description }}
+                  <span v-if="item.dotCode" class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-gray-900 text-white rounded">DOT{{ item.dotCode }}</span>
+                  <span v-if="item.brandName" class="block text-gray-400 text-xs mt-0.5">Brand: {{ item.brandName }}</span>
+                </td>
+                <td class="py-2 text-center">{{ item.quantity }}</td>
+                <td class="py-2 text-right">{{ Number(item.unitPrice).toFixed(2) }}</td>
+                <td class="py-2 text-right font-medium">{{ Number(item.total).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totals + Notes -->
+        <div class="px-8 py-4">
+          <div class="border-t border-gray-900"></div>
+          <div class="flex justify-between items-start mt-3">
+            <div class="text-xs text-gray-600 max-w-[55%]">
+              <p v-if="pi.notes" class="whitespace-pre-line">{{ pi.notes }}</p>
+            </div>
+            <div class="w-56 space-y-1 text-sm">
+              <div class="flex justify-between border-2 border-gray-900 px-3 py-1.5 font-bold">
+                <span>Total</span><span>{{ Number(pi.totalAmount).toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="px-8 py-6 grid grid-cols-2 gap-12 text-xs">
+          <div class="border-t border-gray-400 pt-1 text-center">Received by</div>
+          <div class="border-t border-gray-400 pt-1 text-center">Authorised signature</div>
         </div>
       </div>
 
@@ -128,7 +187,7 @@ async function fetchPI() {
     pi.value = data.data
   } catch {
     toast.error('Failed to load purchase invoice')
-    router.push('/app/purchase-invoices')
+    router.push('/app/purchase-orders')
   } finally {
     loading.value = false
   }
