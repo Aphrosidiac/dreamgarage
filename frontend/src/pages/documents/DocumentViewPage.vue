@@ -27,6 +27,16 @@
           <BaseButton v-if="doc.status !== 'VOID' && doc.status !== 'DRAFT'" variant="danger" size="sm" @click="handleStatus('VOID')" :loading="statusLoading">
             Void
           </BaseButton>
+          <!-- Workshop status (job board) -->
+          <BaseButton v-if="(doc as any).workshopStatus === 'WAITING'" variant="secondary" size="sm" @click="setWorkshop('IN_PROGRESS')" :loading="workshopLoading">
+            <Wrench class="w-4 h-4 mr-1" /> Start Work
+          </BaseButton>
+          <BaseButton v-if="(doc as any).workshopStatus === 'IN_PROGRESS'" variant="secondary" size="sm" @click="setWorkshop('READY')" :loading="workshopLoading">
+            <CheckCircle2 class="w-4 h-4 mr-1" /> Mark Ready
+          </BaseButton>
+          <BaseButton v-if="(doc as any).workshopStatus === 'READY'" variant="secondary" size="sm" @click="setWorkshop('DONE')" :loading="workshopLoading">
+            Remove from Board
+          </BaseButton>
         </template>
         <template v-if="doc.documentType === 'QUOTATION'">
           <BaseButton v-if="doc.status === 'DRAFT'" variant="primary" size="sm" @click="handleStatus('APPROVED')">Approve</BaseButton>
@@ -144,6 +154,7 @@
               <td class="py-2" style="white-space: pre-line;">
                 <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
                 {{ item.description }}
+                <span v-if="(item as any).tyreDotCode" class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-gray-900 text-white rounded">DOT{{ (item as any).tyreDotCode }}</span>
                 <span v-if="item.serviceDate" class="block text-gray-400 text-xs mt-0.5">Service: {{ fmtDate(item.serviceDate) }}</span>
               </td>
               <td class="py-2 text-center">{{ item.quantity }}</td>
@@ -288,7 +299,7 @@ import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 import {
   ArrowLeft, Send, CreditCard, Download, Printer, Pencil,
-  ArrowRightLeft, GitBranch, RotateCcw,
+  ArrowRightLeft, GitBranch, RotateCcw, Wrench, CheckCircle2,
 } from 'lucide-vue-next'
 import type { Document, DocumentType, DocumentStatus } from '../../types'
 
@@ -302,6 +313,23 @@ const doc = ref<Document | null>(null)
 const branch = ref<any>(null)
 const loadingDoc = ref(true)
 const statusLoading = ref(false)
+const workshopLoading = ref(false)
+
+async function setWorkshop(status: 'WAITING' | 'IN_PROGRESS' | 'READY' | 'DONE') {
+  if (!doc.value) return
+  workshopLoading.value = true
+  try {
+    const { data } = await api.patch(`/shop-display/documents/${doc.value.id}/workshop-status`, { workshopStatus: status })
+    ;(doc.value as any).workshopStatus = data.data.workshopStatus
+    ;(doc.value as any).workshopStartedAt = data.data.workshopStartedAt
+    ;(doc.value as any).workshopReadyAt = data.data.workshopReadyAt
+    toast.success(`Workshop status: ${status.replace('_', ' ')}`)
+  } catch {
+    toast.error('Failed to update workshop status')
+  } finally {
+    workshopLoading.value = false
+  }
+}
 const converting = ref(false)
 const exporting = ref(false)
 const showPaymentModal = ref(false)

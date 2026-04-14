@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import api from '../../lib/api'
 
 const dark = ref(true)
 
@@ -152,9 +153,10 @@ function updateClock() {
   currentDate.value = now.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// ─── Placeholder Data ─────────────────────────────
+// ─── Live Data ────────────────────────────────────
 interface Job {
   id: string
+  documentNumber?: string
   plate: string
   vehicle: string
   customer: string
@@ -164,7 +166,8 @@ interface Job {
   elapsed: number
 }
 
-const jobs = ref<Job[]>([
+const jobs = ref<Job[]>([])
+const _demoJobs: Job[] = ([] as Job[]).concat([
   {
     id: '1', plate: 'JQR 1234', vehicle: 'Toyota Camry 2.5V — White',
     customer: 'Ahmad bin Ismail', services: ['4x Michelin Tyres 225/45R18', 'Wheel Alignment', 'Nitrogen Fill'],
@@ -206,6 +209,7 @@ const jobs = ref<Job[]>([
     foreman: 'Rizal Mechanic', status: 'progress', elapsed: 90,
   },
 ])
+void _demoJobs
 
 const waitingJobs = computed(() => jobs.value.filter(j => j.status === 'waiting'))
 const progressJobs = computed(() => jobs.value.filter(j => j.status === 'progress'))
@@ -223,16 +227,28 @@ function formatElapsed(mins: number): string {
 
 let tickTimer: ReturnType<typeof setInterval>
 
+let pollTimer: ReturnType<typeof setInterval>
+
+async function fetchJobs() {
+  try {
+    const { data } = await api.get('/shop-display/jobs')
+    jobs.value = data.data
+  } catch { /* ignore — keep last snapshot */ }
+}
+
 onMounted(() => {
   updateClock()
   clockTimer = setInterval(updateClock, 1000)
   tickTimer = setInterval(() => {
     jobs.value.forEach(j => { if (j.status !== 'ready') j.elapsed++ })
   }, 60000)
+  fetchJobs()
+  pollTimer = setInterval(fetchJobs, 15000)
 })
 
 onUnmounted(() => {
   clearInterval(clockTimer)
   clearInterval(tickTimer)
+  clearInterval(pollTimer)
 })
 </script>

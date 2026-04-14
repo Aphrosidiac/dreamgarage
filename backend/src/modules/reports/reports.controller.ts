@@ -92,3 +92,81 @@ export async function getDailyPaymentLog(
     },
   })
 }
+
+// ─── WORKER STATS ──────────────────────────────────
+export async function getWorkerStats(
+  request: import('fastify').FastifyRequest<{ Querystring: { from?: string; to?: string } }>,
+  reply: import('fastify').FastifyReply,
+) {
+  const { branchId } = request.user
+  const { from, to } = request.query
+  const dateFilter: any = {}
+  if (from) dateFilter.gte = new Date(from)
+  if (to) dateFilter.lte = new Date(to + 'T23:59:59')
+
+  const where: any = { branchId, foremanId: { not: null } }
+  if (Object.keys(dateFilter).length) where.issueDate = dateFilter
+
+  const docs = await request.server.prisma.document.findMany({
+    where,
+    select: {
+      foremanId: true,
+      documentType: true,
+      status: true,
+      totalAmount: true,
+      workshopStatus: true,
+      createdAt: true,
+      workshopReadyAt: true,
+      foreman: { select: { id: true, name: true, jobTitle: true, role: true } },
+    },
+  })
+
+  type Agg = {
+    userId: string
+    name: string
+    jobTitle: string | null
+    role: string
+    invoicesCreated: number
+    quotationsCreated: number
+    deliveryOrders: number
+    jobsCompleted: number
+    revenueHandled: number
+    avgTurnaroundMinutes: number | null
+    _turnaroundSamples: number[]
+  }
+  const map = new Map<string, Agg>()
+  for (const d of docs) {
+    const fid = d.foremanId!
+    const f = d.foreman!
+    const a =
+      map.get(fid) ??
+      {
+        userId: fid, name: f.name, jobTitle: f.jobTitle, role: f.role,
+        invoicesCreated: 0, quotationsCreated: 0, deliveryOrders: 0,
+        jobsCompleted: 0, revenueHandled: 0, avgTurnaroundMinutes: null,
+        _turnaroundSamples: [] as number[],
+      }
+    if (d.documentType === 'INVOICE') {
+      a.invoicesCreated++
+      if (['PAID', 'PARTIAL', 'OUTSTANDING'].includes(d.status)) a.revenueHandled += Number(d.totalAmount)
+    }
+    if (d.documentType === 'QUOTATION') a.quotationsCreated++
+    if (d.documentType === 'DELIVERY_ORDER') a.deliveryOrders++
+    if (d.workshopStatus === 'READY' || d.workshopStatus === 'DONE') {
+      a.jobsCompleted++
+      if (d.workshopReadyAt) a._turnaroundSamples.push((d.workshopReadyAt.getTime() - d.createdAt.getTime()) / 60000)
+    }
+    map.set(fid, a)
+  }
+
+  const rows = Array.from(map.values()).map((a) => {
+    const avg = a._turnaroundSamples.length
+      ? a._turnaroundSamples.reduce((s, n) => s + n, 0) / a._turnaroundSamples.length
+      : null
+    const { _turnaroundSamples, ...rest } = a
+    return { ...rest, avgTurnaroundMinutes: avg ? Math.round(avg) : null }
+  })
+  rows.sort((a, b) => b.revenueHandled - a.revenueHandled)
+
+  return reply.send({ success: true, data: rows })
+}

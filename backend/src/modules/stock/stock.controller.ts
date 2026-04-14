@@ -384,3 +384,64 @@ export async function getAllStockHistory(
 
   return reply.send(paginatedResponse(data, total, page, limit))
 }
+
+// ─── LIST HELD STOCK ───────────────────────────────
+export async function listHeldStock(request: FastifyRequest, reply: FastifyReply) {
+  const { branchId } = request.user
+  const items = await request.server.prisma.stockItem.findMany({
+    where: { branchId, holdQuantity: { gt: 0 }, isActive: true },
+    include: { category: { select: { id: true, name: true, sortOrder: true } } },
+    orderBy: [{ description: 'asc' }],
+  })
+
+  const stockIds = items.map((i) => i.id)
+  const holdingLines = stockIds.length
+    ? await request.server.prisma.documentItem.findMany({
+        where: {
+          stockItemId: { in: stockIds },
+          document: { branchId, documentType: 'INVOICE', status: 'DRAFT' },
+        },
+        select: {
+          stockItemId: true,
+          quantity: true,
+          document: { select: { id: true, documentNumber: true, customerName: true, vehiclePlate: true, foreman: { select: { name: true } }, createdAt: true } },
+        },
+      })
+    : []
+
+  const holdersMap = new Map<string, any[]>()
+  for (const line of holdingLines) {
+    const arr = holdersMap.get(line.stockItemId!) ?? []
+    arr.push({
+      documentId: line.document.id,
+      documentNumber: line.document.documentNumber,
+      customerName: line.document.customerName,
+      vehiclePlate: line.document.vehiclePlate,
+      foreman: line.document.foreman?.name ?? null,
+      quantity: line.quantity,
+      createdAt: line.document.createdAt,
+    })
+    holdersMap.set(line.stockItemId!, arr)
+  }
+
+  const rows = items.map((i) => ({
+    id: i.id,
+    itemCode: i.itemCode,
+    description: i.description,
+    uom: i.uom,
+    quantity: i.quantity,
+    holdQuantity: i.holdQuantity,
+    category: i.category ? { id: i.category.id, name: i.category.name } : null,
+    holders: holdersMap.get(i.id) ?? [],
+  }))
+
+  const byCategory = new Map<string, { categoryId: string | null; categoryName: string; items: typeof rows }>()
+  for (const r of rows) {
+    const key = r.category?.id ?? '__none__'
+    const entry = byCategory.get(key) ?? { categoryId: r.category?.id ?? null, categoryName: r.category?.name ?? 'Uncategorised', items: [] }
+    entry.items.push(r)
+    byCategory.set(key, entry)
+  }
+
+  return reply.send({ success: true, data: Array.from(byCategory.values()) })
+}

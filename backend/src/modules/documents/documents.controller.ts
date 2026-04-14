@@ -22,6 +22,8 @@ interface DocumentItemInput {
   taxRate?: number
   sortOrder?: number
   serviceDate?: string
+  tyreDotId?: string | null
+  tyreDotCode?: string | null
 }
 
 interface CreateDocumentBody {
@@ -169,6 +171,8 @@ export async function createDocument(
         total: totals.total,
         sortOrder: item.sortOrder ?? idx,
         serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
+        tyreDotId: item.tyreDotId || null,
+        tyreDotCode: item.tyreDotCode || null,
       }
     })
 
@@ -317,6 +321,8 @@ export async function updateDocument(
         total: totals.total,
         sortOrder: item.sortOrder ?? idx,
         serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
+        tyreDotId: item.tyreDotId || null,
+        tyreDotCode: item.tyreDotCode || null,
       }
     })
 
@@ -483,6 +489,20 @@ export async function updateDocumentStatus(
             documentId: existing.id,
             createdById: userId,
           })
+          // Deduct from specific TyreDOT if chosen
+          if (item.tyreDotId) {
+            const dot = await tx.tyreDOT.findUnique({ where: { id: item.tyreDotId } })
+            if (!dot || dot.quantity < item.quantity) {
+              throw Object.assign(
+                new Error(`Insufficient DOT ${item.tyreDotCode ?? ''} stock for ${item.itemCode || item.description}`),
+                { statusCode: 400 }
+              )
+            }
+            await tx.tyreDOT.update({
+              where: { id: item.tyreDotId },
+              data: { quantity: dot.quantity - item.quantity },
+            })
+          }
         }
       }
     }
@@ -557,6 +577,9 @@ export async function updateDocumentStatus(
             documentId: existing.id,
             createdById: userId,
           })
+          if (item.tyreDotId) {
+            await tx.tyreDOT.update({ where: { id: item.tyreDotId }, data: { quantity: { increment: item.quantity } } })
+          }
         }
       }
     }
@@ -605,6 +628,9 @@ export async function updateDocumentStatus(
             documentId: existing.id,
             createdById: userId,
           })
+          if (item.tyreDotId) {
+            await tx.tyreDOT.update({ where: { id: item.tyreDotId }, data: { quantity: { increment: item.quantity } } })
+          }
         }
       }
       // Reset paid amount
@@ -648,6 +674,9 @@ export async function updateDocumentStatus(
             documentId: existing.id,
             createdById: userId,
           })
+          if (item.tyreDotId) {
+            await tx.tyreDOT.update({ where: { id: item.tyreDotId }, data: { quantity: { increment: item.quantity } } })
+          }
         }
       }
     }

@@ -169,6 +169,13 @@
                     <div class="flex flex-col gap-1">
                       <span v-if="item.itemCode" class="text-gold-500 font-mono text-xs">{{ item.itemCode }}</span>
                       <textarea v-model="item.description" @input="autoResize" rows="1" class="bg-transparent border-0 text-dark-200 text-sm p-0 focus:outline-none focus:ring-0 w-full resize-none overflow-hidden" style="max-height: 120px;" placeholder="Item description" />
+                      <div v-if="item.isTyre" class="flex items-center gap-1 mt-0.5">
+                        <span class="text-[10px] text-dark-500 uppercase tracking-wider">DOT</span>
+                        <select v-model="item.tyreDotId" @change="onDotChange(item)" class="bg-dark-800 border border-dark-700 rounded px-1.5 py-0.5 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50">
+                          <option value="">Select DOT…</option>
+                          <option v-for="d in item.dotOptions || []" :key="d.id" :value="d.id">DOT{{ d.dotCode }} ({{ d.quantity }} avail)</option>
+                        </select>
+                      </div>
                     </div>
                   </td>
                   <td class="px-3 py-2"><input v-model.number="item.quantity" type="number" min="1" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
@@ -311,6 +318,7 @@ const showDuplicateModal = ref(false)
 const showNewVehicleModal = ref(false)
 const duplicateMatches = ref<Customer[]>([])
 
+interface DotOption { id: string; dotCode: string; quantity: number }
 interface FormItem {
   stockItemId?: string
   itemCode?: string
@@ -321,6 +329,10 @@ interface FormItem {
   discountPercent: number
   taxRate: number
   serviceDate: string
+  isTyre?: boolean
+  tyreDotId?: string
+  tyreDotCode?: string
+  dotOptions?: DotOption[]
 }
 
 const form = reactive({
@@ -425,13 +437,27 @@ function handleStockSearch() {
   }, 200)
 }
 
-function addStockItem(stock: StockItem) {
-  form.items.push({
+async function addStockItem(stock: StockItem) {
+  const newItem: FormItem = {
     stockItemId: stock.id, itemCode: stock.itemCode, description: stock.description,
     quantity: 1, unit: stock.uom, unitPrice: Number(stock.sellPrice),
     discountPercent: 0, taxRate: 0, serviceDate: '',
-  })
+    isTyre: (stock as any).isTyre === true,
+  }
+  form.items.push(newItem)
   stockSearch.value = ''; stockResults.value = []; showStockResults.value = false
+  if (newItem.isTyre) {
+    try {
+      const { data } = await api.get(`/stock/${stock.id}/dots`)
+      newItem.dotOptions = (data.data || []).filter((d: DotOption) => d.quantity > 0)
+    } catch { newItem.dotOptions = [] }
+  }
+}
+
+function onDotChange(item: FormItem) {
+  const dot = (item.dotOptions || []).find((d) => d.id === item.tyreDotId)
+  item.tyreDotCode = dot?.dotCode || undefined
+  if (dot && item.quantity > dot.quantity) item.quantity = dot.quantity
 }
 
 function addCustomItem() {
@@ -466,7 +492,19 @@ async function loadDocument() {
       description: i.description, quantity: i.quantity, unit: i.unit,
       unitPrice: Number(i.unitPrice), discountPercent: Number(i.discountPercent),
       taxRate: Number(i.taxRate), serviceDate: i.serviceDate?.split('T')[0] || '',
+      isTyre: !!(i as any).tyreDotId || !!(i as any).stockItem?.isTyre,
+      tyreDotId: (i as any).tyreDotId || undefined,
+      tyreDotCode: (i as any).tyreDotCode || undefined,
     }))
+    // Lazy-load DOTs for tyre lines so edit preserves choice
+    for (const it of form.items) {
+      if (it.isTyre && it.stockItemId) {
+        try {
+          const { data } = await api.get(`/stock/${it.stockItemId}/dots`)
+          it.dotOptions = (data.data || []) as DotOption[]
+        } catch { it.dotOptions = [] }
+      }
+    }
     // Restore customer link if exists
     if ((doc as any).customerId) {
       try {

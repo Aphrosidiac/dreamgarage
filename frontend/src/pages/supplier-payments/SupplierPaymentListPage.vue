@@ -45,11 +45,83 @@
         <span class="text-dark-400 text-sm">{{ formatDate(value) }}</span>
       </template>
       <template #actions="{ row }">
+        <button @click="openReceipt(row)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Print receipt">
+          <Printer class="w-4 h-4" />
+        </button>
         <button @click="handleDelete(row)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
           <Trash2 class="w-4 h-4" />
         </button>
       </template>
     </BaseTable>
+
+    <!-- Printable Receipt -->
+    <div v-if="receiptRow" class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 print:static print:bg-white print:p-0" @click.self="receiptRow = null">
+      <div class="bg-white text-black rounded-lg shadow-xl w-[820px] max-w-full max-h-[90vh] overflow-auto print:shadow-none print:rounded-none print:max-h-none">
+        <div class="flex items-center justify-end gap-2 p-3 border-b border-gray-200 print:hidden">
+          <BaseButton variant="secondary" size="sm" @click="receiptRow = null">Close</BaseButton>
+          <BaseButton variant="primary" size="sm" @click="handlePrint"><Printer class="w-4 h-4 mr-1" /> Print</BaseButton>
+        </div>
+        <div id="ap-receipt" class="p-10 font-sans">
+          <div class="flex items-start justify-between border-b-2 border-black pb-4 mb-6">
+            <div>
+              <img src="/logo-invoice.png" alt="Dream Garage" class="h-14 mb-2" />
+              <p class="text-xs text-gray-700 font-semibold">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</p>
+              <p class="text-[11px] text-gray-600">{{ branch?.address }}</p>
+              <p class="text-[11px] text-gray-600">{{ branch?.phone }} · {{ branch?.email }}</p>
+              <p v-if="branch?.ssmNumber" class="text-[11px] text-gray-600">SSM: {{ branch?.ssmNumber }}</p>
+            </div>
+            <div class="text-right">
+              <h2 class="text-2xl font-bold tracking-widest">PAYMENT RECEIPT</h2>
+              <p class="text-xs text-gray-600 mt-1">A/P Payment Voucher</p>
+              <p class="text-sm font-mono mt-2">{{ receiptRow.paymentNumber }}</p>
+              <p class="text-xs text-gray-600">{{ formatDate(receiptRow.paymentDate) }}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 mb-6 text-sm">
+            <div>
+              <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Paid To</p>
+              <p class="font-semibold">{{ receiptRow.supplier?.companyName || '—' }}</p>
+              <p v-if="receiptRow.supplier?.contactName" class="text-xs text-gray-600">{{ receiptRow.supplier?.contactName }}</p>
+              <p v-if="receiptRow.supplier?.phone" class="text-xs text-gray-600">{{ receiptRow.supplier?.phone }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Payment Details</p>
+              <div class="text-xs space-y-0.5">
+                <div class="flex justify-between"><span class="text-gray-500">Method</span><span>{{ receiptRow.paymentMethod?.replace('_', ' ') }}</span></div>
+                <div v-if="receiptRow.bankName" class="flex justify-between"><span class="text-gray-500">Bank</span><span>{{ receiptRow.bankName }}</span></div>
+                <div v-if="receiptRow.referenceNumber" class="flex justify-between"><span class="text-gray-500">Reference</span><span class="font-mono">{{ receiptRow.referenceNumber }}</span></div>
+                <div v-if="receiptRow.purchaseInvoice" class="flex justify-between"><span class="text-gray-500">Applied to</span><span class="font-mono">{{ receiptRow.purchaseInvoice.internalNumber }}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-b-2 border-black py-4 mb-4">
+            <div class="flex items-end justify-between">
+              <div>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Amount (in words)</p>
+                <p class="text-sm italic">{{ amountInWords(Number(receiptRow.amount)) }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Paid</p>
+                <p class="text-3xl font-bold">RM {{ Number(receiptRow.amount).toFixed(2) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="receiptRow.notes" class="text-xs text-gray-700 mb-8"><span class="text-gray-500">Notes: </span>{{ receiptRow.notes }}</p>
+
+          <div class="grid grid-cols-2 gap-12 mt-16 text-xs">
+            <div>
+              <div class="border-t border-gray-400 pt-1 text-center">Prepared by</div>
+            </div>
+            <div>
+              <div class="border-t border-gray-400 pt-1 text-center">Authorised signature</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Create Payment Modal -->
     <BaseModal v-model="showCreateModal" title="Record Supplier Payment" size="md">
@@ -88,7 +160,7 @@ import BaseButton from '../../components/base/BaseButton.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { Plus, Trash2, Printer } from 'lucide-vue-next'
 
 const toast = useToast()
 
@@ -180,6 +252,49 @@ async function handleDelete(payment: any) {
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed to delete')
   }
+}
+
+const receiptRow = ref<any>(null)
+const branch = ref<any>(null)
+
+async function openReceipt(row: any) {
+  receiptRow.value = row
+  if (!branch.value) {
+    try {
+      const { data } = await api.get('/profile')
+      branch.value = data.data.branch
+    } catch { /* ignore */ }
+  }
+}
+
+function handlePrint() {
+  const receiptEl = document.getElementById('ap-receipt')
+  if (!receiptEl) return window.print()
+  const w = window.open('', '_blank', 'width=900,height=1100')
+  if (!w) return window.print()
+  w.document.write(`<!doctype html><html><head><title>${receiptRow.value?.paymentNumber || 'Receipt'}</title><script src="https://cdn.tailwindcss.com"><\/script></head><body>${receiptEl.outerHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`)
+  w.document.close()
+}
+
+function amountInWords(amount: number): string {
+  // Minimal English number-to-words for RM amounts
+  const below20 = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+  function under1000(n: number): string {
+    if (n === 0) return ''
+    if (n < 20) return below20[n]
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + below20[n % 10] : '')
+    return below20[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + under1000(n % 100) : '')
+  }
+  const ringgit = Math.floor(amount)
+  const sen = Math.round((amount - ringgit) * 100)
+  const ringgitParts: string[] = []
+  let r = ringgit
+  if (r >= 1_000_000) { ringgitParts.push(under1000(Math.floor(r / 1_000_000)) + ' Million'); r %= 1_000_000 }
+  if (r >= 1000) { ringgitParts.push(under1000(Math.floor(r / 1000)) + ' Thousand'); r %= 1000 }
+  if (r > 0) ringgitParts.push(under1000(r))
+  const ringgitStr = ringgitParts.join(' ') || 'Zero'
+  return `Ringgit Malaysia ${ringgitStr}${sen > 0 ? ' and ' + under1000(sen) + ' Sen' : ''} Only`
 }
 
 onMounted(() => {
