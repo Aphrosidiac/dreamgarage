@@ -2,10 +2,59 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-lg font-semibold text-dark-100">Staff Management</h2>
-      <BaseButton variant="primary" size="sm" @click="openCreateModal">
-        <Plus class="w-4 h-4 mr-1" /> Add Staff
-      </BaseButton>
+      <div class="flex items-center gap-2">
+        <BaseButton variant="secondary" size="sm" @click="showRoles = true">
+          <ShieldCheck class="w-4 h-4 mr-1" /> Roles
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" @click="openCreateModal">
+          <Plus class="w-4 h-4 mr-1" /> Add Staff
+        </BaseButton>
+      </div>
     </div>
+
+    <!-- Roles Access Modal -->
+    <BaseModal v-model="showRoles" title="Role Access Matrix" size="lg">
+      <div class="space-y-4">
+        <p class="text-xs text-dark-400">
+          Pages each role can access. This reflects the current app configuration; to change it, edit <code class="text-dark-200">router/index.ts</code> and <code class="text-dark-200">DashboardLayout.vue</code>.
+        </p>
+        <div class="overflow-x-auto border border-dark-800 rounded-lg">
+          <table class="w-full text-sm">
+            <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800">
+              <tr>
+                <th class="px-4 py-2.5 text-left">Page</th>
+                <th class="px-4 py-2.5 text-center w-20">Admin</th>
+                <th class="px-4 py-2.5 text-center w-20">Manager</th>
+                <th class="px-4 py-2.5 text-center w-20">Worker</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-dark-800">
+              <tr v-for="p in accessMatrix" :key="p.path">
+                <td class="px-4 py-2">
+                  <div class="text-dark-100 text-sm">{{ p.label }}</div>
+                  <div class="text-[10px] text-dark-500 font-mono">{{ p.path }}</div>
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <Check v-if="p.roles.includes('ADMIN')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <Check v-if="p.roles.includes('MANAGER')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <Check v-if="p.roles.includes('WORKER')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showRoles = false">Close</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Filters -->
     <div class="flex items-end gap-4 mb-6">
@@ -112,12 +161,33 @@ import BaseBadge from '../../components/base/BaseBadge.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
-import { Plus, Pencil, KeyRound } from 'lucide-vue-next'
+import { Plus, Pencil, KeyRound, ShieldCheck, Check, X } from 'lucide-vue-next'
 import type { User } from '../../types'
 
 const toast = useToast()
 
 const staff = ref<User[]>([])
+const showRoles = ref(false)
+
+const accessMatrix = [
+  { path: '/app/dashboard', label: 'Dashboard', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/take-order', label: 'Take Order', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/stock', label: 'Stock', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/customers', label: 'Customers', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/documents', label: 'Documents (QT/INV/RCP/DO)', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/documents/settings', label: 'Document Settings', roles: ['ADMIN'] },
+  { path: '/app/debtors', label: 'Debtors', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/suppliers', label: 'Suppliers', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/purchase-orders', label: 'Purchase Orders', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/supplier-payments', label: 'A/P Payments', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/reports/payment-log', label: 'Payment Log', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/held-stock', label: 'Held Stock', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/worker-stats', label: 'Worker Stats', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/staff', label: 'Staff Management', roles: ['ADMIN'] },
+  { path: '/app/audit', label: 'Audit Logs', roles: ['ADMIN'] },
+  { path: '/app/shop-display', label: 'Shop Display (TV)', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+]
 const loading = ref(true)
 const search = ref('')
 const filterRole = ref('')
