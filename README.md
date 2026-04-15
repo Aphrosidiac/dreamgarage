@@ -221,8 +221,19 @@ Unpaid invoices grouped by customer, sorted by total owed. Detail view shows all
 
 ### Purchasing (A/P)
 - **Suppliers** — directory with contact details
-- **Purchase Invoices** — status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments
-- **Supplier Payments** — A/P payment log against suppliers/invoices
+- **Purchase Orders** — surfaced as the 5th tab on Documents (uses the same white document template as QT/INV/RCP/DO). Status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments. Backend table is still `purchase_invoices`; UI/routes use Purchase Orders.
+- **Supplier Payments** — A/P payment log against suppliers/invoices, with printable receipt (amount-in-words)
+
+### Held Stock Dashboard
+`/app/held-stock` — items where `holdQuantity > 0`, grouped by category, with the holding draft invoice (customer, plate, foreman, qty held). Helps find why a stock item shows as unavailable.
+
+### Worker Performance
+`/app/worker-stats` — per-foreman aggregation over a date range: invoices, quotations, delivery orders, jobs completed, revenue handled, avg turnaround. Top performer highlighted.
+
+### Workshop Job Board (Shop Display)
+- `Document.workshopStatus` enum (WAITING → IN_PROGRESS → READY → DONE) is separate from billing status.
+- DocumentViewPage has Start Work / Mark Ready / Remove buttons.
+- `/app/shop-display` is a fullscreen TV-friendly board polling `/api/v1/shop-display/jobs` every 15s, with three columns by status.
 
 ### Payment Log (A/R)
 Daily/date-range log, method tabs, search, print template (white document-style), export all matching payments.
@@ -231,7 +242,10 @@ Daily/date-range log, method tabs, search, print template (white document-style)
 Floating chat widget powered by Claude Opus 4.6 with tool use. 9 read-only tools query live data: dashboard stats, documents, payments, debtors, stock, purchase invoices, suppliers, customers, staff. Branch-scoped automatically. All tool calls logged to AuditLog.
 
 ### Audit Logs (Admin)
-Branch-scoped activity trail. Global hook captures every non-GET `/api/v1/*` request (method, path, status, user, IP). Explicit logging for LOGIN, LOGIN_FAILED, and ASSISTANT_TOOL. Filterable admin page at `/app/audit` with changes drawer.
+Branch-scoped activity trail. Global hook captures every non-GET `/api/v1/*` request (method, path, status, user, IP). Explicit logging for LOGIN, LOGIN_FAILED, and ASSISTANT_TOOL (tool name + input). Filterable admin page at `/app/audit` with changes drawer.
+
+### Role Access (Read-only)
+Staff page has a **Roles** button (admin-only page) opening a matrix modal: each app page × each role with checkmarks. Reflects current router/sidebar config. To change access, edit `router/index.ts` + `DashboardLayout.vue`. Roles enum: `ADMIN`, `MANAGER`, `WORKER`.
 
 ### Dashboard
 Totals (stock, invoices today/month, revenue today/month), low stock alerts, recent invoices.
@@ -305,8 +319,20 @@ Edit name/email, change password, admin-only branch details (name, address, phon
 | Method | Endpoint |
 |--------|----------|
 | GET/POST/PUT/DELETE | `/api/v1/suppliers` |
-| GET/POST/PUT/DELETE | `/api/v1/purchase-invoices` |
+| GET/POST/PUT/DELETE | `/api/v1/purchase-invoices` (UI labels: Purchase Orders) |
 | GET/POST | `/api/v1/supplier-payments` |
+
+### Shop Display
+| Method | Endpoint |
+|--------|----------|
+| GET | `/api/v1/shop-display/jobs` |
+| PATCH | `/api/v1/shop-display/documents/:id/workshop-status` |
+
+### Held Stock & Worker Stats
+| Method | Endpoint |
+|--------|----------|
+| GET | `/api/v1/stock/held` (grouped by category) |
+| GET | `/api/v1/reports/worker-stats?from&to` |
 
 ### Assistant
 | Method | Endpoint |
@@ -384,14 +410,29 @@ cd backend && npx prisma db push && npx prisma generate && npm run build && pm2 
 - **GitHub**: [Aphrosidiac/dreamgarage](https://github.com/Aphrosidiac/gm)
 - **Monorepo**: `frontend/` and `backend/` in one repo
 
+## Testing
+
+Backend has Vitest scaffolded (16 unit tests on `documents.service` — pure totals + status machine).
+
+```bash
+cd backend
+npm test              # one-shot
+npm run test:watch    # watch mode
+```
+
+Frontend has no test suite yet. Recommended next: Vitest + @vue/test-utils for `BasePagination`/`BaseTable`, Playwright for take-order → invoice → payment flow.
+
 ## Roadmap
 
+- Global search (one search hitting customers, stock, documents)
 - Service date auto-reminder (WhatsApp/SMS notification)
-- Advanced reporting & analytics (sales, stock movement, profit margins)
 - E-Invoice (Malaysia MyInvois) integration
 - Multi-branch UI (branch switcher)
-- Granular RBAC beyond ADMIN/MANAGER/WORKER
+- Editable RBAC (UI for permissions; currently hardcoded matrix)
 - Per-field diff capture in audit logs (before/after on key updates)
+- Branch display token auth for Shop Display TVs (skip login)
+- Held-stock one-click release (admin)
+- Extract DocumentTemplate.vue from DocumentViewPage
 
 ## Client
 
