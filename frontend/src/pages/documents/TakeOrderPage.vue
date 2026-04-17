@@ -105,87 +105,83 @@
         </div>
 
         <div class="space-y-3">
-          <div v-for="(item, idx) in form.items" :key="idx" class="bg-dark-800/50 rounded-lg p-3">
-            <div class="flex items-start gap-3">
-              <div class="flex-1 grid grid-cols-12 gap-2">
-                <!-- Stock search or custom description -->
-                <div class="col-span-5 relative">
-                  <template v-if="item.isCustom">
-                    <textarea
-                      v-model="item.description"
-                      @input="autoResize"
-                      rows="1"
-                      placeholder="Enter custom description..."
-                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50 resize-none overflow-hidden"
-                      style="max-height: 120px;"
-                    />
-                  </template>
-                  <template v-else>
-                    <input
-                      v-model="item.searchTerm"
-                      @input="(e) => searchStock(idx, (e.target as HTMLInputElement).value)"
-                      @focus="item.showDropdown = true"
-                      type="text"
-                      placeholder="Search stock item..."
-                      class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
-                    />
-                    <div v-if="item.showDropdown && item.stockResults.length" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded shadow-lg max-h-40 overflow-y-auto">
-                      <button
-                        v-for="s in item.stockResults"
-                        :key="s.id"
-                        type="button"
-                        @click="selectStock(idx, s)"
-                        class="w-full px-3 py-2 text-left hover:bg-dark-700 text-sm transition-colors"
-                      >
-                        <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
-                        <span class="text-dark-200 ml-2">{{ s.description }}</span>
-                        <span class="text-dark-500 ml-2">RM{{ Number(s.sellPrice).toFixed(2) }}</span>
-                      </button>
-                    </div>
-                  </template>
-                </div>
-                <div v-if="!item.isCustom" class="col-span-2">
+          <div v-for="(item, idx) in form.items" :key="idx" class="bg-dark-800/50 rounded-lg p-4">
+            <!-- Row 1: Stock search + Description -->
+            <div class="flex gap-3 mb-3">
+              <div class="flex-1 relative">
+                <label class="block text-xs text-dark-500 mb-1">{{ item.isCustom ? 'Description' : 'Stock Item' }}</label>
+                <template v-if="item.isCustom">
                   <textarea
                     v-model="item.description"
                     @input="autoResize"
                     rows="1"
-                    placeholder="Description"
-                    class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none resize-none overflow-hidden"
+                    placeholder="Enter custom description..."
+                    class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50 resize-none overflow-hidden"
                     style="max-height: 120px;"
                   />
-                </div>
-                <div :class="item.isCustom ? 'col-span-2' : 'col-span-1'">
-                  <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-center focus:outline-none" />
-                </div>
-                <div class="col-span-2">
-                  <input v-model.number="item.unitPrice" type="number" step="0.01" min="0" placeholder="Price" class="w-full bg-dark-800 border border-dark-700 rounded px-2 py-1.5 text-dark-100 text-sm text-right focus:outline-none" />
-                </div>
-                <div class="col-span-1 text-right text-dark-300 text-sm py-1.5">
-                  RM {{ ((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2) }}
-                </div>
-                <div class="col-span-1 flex justify-end">
-                  <button type="button" @click="removeItem(idx)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-                </div>
+                </template>
+                <template v-else>
+                  <input
+                    v-model="item.searchTerm"
+                    @input="(e) => searchStock(idx, (e.target as HTMLInputElement).value)"
+                    @focus="item.showDropdown = true"
+                    type="text"
+                    placeholder="Search stock item..."
+                    class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                  />
+                  <div v-if="item.showDropdown && item.stockResults.length" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <button
+                      v-for="s in item.stockResults"
+                      :key="s.id"
+                      type="button"
+                      @click="selectStock(idx, s)"
+                      class="w-full px-3 py-2.5 text-left hover:bg-dark-700 text-sm transition-colors border-b border-dark-700 last:border-0"
+                    >
+                      <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
+                      <span class="text-dark-200 ml-2">{{ s.description }}</span>
+                      <span class="text-dark-500 ml-2">RM{{ Number(s.sellPrice).toFixed(2) }}</span>
+                    </button>
+                  </div>
+                </template>
               </div>
-            </div>
-            <!-- Service Date + DOT Selector row -->
-            <div class="mt-2 flex items-center gap-4 pl-1">
-              <div class="flex items-center gap-2">
-                <label class="text-dark-500 text-xs">Service Date:</label>
-                <input
-                  v-model="item.serviceDate"
-                  type="date"
-                  class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+              <div v-if="!item.isCustom" class="w-48">
+                <label class="block text-xs text-dark-500 mb-1">Description</label>
+                <textarea
+                  v-model="item.description"
+                  @input="autoResize"
+                  rows="1"
+                  placeholder="Description"
+                  class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm placeholder-dark-500 focus:outline-none resize-none overflow-hidden"
+                  style="max-height: 120px;"
                 />
               </div>
-              <div v-if="item.isTyre && item.dotBatches?.length" class="flex items-center gap-2">
-                <label class="text-dark-500 text-xs">DOT Batch:</label>
+              <div class="flex items-end">
+                <button type="button" @click="removeItem(idx)" class="p-2 text-dark-400 hover:text-red-400 transition-colors">
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Row 2: Qty + Price + Total -->
+            <div class="flex items-end gap-3">
+              <div class="w-20">
+                <label class="block text-xs text-dark-500 mb-1">Qty</label>
+                <input v-model.number="item.quantity" type="number" min="1" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
+              </div>
+              <div class="w-32">
+                <label class="block text-xs text-dark-500 mb-1">Unit Price (RM)</label>
+                <input v-model.number="item.unitPrice" type="number" step="0.01" min="0" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm text-right focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
+              </div>
+              <div class="w-28">
+                <label class="block text-xs text-dark-500 mb-1">Total</label>
+                <div class="px-3 py-2 text-dark-300 text-sm text-right">RM {{ ((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2) }}</div>
+              </div>
+              <div v-if="item.isTyre && item.dotBatches?.length" class="w-44">
+                <label class="block text-xs text-dark-500 mb-1">DOT Batch</label>
                 <select
                   :value="item.tyreDotId || ''"
                   @change="selectDot(idx, ($event.target as HTMLSelectElement).value)"
-                  class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                  class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50"
                 >
                   <option value="">Select DOT...</option>
                   <option v-for="dot in item.dotBatches" :key="dot.id" :value="dot.id">
@@ -193,7 +189,15 @@
                   </option>
                 </select>
               </div>
-              <span v-else-if="item.isTyre && item.dotBatches && item.dotBatches.length === 0" class="text-red-400 text-xs">No DOT batches available</span>
+              <span v-else-if="item.isTyre && item.dotBatches && item.dotBatches.length === 0" class="text-red-400 text-xs self-end pb-2">No DOT batches</span>
+              <div class="w-32">
+                <label class="block text-xs text-dark-500 mb-1">Service Date</label>
+                <input
+                  v-model="item.serviceDate"
+                  type="date"
+                  class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                />
+              </div>
             </div>
           </div>
         </div>
