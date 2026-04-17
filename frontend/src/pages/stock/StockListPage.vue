@@ -463,7 +463,7 @@ async function switchToGrouped() {
         brands,
         totalQty: allCatItems.reduce((s, i) => s + i.quantity, 0),
         totalItems: allCatItems.length,
-        expanded: true,
+        expanded: false,
       }
     })
   } catch { /* ignore */ } finally {
