@@ -11,8 +11,8 @@ export async function getJobs(request: FastifyRequest, reply: FastifyReply) {
       branchId,
       documentType: 'INVOICE',
       OR: [
-        { status: 'DRAFT' },
-        { status: 'OUTSTANDING' },
+        { status: { in: ['DRAFT', 'OUTSTANDING'] } },
+        { workshopStatus: 'IN_PROGRESS' },
         { workshopStatus: 'READY', workshopReadyAt: { gte: since } },
       ],
       NOT: { workshopStatus: 'DONE' },
