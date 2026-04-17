@@ -22,18 +22,56 @@
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 p-4 space-y-1">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          @click="sidebarOpen = false"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          :class="isActive(item.path) ? 'bg-gold-500/10 text-gold-500' : 'text-dark-300 hover:text-dark-100 hover:bg-dark-800'"
-        >
-          <component :is="item.icon" class="w-5 h-5" />
-          {{ item.label }}
-        </RouterLink>
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <template v-for="item in sidebarItems" :key="item.key || item.path">
+          <!-- Expandable group -->
+          <div v-if="item.children">
+            <button
+              @click="toggleGroup(item.key)"
+              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              :class="isGroupActive(item) ? 'bg-gold-500/10 text-gold-500' : 'text-dark-300 hover:text-dark-100 hover:bg-dark-800'"
+            >
+              <component :is="item.icon" class="w-5 h-5" />
+              {{ item.label }}
+              <ChevronDown
+                class="w-4 h-4 ml-auto transition-transform duration-200 ease-out"
+                :class="expandedGroups[item.key] ? 'rotate-180' : ''"
+              />
+            </button>
+            <div
+              class="grid transition-[grid-template-rows,opacity] duration-200 ease-out"
+              :class="expandedGroups[item.key] ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'"
+            >
+              <div class="overflow-hidden">
+                <div class="mt-1 ml-4 pl-3 border-l border-dark-700/50 space-y-0.5">
+                  <RouterLink
+                    v-for="child in item.children"
+                    :key="child.path"
+                    :to="child.path"
+                    @click="sidebarOpen = false"
+                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-colors duration-150"
+                    :class="isActive(child.path) ? 'bg-gold-500/10 text-gold-500' : 'text-dark-400 hover:text-dark-200 hover:bg-dark-800/50'"
+                  >
+                    <component :is="child.icon" class="w-4 h-4" />
+                    {{ child.label }}
+                  </RouterLink>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Standalone item -->
+          <RouterLink
+            v-else
+            :to="item.path"
+            @click="sidebarOpen = false"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            :class="isActive(item.path) ? 'bg-gold-500/10 text-gold-500' : 'text-dark-300 hover:text-dark-100 hover:bg-dark-800'"
+          >
+            <component :is="item.icon" class="w-5 h-5" />
+            {{ item.label }}
+          </RouterLink>
+        </template>
       </nav>
 
       <!-- User -->
@@ -73,10 +111,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, ChevronDown, Wallet, BookUser } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -84,26 +122,73 @@ const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
 
-const allNavItems = [
+const allSidebarItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/display-controller', label: 'Display Controller', icon: SlidersHorizontal, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/shop-display', label: 'Shop Display', icon: Monitor, roles: ['WORKER'] },
-  { path: '/app/customers', label: 'Customers', icon: Users, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'], section: 'Purchasing' },
-  { path: '/app/reports/payment-log', label: 'Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
+  {
+    key: 'finance',
+    label: 'Finance',
+    icon: Wallet,
+    roles: ['ADMIN', 'MANAGER'],
+    children: [
+      { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/app/reports/payment-log', label: 'Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
+    ],
+  },
+  {
+    key: 'directory',
+    label: 'Directory',
+    icon: BookUser,
+    roles: ['ADMIN', 'MANAGER'],
+    children: [
+      { path: '/app/staff', label: 'Staff', icon: UserCog, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/app/customers', label: 'Customers', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'] },
+    ],
+  },
   { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
-  { path: '/app/staff', label: 'Staff', icon: UserCog, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/audit', label: 'Audit Logs', icon: ShieldCheck, roles: ['ADMIN'] },
 ]
 
-const navItems = computed(() =>
-  allNavItems.filter((item) => item.roles.includes(auth.user?.role || 'WORKER'))
+const sidebarItems = computed(() => {
+  const role = auth.user?.role || 'WORKER'
+  return allSidebarItems
+    .filter(item => item.roles.includes(role))
+    .map(item => {
+      if (item.children) {
+        return { ...item, children: item.children.filter(c => c.roles.includes(role)) }
+      }
+      return item
+    })
+    .filter(item => !item.children || item.children.length > 0)
+})
+
+const expandedGroups = ref<Record<string, boolean>>(
+  JSON.parse(localStorage.getItem('dg-sidebar-groups') || '{}')
 )
+
+function toggleGroup(key: string) {
+  expandedGroups.value[key] = !expandedGroups.value[key]
+  localStorage.setItem('dg-sidebar-groups', JSON.stringify(expandedGroups.value))
+}
+
+function isGroupActive(group: any) {
+  return group.children?.some((child: any) => route.path.startsWith(child.path))
+}
+
+watch(() => route.path, () => {
+  for (const item of sidebarItems.value) {
+    if (item.children && isGroupActive(item)) {
+      expandedGroups.value[item.key!] = true
+      localStorage.setItem('dg-sidebar-groups', JSON.stringify(expandedGroups.value))
+    }
+  }
+}, { immediate: true })
 
 const isActive = (path: string) => route.path.startsWith(path)
 
