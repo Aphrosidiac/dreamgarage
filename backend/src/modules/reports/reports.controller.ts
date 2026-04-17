@@ -136,6 +136,7 @@ export async function getWorkerStats(
   }
   const map = new Map<string, Agg>()
   for (const d of docs) {
+    if (d.status === 'VOID' || d.status === 'CANCELLED') continue
     const fid = d.foremanId!
     const f = d.foreman!
     const a =
