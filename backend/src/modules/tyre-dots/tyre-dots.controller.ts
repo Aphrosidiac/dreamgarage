@@ -194,19 +194,36 @@ export async function getTyreStock(
     grouped.get(size)!.push(item)
   }
 
+  // Resync any parent quantities that are out of sync with DOT totals
+  const outOfSync: { id: string; dotTotal: number }[] = []
+  for (const item of items) {
+    if (item.tyreDots.length > 0) {
+      const dotTotal = item.tyreDots.reduce((s, d) => s + d.quantity, 0)
+      if (dotTotal !== item.quantity) outOfSync.push({ id: item.id, dotTotal })
+    }
+  }
+  if (outOfSync.length > 0) {
+    await Promise.all(outOfSync.map((fix) =>
+      request.server.prisma.stockItem.update({ where: { id: fix.id }, data: { quantity: fix.dotTotal } })
+    ))
+  }
+
   const data = Array.from(grouped.entries()).map(([tyreSize, sizeItems]) => ({
     tyreSize,
-    items: sizeItems.map((item) => ({
-      id: item.id,
-      itemCode: item.itemCode,
-      description: item.description,
-      sellPrice: item.sellPrice,
-      costPrice: item.costPrice,
-      brand: item.brand,
-      category: item.category,
-      tyreDots: item.tyreDots,
-      quantity: item.quantity,
-    })),
+    items: sizeItems.map((item) => {
+      const dotTotal = item.tyreDots.reduce((s, d) => s + d.quantity, 0)
+      return {
+        id: item.id,
+        itemCode: item.itemCode,
+        description: item.description,
+        sellPrice: item.sellPrice,
+        costPrice: item.costPrice,
+        brand: item.brand,
+        category: item.category,
+        tyreDots: item.tyreDots,
+        quantity: item.tyreDots.length > 0 ? dotTotal : item.quantity,
+      }
+    }),
   }))
 
   return reply.send({ success: true, data })
