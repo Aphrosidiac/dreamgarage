@@ -60,7 +60,7 @@
     <div class="flex items-end gap-4 mb-6">
       <div class="flex-1 max-w-xs">
         <label class="block text-xs text-dark-400 mb-1">Search</label>
-        <input v-model="search" type="text" placeholder="Name, email, phone..." class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
+        <input v-model="search" type="search" placeholder="Name, email, phone..." autocomplete="off" name="staff-filter" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
       </div>
       <div>
         <label class="block text-xs text-dark-400 mb-1">Role</label>
@@ -114,9 +114,9 @@
     <!-- Create/Edit Modal -->
     <BaseModal v-model="showModal" :title="editing ? 'Edit Staff' : 'Add Staff'" size="md">
       <div class="space-y-4">
-        <BaseInput v-model="form.name" label="Name" placeholder="Full name" required />
-        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" required />
-        <BaseInput v-if="!editing" v-model="form.password" label="Password" type="password" placeholder="Min 6 characters" required />
+        <BaseInput v-model="form.name" label="Name" placeholder="Full name" autocomplete="off" required />
+        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" autocomplete="off" required />
+        <BaseInput v-if="!editing" v-model="form.password" label="Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
         <div class="grid grid-cols-2 gap-4">
           <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" />
           <BaseInput v-model="form.jobTitle" label="Job Title" placeholder="e.g. Foreman, Mechanic" />
@@ -142,7 +142,7 @@
     <!-- Reset Password Modal -->
     <BaseModal v-model="showResetModal" title="Reset Password" size="sm">
       <p class="text-dark-300 text-sm mb-4">Set a new password for <strong class="text-dark-100">{{ resetTarget?.name }}</strong></p>
-      <BaseInput v-model="newPassword" label="New Password" type="password" placeholder="Min 6 characters" required />
+      <BaseInput v-model="newPassword" label="New Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
       <template #footer>
         <BaseButton variant="secondary" @click="showResetModal = false">Cancel</BaseButton>
         <BaseButton variant="primary" :loading="resetting" @click="handleResetPassword">Reset Password</BaseButton>

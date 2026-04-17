@@ -10,6 +10,11 @@
 
     <div v-if="loading" class="text-dark-400 text-center py-12">Loading tyre stock...</div>
 
+    <div v-else-if="error" class="text-center py-12">
+      <p class="text-red-400 text-sm">{{ error }}</p>
+      <button @click="fetchTyreStock" class="mt-3 text-gold-500 hover:text-gold-400 text-sm underline">Retry</button>
+    </div>
+
     <div v-else-if="filteredGroups.length === 0" class="text-dark-500 text-center py-12">No tyre stock found.</div>
 
     <div v-else class="space-y-6">
@@ -93,6 +98,7 @@ const groups = ref<TyreGroup[]>([])
 const loading = ref(true)
 const search = ref('')
 const showCopied = ref(false)
+const error = ref('')
 
 const filteredGroups = computed(() => {
   if (!search.value) return groups.value
@@ -112,9 +118,12 @@ const filteredGroups = computed(() => {
 
 async function fetchTyreStock() {
   try {
+    error.value = ''
     const { data } = await api.get('/tyre-stock')
     groups.value = data.data
-  } catch { /* ignore */ } finally {
+  } catch (e: any) {
+    error.value = e.response?.data?.message || e.message || 'Failed to load tyre stock'
+  } finally {
     loading.value = false
   }
 }
