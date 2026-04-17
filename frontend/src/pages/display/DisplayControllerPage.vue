@@ -39,7 +39,7 @@
         v-for="job in filteredJobs"
         :key="job.id"
         :class="[
-          'rounded-xl border p-4 transition-all',
+          'rounded-xl border p-4 transition-all flex flex-col',
           statusStyle[job.workshopStatus]?.card || 'bg-dark-900 border-dark-800',
         ]"
       >
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Info -->
-        <div class="space-y-1 mb-3">
+        <div class="flex-1 space-y-1 mb-3">
           <p v-if="job.vehicle" class="text-dark-400 text-xs">{{ job.vehicle }}</p>
           <p class="text-dark-300 text-sm">{{ job.customer }}</p>
           <div class="text-dark-400 text-xs leading-relaxed">
