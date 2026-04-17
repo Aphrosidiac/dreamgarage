@@ -303,7 +303,6 @@ const doc = ref<Document | null>(null)
 const branch = ref<any>(null)
 const loadingDoc = ref(true)
 const statusLoading = ref(false)
-}
 const converting = ref(false)
 const exporting = ref(false)
 const showPaymentModal = ref(false)
