@@ -73,11 +73,11 @@
           <span class="font-mono text-gold-500">{{ value }}</span>
         </template>
         <template #cell-category="{ row }">
-          <div class="flex flex-col gap-0.5">
-            <BaseBadge v-if="row.category" color="gray">{{ row.category.name }}</BaseBadge>
-            <span v-else class="text-dark-500">—</span>
-            <span v-if="row.brand" class="text-dark-400 text-xs">{{ row.brand.name }}</span>
+          <div v-if="row.category || row.brand" class="flex flex-col gap-1">
+            <span v-if="row.category" class="text-dark-200 text-sm">{{ row.category.name }}</span>
+            <span v-if="row.brand" class="inline-flex items-center text-xs text-dark-400 bg-dark-800 border border-dark-700 rounded px-1.5 py-0.5 w-fit">{{ row.brand.name }}</span>
           </div>
+          <span v-else class="text-dark-600 text-xs">Uncategorized</span>
         </template>
         <template #cell-countryOfOrigin="{ value }">
           <span v-if="value" :title="value">{{ countryFlag(value) }}</span>
