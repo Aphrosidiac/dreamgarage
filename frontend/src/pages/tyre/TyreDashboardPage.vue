@@ -130,16 +130,21 @@ async function fetchTyreStock() {
 
 function formatItem(item: TyreItem): string {
   const brand = item.brand?.name || ''
-  const dots = item.tyreDots?.map((d) => `DOT${d.dotCode}(${d.quantity})`).join(' ') || ''
-  return `${brand} ${item.description} - RM${Number(item.sellPrice).toFixed(0)} - ${dots} - ${item.quantity}pcs`
+  const lines = [`${brand} ${item.description} - RM${Number(item.sellPrice).toFixed(0)} - ${item.quantity}pcs`]
+  if (item.tyreDots?.length) {
+    for (const d of item.tyreDots) {
+      lines.push(`DOT${d.dotCode} - ${d.quantity}pcs`)
+    }
+  }
+  return lines.join('\n')
 }
 
 function formatGroup(group: TyreGroup): string {
   const lines = [group.tyreSize]
   for (const item of group.items) {
-    lines.push(`  ${formatItem(item)}`)
+    lines.push(formatItem(item))
   }
-  return lines.join('\n')
+  return lines.join('\n\n')
 }
 
 async function copyItem(item: TyreItem) {
