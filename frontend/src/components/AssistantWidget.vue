@@ -58,10 +58,10 @@
       >
         <div
           :class="[
-            'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words',
+            'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm break-words',
             m.role === 'user'
-              ? 'bg-gold-500 text-dark-950 rounded-br-sm'
-              : 'bg-dark-800 text-dark-100 rounded-bl-sm',
+              ? 'bg-gold-500 text-dark-950 rounded-br-sm whitespace-pre-wrap'
+              : 'bg-dark-800 text-dark-100 rounded-bl-sm assistant-md',
           ]"
           v-html="m.role === 'assistant' ? renderMarkdown(m.content) : escapeHtml(m.content)"
         />
@@ -104,6 +104,8 @@
 import { ref, nextTick, watch } from 'vue'
 import { Sparkles, X, Send, RotateCcw } from 'lucide-vue-next'
 import { useAssistantStore } from '../stores/assistant'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const assistant = useAssistantStore()
 const input = ref('')
@@ -142,15 +144,21 @@ function escapeHtml(s: string): string {
 }
 
 function renderMarkdown(s: string): string {
-  let html = escapeHtml(s)
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-dark-900 px-1 py-0.5 rounded text-gold-400 text-xs">$1</code>')
-  html = html.replace(/^\| (.+) \|$/gm, (_, cells) => {
-    const parts = cells.split(' | ').map((c: string) => `<td class="px-2 py-1 border border-dark-700">${c}</td>`).join('')
-    return `<tr>${parts}</tr>`
-  })
-  html = html.replace(/(<tr>.*<\/tr>)/s, '<table class="my-2 text-xs border-collapse">$1</table>')
-  html = html.replace(/\n/g, '<br>')
-  return html
+  const raw = marked.parse(s, { async: false }) as string
+  return DOMPurify.sanitize(raw)
 }
 </script>
+
+<style>
+.assistant-md p { margin: 0.25rem 0; }
+.assistant-md p:first-child { margin-top: 0; }
+.assistant-md p:last-child { margin-bottom: 0; }
+.assistant-md strong { color: #fff; }
+.assistant-md table { width: 100%; margin: 0.5rem 0; font-size: 0.75rem; border-collapse: collapse; }
+.assistant-md th { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #333; color: #999; font-weight: 600; }
+.assistant-md td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #222; }
+.assistant-md tr:last-child td { border-bottom: none; }
+.assistant-md ul, .assistant-md ol { margin: 0.25rem 0; padding-left: 1.25rem; }
+.assistant-md li { margin: 0.15rem 0; }
+.assistant-md code { background: #111318; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-size: 0.75rem; color: #e5c07b; }
+</style>

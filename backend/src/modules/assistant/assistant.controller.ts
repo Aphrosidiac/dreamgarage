@@ -298,7 +298,7 @@ export async function chat(request: FastifyRequest, reply: FastifyReply) {
 
   for (let iter = 0; iter < 8; iter++) {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 4096,
       system: systemBlocks,
       tools: toolDefs,
