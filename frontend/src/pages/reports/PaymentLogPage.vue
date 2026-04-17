@@ -34,17 +34,17 @@
 
     <!-- ═══ Received Tab (Payment Log) ═══ -->
     <template v-if="activeTab === 'received'">
-      <!-- Method Tabs -->
-      <div class="flex items-center gap-1 mb-4 border-b border-dark-800">
+      <!-- Method Filters -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
         <button
           v-for="mt in methodTabs"
           :key="mt.value"
           @click="switchMethod(mt.value)"
           :class="[
-            'px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+            'px-3 py-1.5 text-xs font-medium rounded-full transition-colors',
             activeMethod === mt.value
-              ? 'text-gold-500 border-gold-500'
-              : 'text-dark-400 border-transparent hover:text-dark-200',
+              ? 'bg-gold-500/15 text-gold-500 ring-1 ring-gold-500/30'
+              : 'bg-dark-800 text-dark-400 hover:text-dark-200 hover:bg-dark-700',
           ]"
         >
           {{ mt.label }}
