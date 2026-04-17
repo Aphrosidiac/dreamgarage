@@ -244,6 +244,9 @@ onMounted(() => {
   }, 60000)
   fetchJobs()
   pollTimer = setInterval(fetchJobs, 15000)
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {})
+  }
 })
 
 onUnmounted(() => {
