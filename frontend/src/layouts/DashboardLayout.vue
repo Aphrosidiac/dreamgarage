@@ -76,7 +76,7 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Monitor, Truck, CreditCard, ShieldCheck, Archive, TrendingUp } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, TrendingUp } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -89,6 +89,7 @@ const allNavItems = [
   { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/display-controller', label: 'Display Controller', icon: SlidersHorizontal, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/shop-display', label: 'Shop Display', icon: Monitor, roles: ['WORKER'] },
   { path: '/app/customers', label: 'Customers', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
@@ -120,6 +121,7 @@ const pageTitle = computed(() => {
   if (name === 'take-order') return 'Take Order'
   if (name === 'dashboard') return 'Dashboard'
   if (name === 'tyre-dashboard') return 'Tyre Dashboard'
+  if (name === 'display-controller') return 'Display Controller'
   if (name?.startsWith('debtor')) return 'Debtors'
   if (name === 'payment-log') return 'Payment Log'
   if (name === 'profile') return 'Profile'

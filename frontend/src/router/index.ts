@@ -33,6 +33,7 @@ const router = createRouter({
         { path: '', name: 'app-root', redirect: '/app/dashboard' },
         { path: 'dashboard', name: 'dashboard', component: () => import('../pages/dashboard/DashboardPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'tyre-dashboard', name: 'tyre-dashboard', component: () => import('../pages/tyre/TyreDashboardPage.vue') },
+        { path: 'display-controller', name: 'display-controller', component: () => import('../pages/display/DisplayControllerPage.vue'), meta: { roles: ['ADMIN', 'MANAGER', 'WORKER'] } },
         { path: 'stock', name: 'stock-list', component: () => import('../pages/stock/StockListPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'stock/new', name: 'stock-create', component: () => import('../pages/stock/StockCreatePage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'stock/:id/edit', name: 'stock-edit', component: () => import('../pages/stock/StockEditPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },

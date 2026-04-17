@@ -59,6 +59,58 @@ export async function getJobs(request: FastifyRequest, reply: FastifyReply) {
   return reply.send({ success: true, data: jobs })
 }
 
+export async function getControllerJobs(request: FastifyRequest, reply: FastifyReply) {
+  const { branchId } = request.user
+
+  const docs = await request.server.prisma.document.findMany({
+    where: {
+      branchId,
+      documentType: 'INVOICE',
+      NOT: { workshopStatus: 'DONE' },
+    },
+    select: {
+      id: true,
+      documentNumber: true,
+      vehiclePlate: true,
+      vehicleModel: true,
+      vehicleColor: true,
+      customerName: true,
+      status: true,
+      workshopStatus: true,
+      workshopStartedAt: true,
+      workshopReadyAt: true,
+      createdAt: true,
+      foreman: { select: { name: true } },
+      items: { select: { description: true, quantity: true }, orderBy: { sortOrder: 'asc' } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  })
+
+  const jobs = docs.map((d) => {
+    const elapsedMs =
+      d.workshopStatus === 'READY' && d.workshopReadyAt
+        ? d.workshopReadyAt.getTime() - d.createdAt.getTime()
+        : d.workshopStatus === 'IN_PROGRESS' && d.workshopStartedAt
+        ? Date.now() - d.workshopStartedAt.getTime()
+        : Date.now() - d.createdAt.getTime()
+    return {
+      id: d.id,
+      documentNumber: d.documentNumber,
+      plate: d.vehiclePlate || '—',
+      vehicle: [d.vehicleModel, d.vehicleColor].filter(Boolean).join(' — ') || '',
+      customer: d.customerName || 'Walk-in',
+      services: d.items.map((i) => (i.quantity > 1 ? `${i.quantity}× ${i.description}` : i.description)),
+      foreman: d.foreman?.name || null,
+      workshopStatus: d.workshopStatus,
+      billingStatus: d.status,
+      elapsed: Math.max(0, Math.floor(elapsedMs / 60000)),
+    }
+  })
+
+  return reply.send({ success: true, data: jobs })
+}
+
 export async function setWorkshopStatus(
   request: FastifyRequest<{ Params: { id: string }; Body: { workshopStatus: 'WAITING' | 'IN_PROGRESS' | 'READY' | 'DONE' } }>,
   reply: FastifyReply,
