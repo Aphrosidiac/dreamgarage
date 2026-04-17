@@ -170,14 +170,30 @@
                 </div>
               </div>
             </div>
-            <!-- Service Date row -->
-            <div class="mt-2 flex items-center gap-2 pl-1">
-              <label class="text-dark-500 text-xs">Service Date:</label>
-              <input
-                v-model="item.serviceDate"
-                type="date"
-                class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
-              />
+            <!-- Service Date + DOT Selector row -->
+            <div class="mt-2 flex items-center gap-4 pl-1">
+              <div class="flex items-center gap-2">
+                <label class="text-dark-500 text-xs">Service Date:</label>
+                <input
+                  v-model="item.serviceDate"
+                  type="date"
+                  class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                />
+              </div>
+              <div v-if="item.isTyre && item.dotBatches?.length" class="flex items-center gap-2">
+                <label class="text-dark-500 text-xs">DOT Batch:</label>
+                <select
+                  :value="item.tyreDotId || ''"
+                  @change="selectDot(idx, ($event.target as HTMLSelectElement).value)"
+                  class="bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50"
+                >
+                  <option value="">Select DOT...</option>
+                  <option v-for="dot in item.dotBatches" :key="dot.id" :value="dot.id">
+                    DOT {{ dot.dotCode }} ({{ dot.quantity }} pcs)
+                  </option>
+                </select>
+              </div>
+              <span v-else-if="item.isTyre && item.dotBatches && item.dotBatches.length === 0" class="text-red-400 text-xs">No DOT batches available</span>
             </div>
           </div>
         </div>
@@ -300,6 +316,8 @@ const showDuplicateModal = ref(false)
 const showNewVehicleModal = ref(false)
 const duplicateMatches = ref<Customer[]>([])
 
+interface DotBatch { id: string; dotCode: string; quantity: number }
+
 interface OrderItem {
   stockItemId?: string
   itemCode?: string
@@ -312,6 +330,10 @@ interface OrderItem {
   showDropdown: boolean
   stockResults: StockItem[]
   isCustom?: boolean
+  isTyre?: boolean
+  tyreDotId?: string
+  tyreDotCode?: string
+  dotBatches?: DotBatch[]
 }
 
 const form = reactive({
@@ -420,7 +442,7 @@ function searchStock(idx: number, term: string) {
   }, 200)
 }
 
-function selectStock(idx: number, s: StockItem) {
+async function selectStock(idx: number, s: StockItem) {
   form.items[idx].stockItemId = s.id
   form.items[idx].itemCode = s.itemCode
   form.items[idx].description = s.description
@@ -429,6 +451,28 @@ function selectStock(idx: number, s: StockItem) {
   form.items[idx].searchTerm = `${s.itemCode} - ${s.description}`
   form.items[idx].showDropdown = false
   form.items[idx].stockResults = []
+  form.items[idx].isTyre = (s as any).isTyre || false
+
+  if ((s as any).isTyre) {
+    try {
+      const { data } = await api.get(`/stock/${s.id}/dots`)
+      form.items[idx].dotBatches = data.data.filter((d: DotBatch) => d.quantity > 0)
+    } catch { /* ignore */ }
+  }
+}
+
+function selectDot(idx: number, dotId: string) {
+  const item = form.items[idx]
+  if (!dotId) {
+    item.tyreDotId = undefined
+    item.tyreDotCode = undefined
+    return
+  }
+  const dot = item.dotBatches?.find((d) => d.id === dotId)
+  if (dot) {
+    item.tyreDotId = dot.id
+    item.tyreDotCode = dot.dotCode
+  }
 }
 
 // ─── Submit flow ──────────────────────────────────
@@ -570,6 +614,8 @@ async function proceedSubmit() {
         unit: item.unit,
         serviceDate: item.serviceDate || undefined,
         sortOrder: idx,
+        tyreDotId: item.tyreDotId || undefined,
+        tyreDotCode: item.tyreDotCode || undefined,
       })),
     })
     toast.success(`Draft invoice ${doc.documentNumber} created`)
