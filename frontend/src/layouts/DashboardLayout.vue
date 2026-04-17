@@ -125,8 +125,9 @@ const sidebarOpen = ref(false)
 const allSidebarItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
-  { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/display-controller', label: 'Display Controller', icon: SlidersHorizontal, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/shop-display', label: 'Shop Display', icon: Monitor, roles: ['WORKER'] },
   {
@@ -151,7 +152,6 @@ const allSidebarItems = [
       { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
-  { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/audit', label: 'Audit Logs', icon: ShieldCheck, roles: ['ADMIN'] },
 ]
 
