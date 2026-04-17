@@ -51,3 +51,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: theme(--color-dark-500);
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

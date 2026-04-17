@@ -36,7 +36,7 @@
           <span class="text-amber-500 text-xs font-semibold uppercase tracking-wider">Waiting</span>
           <span :class="['text-xs ml-auto', dark ? 'text-amber-400/40' : 'text-amber-400/60']">{{ waitingCount }}</span>
         </div>
-        <div :class="['flex-1 overflow-y-auto p-3 space-y-2 transition-colors duration-300', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
+        <div :class="['flex-1 overflow-y-auto p-3 space-y-2 transition-colors duration-300 scrollbar-hide', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
           <div
             v-for="job in waitingJobs"
             :key="job.id"
@@ -67,7 +67,7 @@
           <span class="text-blue-500 text-xs font-semibold uppercase tracking-wider">In Progress</span>
           <span :class="['text-xs ml-auto', dark ? 'text-blue-400/40' : 'text-blue-400/60']">{{ inProgressCount }}</span>
         </div>
-        <div :class="['flex-1 overflow-y-auto p-3 transition-colors duration-300', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
+        <div :class="['flex-1 overflow-y-auto p-3 transition-colors duration-300 scrollbar-hide', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
             <div
               v-for="job in progressJobs"
@@ -100,7 +100,7 @@
           <span class="text-emerald-500 text-xs font-semibold uppercase tracking-wider">Ready</span>
           <span :class="['text-xs ml-auto', dark ? 'text-emerald-400/40' : 'text-emerald-400/60']">{{ readyCount }}</span>
         </div>
-        <div :class="['flex-1 overflow-y-auto p-3 space-y-2 transition-colors duration-300', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
+        <div :class="['flex-1 overflow-y-auto p-3 space-y-2 transition-colors duration-300 scrollbar-hide', dark ? 'bg-[#111318]' : 'bg-gray-50/50']">
           <div
             v-for="job in readyJobs"
             :key="job.id"
