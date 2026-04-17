@@ -75,6 +75,13 @@
       </RouterLink>
     </div>
 
+    <!-- Foreman / Handled By -->
+    <div v-if="doc && (doc as any).foreman" class="mb-4 print:hidden">
+      <span class="text-dark-500 text-sm">Handled by: </span>
+      <span class="text-dark-200 text-sm font-medium">{{ (doc as any).foreman.name }}</span>
+      <span v-if="(doc as any).foreman.jobTitle" class="text-dark-500 text-sm"> ({{ (doc as any).foreman.jobTitle }})</span>
+    </div>
+
     <div v-if="loadingDoc" class="text-dark-400">Loading...</div>
 
     <!-- Document Template — Clean White Professional -->
