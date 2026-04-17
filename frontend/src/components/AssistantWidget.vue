@@ -12,7 +12,7 @@
   <!-- Chat drawer -->
   <div
     v-if="assistant.isOpen"
-    class="fixed bottom-6 right-6 w-[380px] h-[560px] max-h-[85vh] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
+    class="fixed bottom-6 right-6 w-[480px] h-[620px] max-h-[85vh] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
   >
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-dark-800 bg-dark-900">
@@ -58,7 +58,7 @@
       >
         <div
           :class="[
-            'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm break-words',
+            'max-w-[92%] rounded-2xl px-3.5 py-2 text-sm break-words',
             m.role === 'user'
               ? 'bg-gold-500 text-dark-950 rounded-br-sm whitespace-pre-wrap'
               : 'bg-dark-800 text-dark-100 rounded-bl-sm assistant-md',
