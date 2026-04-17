@@ -76,7 +76,7 @@
 import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, BarChart3, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -95,8 +95,7 @@ const allNavItems = [
   { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'], section: 'Purchasing' },
-  { path: '/app/supplier-payments', label: 'A/P Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/reports/payment-log', label: 'Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/staff', label: 'Staff', icon: UserCog, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/audit', label: 'Audit Logs', icon: ShieldCheck, roles: ['ADMIN'] },
@@ -114,7 +113,7 @@ const pageTitle = computed(() => {
   if (name?.startsWith('staff')) return 'Staff Management'
   if (name?.startsWith('customer')) return 'Customers'
   if (name?.startsWith('document')) return 'Documents'
-  if (name?.startsWith('supplier-payment')) return 'A/P Payments'
+  if (name?.startsWith('supplier-payment')) return 'Payments'
   if (name?.startsWith('supplier')) return 'Suppliers'
   if (name?.startsWith('purchase-order')) return 'Purchase Orders'
   if (name === 'take-order') return 'Take Order'
@@ -122,7 +121,7 @@ const pageTitle = computed(() => {
   if (name === 'tyre-dashboard') return 'Tyre Dashboard'
   if (name === 'display-controller') return 'Display Controller'
   if (name?.startsWith('debtor')) return 'Debtors'
-  if (name === 'payment-log') return 'Payment Log'
+  if (name === 'payment-log') return 'Payments'
   if (name === 'profile') return 'Profile'
   return 'Dream Garage'
 })

@@ -65,7 +65,7 @@ const router = createRouter({
         { path: 'purchase-invoices/new', redirect: '/app/purchase-orders/new' },
         { path: 'purchase-invoices/:id', redirect: (to: any) => `/app/purchase-orders/${to.params.id}` },
         { path: 'purchase-invoices/:id/edit', redirect: (to: any) => `/app/purchase-orders/${to.params.id}/edit` },
-        { path: 'supplier-payments', name: 'supplier-payment-list', component: () => import('../pages/supplier-payments/SupplierPaymentListPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
+        { path: 'supplier-payments', redirect: '/app/reports/payment-log' },
         { path: 'reports/payment-log', name: 'payment-log', component: () => import('../pages/reports/PaymentLogPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
         { path: 'profile', name: 'profile', component: () => import('../pages/profile/ProfilePage.vue') },
       ],
