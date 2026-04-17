@@ -22,10 +22,10 @@
         <BaseButton v-if="pi.status === 'ON_HOLD' && allChecked" variant="primary" size="sm" @click="handleVerify" :loading="actionLoading">
           Verify
         </BaseButton>
-        <BaseButton v-if="pi.status === 'VERIFIED'" variant="primary" size="sm" @click="handleFinalize" :loading="actionLoading">
+        <BaseButton v-if="pi.status === 'VERIFIED'" variant="primary" size="sm" @click="promptFinalize" :loading="actionLoading">
           Finalize (Update Stock)
         </BaseButton>
-        <BaseButton v-if="['ON_HOLD', 'VERIFIED'].includes(pi.status)" variant="danger" size="sm" @click="handleCancel" :loading="actionLoading">
+        <BaseButton v-if="['ON_HOLD', 'VERIFIED'].includes(pi.status)" variant="danger" size="sm" @click="promptCancel" :loading="actionLoading">
           Cancel
         </BaseButton>
       </div>
@@ -145,6 +145,21 @@
         </div>
       </div>
     </template>
+    <!-- Confirm Modal -->
+    <BaseModal v-model="showConfirmModal" :title="confirmAction === 'finalize' ? 'Finalize Purchase Order' : 'Cancel Purchase Order'" size="sm">
+      <p v-if="confirmAction === 'finalize'" class="text-dark-300 text-sm">
+        This will add all items to stock and update quantities. This action <strong class="text-dark-100">cannot be undone</strong>.
+      </p>
+      <p v-else class="text-dark-300 text-sm">
+        Are you sure you want to cancel <strong class="text-dark-100">{{ pi?.internalNumber }}</strong>? This will not affect stock quantities.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showConfirmModal = false">Go Back</BaseButton>
+        <BaseButton :variant="confirmAction === 'cancel' ? 'danger' : 'primary'" :loading="actionLoading" @click="executeConfirm">
+          {{ confirmAction === 'finalize' ? 'Finalize & Update Stock' : 'Cancel Invoice' }}
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -155,6 +170,7 @@ import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseButton from '../../components/base/BaseButton.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
+import BaseModal from '../../components/base/BaseModal.vue'
 import { ArrowLeft, Pencil, CheckCheck, Check, Paperclip } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -164,6 +180,8 @@ const toast = useToast()
 const pi = ref<any>(null)
 const loading = ref(true)
 const actionLoading = ref(false)
+const showConfirmModal = ref(false)
+const confirmAction = ref<'finalize' | 'cancel' | null>(null)
 
 const statusColor = computed(() => {
   const s = pi.value?.status
@@ -228,31 +246,34 @@ async function handleVerify() {
   }
 }
 
-async function handleFinalize() {
-  if (!confirm('This will update stock quantities. Are you sure?')) return
-  actionLoading.value = true
-  try {
-    await api.post(`/purchase-invoices/${pi.value.id}/finalize`)
-    await fetchPI()
-    toast.success('Invoice finalized — stock updated')
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Failed')
-  } finally {
-    actionLoading.value = false
-  }
+function promptFinalize() {
+  confirmAction.value = 'finalize'
+  showConfirmModal.value = true
 }
 
-async function handleCancel() {
-  if (!confirm('Cancel this purchase invoice?')) return
+function promptCancel() {
+  confirmAction.value = 'cancel'
+  showConfirmModal.value = true
+}
+
+async function executeConfirm() {
+  showConfirmModal.value = false
   actionLoading.value = true
   try {
-    await api.post(`/purchase-invoices/${pi.value.id}/cancel`)
-    await fetchPI()
-    toast.success('Invoice cancelled')
+    if (confirmAction.value === 'finalize') {
+      await api.post(`/purchase-invoices/${pi.value.id}/finalize`)
+      await fetchPI()
+      toast.success('Invoice finalized — stock updated')
+    } else if (confirmAction.value === 'cancel') {
+      await api.post(`/purchase-invoices/${pi.value.id}/cancel`)
+      await fetchPI()
+      toast.success('Invoice cancelled')
+    }
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed')
   } finally {
     actionLoading.value = false
+    confirmAction.value = null
   }
 }
 
