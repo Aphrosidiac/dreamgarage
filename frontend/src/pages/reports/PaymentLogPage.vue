@@ -1,17 +1,26 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-dark-100">Payments</h2>
-      <div class="flex gap-2">
+    <!-- Main Tabs + Actions -->
+    <div class="flex items-center mb-4 border-b border-dark-800">
+      <div class="flex items-center gap-1">
+        <button
+          @click="activeTab = 'received'"
+          :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'received' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
+        >Received</button>
+        <button
+          @click="activeTab = 'payable'; if (!apLoaded) fetchAP()"
+          :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'payable' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
+        >Payable</button>
+      </div>
+      <div class="ml-auto flex gap-2 -mb-px pb-1.5">
         <template v-if="activeTab === 'received'">
-          <BaseButton variant="secondary" size="md" @click="exportExcel">
+          <BaseButton variant="secondary" size="sm" @click="exportExcel">
             <FileSpreadsheet class="w-4 h-4 mr-1.5" /> Excel
           </BaseButton>
-          <BaseButton variant="secondary" size="md" @click="exportPdf">
+          <BaseButton variant="secondary" size="sm" @click="exportPdf">
             <FileText class="w-4 h-4 mr-1.5" /> PDF
           </BaseButton>
-          <BaseButton variant="secondary" size="md" @click="printLog">
+          <BaseButton variant="secondary" size="sm" @click="printLog">
             <Printer class="w-4 h-4 mr-1.5" /> Print
           </BaseButton>
         </template>
@@ -21,18 +30,6 @@
           </BaseButton>
         </template>
       </div>
-    </div>
-
-    <!-- Main Tabs -->
-    <div class="flex items-center gap-1 mb-4 border-b border-dark-800">
-      <button
-        @click="activeTab = 'received'"
-        :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'received' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
-      >Received</button>
-      <button
-        @click="activeTab = 'payable'; if (!apLoaded) fetchAP()"
-        :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'payable' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
-      >Payable</button>
     </div>
 
     <!-- ═══ Received Tab (Payment Log) ═══ -->
