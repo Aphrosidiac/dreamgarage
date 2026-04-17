@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-dark-100">Staff Management</h2>
-      <div class="flex items-center gap-2">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-dark-100">Staff</h2>
+      <div v-if="activeTab === 'staff' && isAdmin" class="flex items-center gap-2">
         <BaseButton variant="secondary" size="sm" @click="showRoles = true">
           <ShieldCheck class="w-4 h-4 mr-1" /> Roles
         </BaseButton>
@@ -12,149 +12,216 @@
       </div>
     </div>
 
-    <!-- Roles Access Modal -->
-    <BaseModal v-model="showRoles" title="Role Access Matrix" size="lg">
-      <div class="space-y-4">
-        <p class="text-xs text-dark-400">
-          Pages each role can access. This reflects the current app configuration; to change it, edit <code class="text-dark-200">router/index.ts</code> and <code class="text-dark-200">DashboardLayout.vue</code>.
-        </p>
-        <div class="overflow-auto border border-dark-800 rounded-lg max-h-[60vh]">
-          <table class="w-full text-sm">
-            <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800">
-              <tr>
-                <th class="px-4 py-2.5 text-left">Page</th>
-                <th class="px-4 py-2.5 text-center w-20">Admin</th>
-                <th class="px-4 py-2.5 text-center w-20">Manager</th>
-                <th class="px-4 py-2.5 text-center w-20">Worker</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-dark-800">
-              <tr v-for="p in accessMatrix" :key="p.path">
-                <td class="px-4 py-2">
-                  <div class="text-dark-100 text-sm">{{ p.label }}</div>
-                  <div class="text-[10px] text-dark-500 font-mono">{{ p.path }}</div>
-                </td>
-                <td class="px-4 py-2 text-center">
-                  <Check v-if="p.roles.includes('ADMIN')" class="w-4 h-4 text-emerald-500 mx-auto" />
-                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
-                </td>
-                <td class="px-4 py-2 text-center">
-                  <Check v-if="p.roles.includes('MANAGER')" class="w-4 h-4 text-emerald-500 mx-auto" />
-                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
-                </td>
-                <td class="px-4 py-2 text-center">
-                  <Check v-if="p.roles.includes('WORKER')" class="w-4 h-4 text-emerald-500 mx-auto" />
-                  <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="showRoles = false">Close</BaseButton>
-      </template>
-    </BaseModal>
-
-    <!-- Filters -->
-    <div class="flex items-end gap-4 mb-6">
-      <div class="flex-1 max-w-xs">
-        <label class="block text-xs text-dark-400 mb-1">Search</label>
-        <input v-model="search" type="search" placeholder="Name, email, phone..." autocomplete="off" name="staff-filter" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
-      </div>
-      <div>
-        <label class="block text-xs text-dark-400 mb-1">Role</label>
-        <select v-model="filterRole" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50">
-          <option value="">All Roles</option>
-          <option value="ADMIN">Admin</option>
-          <option value="MANAGER">Manager</option>
-          <option value="WORKER">Worker</option>
-        </select>
-      </div>
+    <!-- Tabs -->
+    <div class="flex items-center gap-1 mb-4 border-b border-dark-800">
+      <button
+        v-if="isAdmin"
+        @click="activeTab = 'staff'"
+        :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'staff' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
+      >Staff Management</button>
+      <button
+        @click="activeTab = 'performance'; if (!statsLoaded) fetchStats()"
+        :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors', activeTab === 'performance' ? 'text-gold-500 border-gold-500' : 'text-dark-400 border-transparent hover:text-dark-200']"
+      >Performance</button>
     </div>
 
-    <!-- Table -->
-    <BaseTable :columns="columns" :data="staff" :loading="loading" empty-text="No staff found.">
-      <template #cell-name="{ row }">
-        <div>
-          <span class="text-dark-100 font-medium">{{ row.name }}</span>
-          <span v-if="!row.isActive" class="ml-2 text-xs text-red-400">(Inactive)</span>
+    <!-- ═══ Staff Management Tab ═══ -->
+    <template v-if="activeTab === 'staff' && isAdmin">
+      <!-- Roles Access Modal -->
+      <BaseModal v-model="showRoles" title="Role Access Matrix" size="lg">
+        <div class="space-y-4">
+          <p class="text-xs text-dark-400">
+            Pages each role can access. This reflects the current app configuration.
+          </p>
+          <div class="overflow-auto border border-dark-800 rounded-lg max-h-[60vh]">
+            <table class="w-full text-sm">
+              <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800">
+                <tr>
+                  <th class="px-4 py-2.5 text-left">Page</th>
+                  <th class="px-4 py-2.5 text-center w-20">Admin</th>
+                  <th class="px-4 py-2.5 text-center w-20">Manager</th>
+                  <th class="px-4 py-2.5 text-center w-20">Worker</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-dark-800">
+                <tr v-for="p in accessMatrix" :key="p.path">
+                  <td class="px-4 py-2">
+                    <div class="text-dark-100 text-sm">{{ p.label }}</div>
+                    <div class="text-[10px] text-dark-500 font-mono">{{ p.path }}</div>
+                  </td>
+                  <td class="px-4 py-2 text-center">
+                    <Check v-if="p.roles.includes('ADMIN')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                    <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                  </td>
+                  <td class="px-4 py-2 text-center">
+                    <Check v-if="p.roles.includes('MANAGER')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                    <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                  </td>
+                  <td class="px-4 py-2 text-center">
+                    <Check v-if="p.roles.includes('WORKER')" class="w-4 h-4 text-emerald-500 mx-auto" />
+                    <X v-else class="w-4 h-4 text-dark-600 mx-auto" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </template>
-      <template #cell-email="{ value }">
-        <span class="text-dark-300 text-sm">{{ value }}</span>
-      </template>
-      <template #cell-phone="{ value }">
-        <span class="text-dark-400 text-sm">{{ value || '-' }}</span>
-      </template>
-      <template #cell-jobTitle="{ value }">
-        <span v-if="value" class="text-dark-300 text-sm">{{ value }}</span>
-        <span v-else class="text-dark-500 text-sm">-</span>
-      </template>
-      <template #cell-role="{ value }">
-        <BaseBadge :color="value === 'ADMIN' ? 'red' : value === 'MANAGER' ? 'blue' : 'gold'">
-          {{ value }}
-        </BaseBadge>
-      </template>
-      <template #cell-orders="{ row }">
-        <span class="text-dark-400 text-sm">{{ row._count?.foremanDocuments || 0 }}</span>
-      </template>
-      <template #actions="{ row }">
-        <div class="flex items-center gap-1">
-          <button @click="openEditModal(row as User)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors">
-            <Pencil class="w-4 h-4" />
-          </button>
-          <button @click="openResetModal(row as User)" class="p-1.5 text-dark-400 hover:text-yellow-400 transition-colors" title="Reset Password">
-            <KeyRound class="w-4 h-4" />
-          </button>
-        </div>
-      </template>
-    </BaseTable>
+        <template #footer>
+          <BaseButton variant="secondary" @click="showRoles = false">Close</BaseButton>
+        </template>
+      </BaseModal>
 
-    <!-- Create/Edit Modal -->
-    <BaseModal v-model="showModal" :title="editing ? 'Edit Staff' : 'Add Staff'" size="md">
-      <div class="space-y-4">
-        <BaseInput v-model="form.name" label="Name" placeholder="Full name" autocomplete="off" required />
-        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" autocomplete="off" required />
-        <BaseInput v-if="!editing" v-model="form.password" label="Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
-        <div class="grid grid-cols-2 gap-4">
-          <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" />
-          <BaseInput v-model="form.jobTitle" label="Job Title" placeholder="e.g. Foreman, Mechanic" />
+      <!-- Filters -->
+      <div class="flex items-end gap-4 mb-6">
+        <div class="flex-1 max-w-xs">
+          <label class="block text-xs text-dark-400 mb-1">Search</label>
+          <input v-model="search" type="search" placeholder="Name, email, phone..." autocomplete="off" name="staff-filter" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
         </div>
-        <BaseSelect v-model="form.role" label="System Role" required>
-          <option value="WORKER">Worker</option>
-          <option value="MANAGER">Manager</option>
-          <option value="ADMIN">Admin</option>
-        </BaseSelect>
-        <div v-if="editing" class="flex items-center gap-2">
-          <input type="checkbox" v-model="form.isActive" id="active-toggle" class="accent-gold-500" />
-          <label for="active-toggle" class="text-dark-300 text-sm">Active (can login)</label>
+        <div>
+          <label class="block text-xs text-dark-400 mb-1">Role</label>
+          <select v-model="filterRole" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50">
+            <option value="">All Roles</option>
+            <option value="ADMIN">Admin</option>
+            <option value="MANAGER">Manager</option>
+            <option value="WORKER">Worker</option>
+          </select>
         </div>
       </div>
-      <template #footer>
-        <BaseButton variant="secondary" @click="showModal = false">Cancel</BaseButton>
-        <BaseButton variant="primary" :loading="saving" @click="handleSave">
-          {{ editing ? 'Update' : 'Create' }}
-        </BaseButton>
-      </template>
-    </BaseModal>
 
-    <!-- Reset Password Modal -->
-    <BaseModal v-model="showResetModal" title="Reset Password" size="sm">
-      <p class="text-dark-300 text-sm mb-4">Set a new password for <strong class="text-dark-100">{{ resetTarget?.name }}</strong></p>
-      <BaseInput v-model="newPassword" label="New Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
-      <template #footer>
-        <BaseButton variant="secondary" @click="showResetModal = false">Cancel</BaseButton>
-        <BaseButton variant="primary" :loading="resetting" @click="handleResetPassword">Reset Password</BaseButton>
-      </template>
-    </BaseModal>
+      <!-- Table -->
+      <BaseTable :columns="columns" :data="staff" :loading="loading" empty-text="No staff found.">
+        <template #cell-name="{ row }">
+          <div>
+            <span class="text-dark-100 font-medium">{{ row.name }}</span>
+            <span v-if="!row.isActive" class="ml-2 text-xs text-red-400">(Inactive)</span>
+          </div>
+        </template>
+        <template #cell-email="{ value }">
+          <span class="text-dark-300 text-sm">{{ value }}</span>
+        </template>
+        <template #cell-phone="{ value }">
+          <span class="text-dark-400 text-sm">{{ value || '-' }}</span>
+        </template>
+        <template #cell-jobTitle="{ value }">
+          <span v-if="value" class="text-dark-300 text-sm">{{ value }}</span>
+          <span v-else class="text-dark-500 text-sm">-</span>
+        </template>
+        <template #cell-role="{ value }">
+          <BaseBadge :color="value === 'ADMIN' ? 'red' : value === 'MANAGER' ? 'blue' : 'gold'">
+            {{ value }}
+          </BaseBadge>
+        </template>
+        <template #cell-orders="{ row }">
+          <span class="text-dark-400 text-sm">{{ row._count?.foremanDocuments || 0 }}</span>
+        </template>
+        <template #actions="{ row }">
+          <div class="flex items-center gap-1">
+            <button @click="openEditModal(row as User)" class="p-1.5 text-dark-400 hover:text-blue-400 transition-colors">
+              <Pencil class="w-4 h-4" />
+            </button>
+            <button @click="openResetModal(row as User)" class="p-1.5 text-dark-400 hover:text-yellow-400 transition-colors" title="Reset Password">
+              <KeyRound class="w-4 h-4" />
+            </button>
+          </div>
+        </template>
+      </BaseTable>
+
+      <!-- Create/Edit Modal -->
+      <BaseModal v-model="showModal" :title="editing ? 'Edit Staff' : 'Add Staff'" size="md">
+        <div class="space-y-4">
+          <BaseInput v-model="form.name" label="Name" placeholder="Full name" autocomplete="off" required />
+          <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" autocomplete="off" required />
+          <BaseInput v-if="!editing" v-model="form.password" label="Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
+          <div class="grid grid-cols-2 gap-4">
+            <BaseInput v-model="form.phone" label="Phone" placeholder="+60 12-345 6789" />
+            <BaseInput v-model="form.jobTitle" label="Job Title" placeholder="e.g. Foreman, Mechanic" />
+          </div>
+          <BaseSelect v-model="form.role" label="System Role" required>
+            <option value="WORKER">Worker</option>
+            <option value="MANAGER">Manager</option>
+            <option value="ADMIN">Admin</option>
+          </BaseSelect>
+          <div v-if="editing" class="flex items-center gap-2">
+            <input type="checkbox" v-model="form.isActive" id="active-toggle" class="accent-gold-500" />
+            <label for="active-toggle" class="text-dark-300 text-sm">Active (can login)</label>
+          </div>
+        </div>
+        <template #footer>
+          <BaseButton variant="secondary" @click="showModal = false">Cancel</BaseButton>
+          <BaseButton variant="primary" :loading="saving" @click="handleSave">
+            {{ editing ? 'Update' : 'Create' }}
+          </BaseButton>
+        </template>
+      </BaseModal>
+
+      <!-- Reset Password Modal -->
+      <BaseModal v-model="showResetModal" title="Reset Password" size="sm">
+        <p class="text-dark-300 text-sm mb-4">Set a new password for <strong class="text-dark-100">{{ resetTarget?.name }}</strong></p>
+        <BaseInput v-model="newPassword" label="New Password" type="password" placeholder="Min 6 characters" autocomplete="new-password" required />
+        <template #footer>
+          <BaseButton variant="secondary" @click="showResetModal = false">Cancel</BaseButton>
+          <BaseButton variant="primary" :loading="resetting" @click="handleResetPassword">Reset Password</BaseButton>
+        </template>
+      </BaseModal>
+    </template>
+
+    <!-- ═══ Performance Tab ═══ -->
+    <template v-if="activeTab === 'performance'">
+      <div class="flex items-center gap-2 mb-6">
+        <BaseInput v-model="statsFrom" type="date" />
+        <span class="text-dark-500 text-sm">to</span>
+        <BaseInput v-model="statsTo" type="date" />
+        <BaseButton variant="secondary" size="sm" @click="fetchStats" :loading="statsLoading">Apply</BaseButton>
+      </div>
+
+      <div v-if="statsLoading" class="text-dark-400 text-sm">Loading...</div>
+      <div v-else-if="!statsRows.length" class="bg-dark-900 border border-dark-800 rounded-xl p-8 text-center text-dark-400">
+        No activity in this range.
+      </div>
+
+      <div v-else class="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800">
+            <tr>
+              <th class="px-4 py-3 text-left">Staff</th>
+              <th class="px-4 py-3 text-right">Invoices</th>
+              <th class="px-4 py-3 text-right">Quotations</th>
+              <th class="px-4 py-3 text-right">Delivery Orders</th>
+              <th class="px-4 py-3 text-right">Jobs Completed</th>
+              <th class="px-4 py-3 text-right">Revenue Handled</th>
+              <th class="px-4 py-3 text-right">Avg Turnaround</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-dark-800">
+            <tr v-for="(r, idx) in statsRows" :key="r.userId" :class="idx === 0 ? 'bg-gold-500/5' : ''">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <span v-if="idx === 0" class="text-gold-500 text-xs">★</span>
+                  <div>
+                    <div class="text-white font-medium">{{ r.name }}</div>
+                    <div class="text-xs text-dark-500">{{ r.jobTitle || r.role }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-right font-mono text-dark-200">{{ r.invoicesCreated }}</td>
+              <td class="px-4 py-3 text-right font-mono text-dark-200">{{ r.quotationsCreated }}</td>
+              <td class="px-4 py-3 text-right font-mono text-dark-200">{{ r.deliveryOrders }}</td>
+              <td class="px-4 py-3 text-right font-mono text-emerald-400">{{ r.jobsCompleted }}</td>
+              <td class="px-4 py-3 text-right font-mono text-gold-500">RM {{ fmtMoney(r.revenueHandled) }}</td>
+              <td class="px-4 py-3 text-right font-mono text-dark-300">{{ r.avgTurnaroundMinutes ? fmtMins(r.avgTurnaroundMinutes) : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import api from '../../lib/api'
 import { useToast } from '../../composables/useToast'
+import { useAuthStore } from '../../stores/auth'
 import BaseTable from '../../components/base/BaseTable.vue'
 import BaseButton from '../../components/base/BaseButton.vue'
 import BaseBadge from '../../components/base/BaseBadge.vue'
@@ -165,26 +232,30 @@ import { Plus, Pencil, KeyRound, ShieldCheck, Check, X } from 'lucide-vue-next'
 import type { User } from '../../types'
 
 const toast = useToast()
+const auth = useAuthStore()
+const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 
+const activeTab = ref<'staff' | 'performance'>(isAdmin.value ? 'staff' : 'performance')
+
+// ─── Staff Management ────────────────────────────
 const staff = ref<User[]>([])
 const showRoles = ref(false)
 
 const accessMatrix = [
   { path: '/app/dashboard', label: 'Dashboard', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/take-order', label: 'Take Order', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/take-order', label: 'Take Order', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/display-controller', label: 'Display Controller', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/customers', label: 'Customers', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/documents', label: 'Documents (QT/INV/RCP/DO)', roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/documents', label: 'Documents', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/documents/settings', label: 'Document Settings', roles: ['ADMIN'] },
   { path: '/app/debtors', label: 'Debtors', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/suppliers', label: 'Suppliers', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/purchase-orders', label: 'Purchase Orders', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/supplier-payments', label: 'A/P Payments', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/reports/payment-log', label: 'Payment Log', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/held-stock', label: 'Held Stock', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/worker-stats', label: 'Worker Stats', roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/staff', label: 'Staff Management', roles: ['ADMIN'] },
+  { path: '/app/held-stock', label: 'Held Stock', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/staff', label: 'Staff & Performance', roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/audit', label: 'Audit Logs', roles: ['ADMIN'] },
   { path: '/app/shop-display', label: 'Shop Display (TV)', roles: ['ADMIN', 'MANAGER', 'WORKER'] },
 ]
@@ -317,5 +388,39 @@ async function handleResetPassword() {
 }
 
 watch([debouncedSearch, filterRole], () => fetchStaff())
-onMounted(() => fetchStaff())
+
+// ─── Performance (Worker Stats) ──────────────────
+type StatsRow = {
+  userId: string; name: string; jobTitle: string | null; role: string
+  invoicesCreated: number; quotationsCreated: number; deliveryOrders: number
+  jobsCompleted: number; revenueHandled: number; avgTurnaroundMinutes: number | null
+}
+
+const now = new Date()
+const statsFrom = ref(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10))
+const statsTo = ref(now.toISOString().slice(0, 10))
+const statsRows = ref<StatsRow[]>([])
+const statsLoading = ref(false)
+const statsLoaded = ref(false)
+
+function fmtMoney(n: number) { return n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+function fmtMins(m: number) {
+  const h = Math.floor(m / 60); const mm = m % 60
+  return h > 0 ? `${h}h ${mm}m` : `${mm}m`
+}
+
+async function fetchStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await api.get('/reports/worker-stats', { params: { from: statsFrom.value, to: statsTo.value } })
+    statsRows.value = data.data
+    statsLoaded.value = true
+  } finally { statsLoading.value = false }
+}
+
+// ─── Init ────────────────────────────────────────
+onMounted(() => {
+  if (isAdmin.value) fetchStaff()
+  else fetchStats()
+})
 </script>
