@@ -97,7 +97,7 @@ const allNavItems = [
   { path: '/app/suppliers', label: 'Suppliers', icon: Truck, roles: ['ADMIN', 'MANAGER'], section: 'Purchasing' },
   { path: '/app/supplier-payments', label: 'A/P Payments', icon: CreditCard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/reports/payment-log', label: 'Payment Log', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/worker-stats', label: 'Worker Stats', icon: TrendingUp, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/staff', label: 'Staff', icon: UserCog, roles: ['ADMIN'] },
   { path: '/app/audit', label: 'Audit Logs', icon: ShieldCheck, roles: ['ADMIN'] },
