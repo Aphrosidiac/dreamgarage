@@ -278,6 +278,15 @@
         <BaseButton variant="primary" :loading="paymentLoading" @click="handlePayment">Record Payment</BaseButton>
       </template>
     </BaseModal>
+
+    <!-- Confirm Action Modal -->
+    <BaseModal v-model="showConfirmModal" :title="confirmTitle" size="sm">
+      <p class="text-dark-300 text-sm" v-html="confirmMessage"></p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showConfirmModal = false">Cancel</BaseButton>
+        <BaseButton :variant="confirmVariant" :loading="statusLoading" @click="executeConfirm">{{ confirmLabel }}</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -310,6 +319,28 @@ const doc = ref<Document | null>(null)
 const branch = ref<any>(null)
 const loadingDoc = ref(true)
 const statusLoading = ref(false)
+const showConfirmModal = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmVariant = ref<'primary' | 'danger'>('danger')
+const confirmLabel = ref('')
+const pendingAction = ref<(() => Promise<void>) | null>(null)
+
+function promptConfirm(title: string, message: string, label: string, variant: 'primary' | 'danger', action: () => Promise<void>) {
+  confirmTitle.value = title
+  confirmMessage.value = message
+  confirmLabel.value = label
+  confirmVariant.value = variant
+  pendingAction.value = action
+  showConfirmModal.value = true
+}
+
+async function executeConfirm() {
+  showConfirmModal.value = false
+  if (pendingAction.value) await pendingAction.value()
+  pendingAction.value = null
+}
+
 const converting = ref(false)
 const exporting = ref(false)
 const showPaymentModal = ref(false)
@@ -408,7 +439,15 @@ async function loadDocument() {
 
 async function handleStatus(status: DocumentStatus) {
   if (!doc.value) return
-  if (status === 'VOID' && !confirm('Are you sure you want to void this document? Stock will be restored.')) return
+  if (status === 'VOID') {
+    promptConfirm('Void Invoice', `Are you sure you want to void <strong>${doc.value.documentNumber}</strong>? Stock will be restored.`, 'Void Invoice', 'danger', () => doStatusChange(status))
+    return
+  }
+  await doStatusChange(status)
+}
+
+async function doStatusChange(status: DocumentStatus) {
+  if (!doc.value) return
   statusLoading.value = true
   try {
     doc.value = await store.updateStatus(doc.value.id, status)
@@ -422,16 +461,14 @@ async function handleStatus(status: DocumentStatus) {
   }
 }
 
-async function handleRevertDraft() {
+function handleRevertDraft() {
   if (!doc.value) return
-  if (!confirm('Are you sure you want to revert this document to DRAFT? Stock changes will be reversed.')) return
-  await handleStatus('DRAFT')
+  promptConfirm('Revert to Draft', 'This will revert the document to <strong>DRAFT</strong>. Stock changes will be reversed.', 'Revert to Draft', 'danger', () => doStatusChange('DRAFT'))
 }
 
-async function handleRevertPaidDraft() {
+function handleRevertPaidDraft() {
   if (!doc.value) return
-  if (!confirm('WARNING: This will DELETE all payment records and revert the invoice to DRAFT. Stock will be restored. Are you sure?')) return
-  await handleStatus('DRAFT')
+  promptConfirm('Revert to Draft', 'This will <strong>delete all payment records</strong> and revert the invoice to DRAFT. Stock will be restored.', 'Revert & Delete Payments', 'danger', () => doStatusChange('DRAFT'))
 }
 
 async function handleConvert(targetType: DocumentType) {
