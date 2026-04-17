@@ -159,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { useDocumentStore } from '../../stores/documents'
 import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
@@ -173,7 +173,6 @@ import type { DocumentType } from '../../types'
 const store = useDocumentStore()
 const toast = useToast()
 const route = useRoute()
-const router = useRouter()
 
 type TabType = DocumentType | 'PURCHASE_ORDER'
 const activeType = ref<TabType>((route.query.type as TabType) || 'INVOICE')
