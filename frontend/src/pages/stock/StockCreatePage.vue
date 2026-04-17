@@ -34,10 +34,9 @@
         <BaseInput v-model="form.sellPrice" label="Sell Price (RM)" type="number" step="0.01" min="0" required />
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
-        <BaseInput v-model="form.quantity" label="Initial Quantity" type="number" min="0" />
+      <div class="grid grid-cols-2 gap-4">
+        <BaseInput v-model="form.quantity" label="Initial Quantity" type="number" min="0" :disabled="form.isTyre && dotBatches.length > 0" />
         <BaseInput v-model="form.minStock" label="Min Stock Alert" type="number" min="0" placeholder="Default: 5" />
-        <BaseInput v-model="form.dotCode" label="DOT Code" placeholder="e.g. 12/06" />
       </div>
 
       <!-- Tyre options -->
@@ -47,6 +46,35 @@
           <span class="text-dark-300 text-sm">This is a tyre item</span>
         </label>
         <BaseInput v-if="form.isTyre" v-model="form.tyreSize" label="Tyre Size" placeholder="e.g. 185/65R15" class="flex-1 max-w-xs" />
+      </div>
+
+      <!-- DOT Batches (tyre items) -->
+      <div v-if="form.isTyre" class="border border-dark-700 rounded-lg p-4 mt-2">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">DOT Batches</h4>
+          <span class="text-dark-500 text-xs">Total: {{ dotBatchTotal }} pcs</span>
+        </div>
+
+        <div v-if="dotBatches.length" class="space-y-2 mb-3">
+          <div v-for="(dot, idx) in dotBatches" :key="idx" class="flex items-center gap-3 bg-dark-800/50 rounded-lg px-3 py-2">
+            <span class="text-dark-400 text-xs">DOT</span>
+            <span class="text-dark-100 font-mono text-sm font-medium">{{ dot.code }}</span>
+            <span class="text-gold-500 text-sm">{{ dot.quantity }} pcs</span>
+            <button type="button" @click="dotBatches.splice(idx, 1)" class="ml-auto p-1 text-dark-400 hover:text-red-400 transition-colors">
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="text-dark-500 text-sm mb-3">No DOT batches yet.</div>
+
+        <div class="flex items-end gap-3">
+          <BaseInput v-model="newDot.code" label="DOT Code" placeholder="e.g. 1206" class="flex-1" />
+          <BaseInput v-model="newDot.quantity" label="Qty" type="number" min="1" class="w-24" />
+          <BaseButton variant="secondary" size="sm" type="button" @click="addDotBatch" class="mb-0.5">
+            <Plus class="w-4 h-4 mr-1" /> Add
+          </BaseButton>
+        </div>
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
@@ -62,10 +90,11 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStockStore } from '../../stores/stock'
 import { useToast } from '../../composables/useToast'
+import api from '../../lib/api'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 import BaseButton from '../../components/base/BaseButton.vue'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const stock = useStockStore()
@@ -103,29 +132,58 @@ const form = reactive({
   categoryId: '',
   brandId: '',
   countryOfOrigin: '',
-  dotCode: '',
   isTyre: false,
   tyreSize: '',
 })
 
+// DOT batch collection for tyre items
+const dotBatches = ref<{ code: string; quantity: number }[]>([])
+const dotBatchTotal = computed(() => dotBatches.value.reduce((s, d) => s + d.quantity, 0))
+const newDot = reactive({ code: '', quantity: '1' })
+
+function addDotBatch() {
+  const code = newDot.code.replace(/\//g, '').trim()
+  if (!code || !newDot.quantity) return
+  if (!/^\d{4}$/.test(code)) {
+    toast.error('DOT code must be 4 digits (WWYY)')
+    return
+  }
+  const existing = dotBatches.value.find((d) => d.code === code)
+  if (existing) {
+    existing.quantity += parseInt(newDot.quantity)
+  } else {
+    dotBatches.value.push({ code, quantity: parseInt(newDot.quantity) })
+  }
+  newDot.code = ''
+  newDot.quantity = '1'
+}
+
 async function handleSubmit() {
   saving.value = true
   try {
-    await stock.createItem({
+    const qty = form.isTyre && dotBatches.value.length > 0 ? dotBatchTotal.value : parseInt(form.quantity)
+    const item = await stock.createItem({
       itemCode: form.itemCode,
       description: form.description,
       uom: form.uom,
       costPrice: parseFloat(form.costPrice),
       sellPrice: parseFloat(form.sellPrice),
-      quantity: parseInt(form.quantity),
+      quantity: qty,
       minStock: parseInt(form.minStock) || 5,
       categoryId: form.categoryId || undefined,
       brandId: form.brandId || undefined,
       countryOfOrigin: form.countryOfOrigin || undefined,
-      dotCode: form.dotCode || undefined,
       isTyre: form.isTyre,
       tyreSize: form.isTyre ? form.tyreSize || undefined : undefined,
     } as any)
+
+    // Add DOT batches after item creation
+    if (form.isTyre && dotBatches.value.length > 0 && item?.id) {
+      for (const dot of dotBatches.value) {
+        await api.post(`/stock/${item.id}/dots`, { dotCode: dot.code, quantity: dot.quantity })
+      }
+    }
+
     toast.success('Item created successfully')
     router.push('/app/stock')
   } catch (e: any) {

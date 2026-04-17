@@ -34,26 +34,53 @@
         </div>
 
         <div class="space-y-3">
-          <div v-for="(item, idx) in form.items" :key="idx" class="grid grid-cols-12 gap-2 items-end bg-dark-800/30 rounded-lg p-3">
-            <div class="col-span-4">
-              <BaseInput v-model="item.description" label="Description" placeholder="Item description" required />
+          <div v-for="(item, idx) in form.items" :key="idx" class="bg-dark-800/30 rounded-lg p-3 space-y-2">
+            <div class="grid grid-cols-12 gap-2 items-end">
+              <!-- Stock search -->
+              <div class="col-span-4 relative">
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Stock Item</label>
+                <input
+                  v-model="item.searchTerm"
+                  @input="searchStock(idx, item.searchTerm)"
+                  @focus="item.showDropdown = true"
+                  type="text"
+                  placeholder="Search stock or type description..."
+                  class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-dark-100 text-sm placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50"
+                />
+                <div v-if="item.showDropdown && item.stockResults?.length" class="absolute z-10 w-full mt-1 bg-dark-800 border border-dark-700 rounded shadow-lg max-h-40 overflow-y-auto">
+                  <button
+                    v-for="s in item.stockResults"
+                    :key="s.id"
+                    type="button"
+                    @click="selectStockItem(idx, s)"
+                    class="w-full px-3 py-2 text-left hover:bg-dark-700 text-sm transition-colors"
+                  >
+                    <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
+                    <span class="text-dark-200 ml-2">{{ s.description }}</span>
+                    <span v-if="s.isTyre" class="text-dark-500 ml-1 text-xs">(tyre)</span>
+                  </button>
+                </div>
+              </div>
+              <div class="col-span-2">
+                <BaseInput v-model="item.itemCode" label="Item Code" placeholder="Code" />
+              </div>
+              <div class="col-span-1">
+                <BaseInput v-model="item.quantity" label="Qty" type="number" min="1" />
+              </div>
+              <div class="col-span-2">
+                <BaseInput v-model="item.unitPrice" label="Unit Price" type="number" step="0.01" min="0" />
+              </div>
+              <div class="col-span-2">
+                <BaseInput v-model="item.dotCode" label="DOT" placeholder="e.g. 1224" />
+              </div>
+              <div class="col-span-1 flex justify-center">
+                <button type="button" @click="removeItem(idx)" class="p-2 text-dark-400 hover:text-red-400 transition-colors mt-5">
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div class="col-span-2">
-              <BaseInput v-model="item.itemCode" label="Item Code" placeholder="Code" />
-            </div>
-            <div class="col-span-1">
-              <BaseInput v-model="item.quantity" label="Qty" type="number" min="1" />
-            </div>
-            <div class="col-span-2">
-              <BaseInput v-model="item.unitPrice" label="Unit Price" type="number" step="0.01" min="0" />
-            </div>
-            <div class="col-span-2">
-              <BaseInput v-model="item.dotCode" label="DOT" placeholder="e.g. 1224" />
-            </div>
-            <div class="col-span-1 flex justify-center">
-              <button type="button" @click="removeItem(idx)" class="p-2 text-dark-400 hover:text-red-400 transition-colors mt-5">
-                <Trash2 class="w-4 h-4" />
-              </button>
+            <div v-if="item.isTyre" class="text-xs text-dark-500 pl-1">
+              Tyre item — DOT batch will be created in stock when finalized
             </div>
           </div>
         </div>
@@ -94,13 +121,17 @@ const isEdit = computed(() => !!route.params.id)
 const saving = ref(false)
 const suppliers = ref<any[]>([])
 
+function newItem() {
+  return { description: '', itemCode: '', quantity: 1, unitPrice: 0, dotCode: '', brandName: '', stockItemId: '', isTyre: false, searchTerm: '', showDropdown: false, stockResults: [] as any[] }
+}
+
 const form = reactive({
   supplierId: '',
   invoiceNumber: '',
   issueDate: new Date().toISOString().split('T')[0],
   receivedDate: '',
   notes: '',
-  items: [{ description: '', itemCode: '', quantity: 1, unitPrice: 0, dotCode: '', brandName: '' }] as any[],
+  items: [newItem()] as any[],
 })
 
 const calculatedTotal = computed(() =>
@@ -108,7 +139,32 @@ const calculatedTotal = computed(() =>
 )
 
 function addItem() {
-  form.items.push({ description: '', itemCode: '', quantity: 1, unitPrice: 0, dotCode: '', brandName: '' })
+  form.items.push(newItem())
+}
+
+// Stock search for linking PO items to inventory
+let stockTimers: Record<number, ReturnType<typeof setTimeout>> = {}
+function searchStock(idx: number, term: string) {
+  clearTimeout(stockTimers[idx])
+  if (!term || term.length < 1) { form.items[idx].stockResults = []; return }
+  stockTimers[idx] = setTimeout(async () => {
+    try {
+      const { data } = await api.get('/stock', { params: { search: term, limit: 8 } })
+      form.items[idx].stockResults = data.data
+      form.items[idx].showDropdown = true
+    } catch { /* ignore */ }
+  }, 200)
+}
+
+function selectStockItem(idx: number, s: any) {
+  form.items[idx].stockItemId = s.id
+  form.items[idx].itemCode = s.itemCode
+  form.items[idx].description = s.description
+  form.items[idx].unitPrice = Number(s.costPrice)
+  form.items[idx].isTyre = s.isTyre || false
+  form.items[idx].searchTerm = `${s.itemCode} - ${s.description}`
+  form.items[idx].showDropdown = false
+  form.items[idx].stockResults = []
 }
 
 function removeItem(idx: number) {
@@ -140,6 +196,10 @@ async function loadInvoice() {
       dotCode: i.dotCode || '',
       brandName: i.brandName || '',
       stockItemId: i.stockItemId || '',
+      isTyre: false,
+      searchTerm: i.stockItemId ? `${i.itemCode || ''} - ${i.description}` : '',
+      showDropdown: false,
+      stockResults: [],
     })) || []
   } catch {
     toast.error('Failed to load purchase invoice')
@@ -183,5 +243,8 @@ async function handleSave() {
 onMounted(() => {
   loadSuppliers()
   loadInvoice()
+  document.addEventListener('click', () => {
+    form.items.forEach((item: any) => { item.showDropdown = false })
+  })
 })
 </script>
