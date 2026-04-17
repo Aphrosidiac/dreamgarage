@@ -89,7 +89,7 @@ const allNavItems = [
   { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
-  { path: '/app/shop-display', label: 'Shop Display', icon: Monitor, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/shop-display', label: 'Shop Display', icon: Monitor, roles: ['WORKER'] },
   { path: '/app/customers', label: 'Customers', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/documents', label: 'Documents', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/debtors', label: 'Debtors', icon: AlertCircle, roles: ['ADMIN', 'MANAGER'] },
