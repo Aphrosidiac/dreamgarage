@@ -25,11 +25,16 @@ import debtorRoutes from './modules/debtors/debtors.routes.js'
 import reportRoutes from './modules/reports/reports.routes.js'
 import tyreDotRoutes from './modules/tyre-dots/tyre-dots.routes.js'
 import supplierRoutes from './modules/suppliers/suppliers.routes.js'
+import supplierCategoryRoutes from './modules/supplier-categories/supplier-categories.routes.js'
 import purchaseInvoiceRoutes from './modules/purchase-invoices/purchase-invoices.routes.js'
 import supplierPaymentRoutes from './modules/supplier-payments/supplier-payments.routes.js'
 import assistantRoutes from './modules/assistant/assistant.routes.js'
 import auditRoutes from './modules/audit/audit.routes.js'
 import shopDisplayRoutes from './modules/shop-display/shop-display.routes.js'
+import multipart from '@fastify/multipart'
+import fastifyStatic from '@fastify/static'
+import path from 'path'
+import uploadRoutes from './modules/uploads/uploads.routes.js'
 
 const isProd = env.NODE_ENV === 'production'
 
@@ -46,6 +51,7 @@ async function start() {
     credentials: true,
   })
   await app.register(formbody)
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } })
   await app.register(prismaPlugin)
   await app.register(redisPlugin)
 
@@ -78,11 +84,19 @@ async function start() {
   await app.register(reportRoutes, { prefix: '/api/v1/reports' })
   await app.register(tyreDotRoutes, { prefix: '/api/v1' })
   await app.register(supplierRoutes, { prefix: '/api/v1/suppliers' })
+  await app.register(supplierCategoryRoutes, { prefix: '/api/v1/supplier-categories' })
   await app.register(purchaseInvoiceRoutes, { prefix: '/api/v1/purchase-invoices' })
   await app.register(supplierPaymentRoutes, { prefix: '/api/v1/supplier-payments' })
   await app.register(assistantRoutes, { prefix: '/api/v1/assistant' })
   await app.register(auditRoutes, { prefix: '/api/v1/audit' })
   await app.register(shopDisplayRoutes, { prefix: '/api/v1/shop-display' })
+
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), 'uploads'),
+    prefix: '/uploads/',
+    decorateReply: false,
+  })
+  await app.register(uploadRoutes, { prefix: '/api/v1/uploads' })
 
   // Health check
   app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))

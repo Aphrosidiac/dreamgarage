@@ -24,6 +24,8 @@ interface DocumentItemInput {
   serviceDate?: string
   tyreDotId?: string | null
   tyreDotCode?: string | null
+  serialNumber?: string
+  photoUrl?: string
 }
 
 interface CreateDocumentBody {
@@ -178,6 +180,8 @@ export async function createDocument(
         serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
         tyreDotId: item.tyreDotId || null,
         tyreDotCode: item.tyreDotCode || null,
+        serialNumber: item.serialNumber || null,
+        photoUrl: item.photoUrl || null,
       }
     })
 
@@ -330,6 +334,8 @@ export async function updateDocument(
         serviceDate: item.serviceDate ? new Date(item.serviceDate) : null,
         tyreDotId: item.tyreDotId || null,
         tyreDotCode: item.tyreDotCode || null,
+        serialNumber: item.serialNumber || null,
+        photoUrl: item.photoUrl || null,
       }
     })
 

@@ -27,9 +27,10 @@ export async function listSuppliers(
     request.server.prisma.supplier.findMany({
       where,
       include: {
+        supplierCategory: { select: { id: true, name: true } },
         _count: { select: { purchaseInvoices: true } },
       },
-      orderBy: { companyName: 'asc' },
+      orderBy: [{ supplierCategory: { name: 'asc' } }, { companyName: 'asc' }],
       skip,
       take: limit,
     }),
@@ -69,12 +70,14 @@ export async function createSupplier(
       bankName?: string
       bankAccount?: string
       notes?: string
+      category?: string
+      categoryId?: string | null
     }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
-  const { companyName, contactName, phone, email, address, bankName, bankAccount, notes } = request.body
+  const { companyName, contactName, phone, email, address, bankName, bankAccount, notes, category, categoryId } = request.body
 
   if (!companyName?.trim()) {
     return reply.status(400).send({ success: false, message: 'Company name is required' })
@@ -91,6 +94,8 @@ export async function createSupplier(
       bankName: bankName?.trim() || null,
       bankAccount: bankAccount?.trim() || null,
       notes: notes?.trim() || null,
+      category: category?.trim() || null,
+      categoryId: categoryId || null,
     },
   })
 
@@ -109,13 +114,15 @@ export async function updateSupplier(
       bankName?: string
       bankAccount?: string
       notes?: string
+      category?: string
+      categoryId?: string | null
     }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { companyName, contactName, phone, email, address, bankName, bankAccount, notes } = request.body
+  const { companyName, contactName, phone, email, address, bankName, bankAccount, notes, category, categoryId } = request.body
 
   const existing = await request.server.prisma.supplier.findFirst({ where: { id, branchId } })
   if (!existing) {
@@ -133,6 +140,8 @@ export async function updateSupplier(
       ...(bankName !== undefined && { bankName: bankName?.trim() || null }),
       ...(bankAccount !== undefined && { bankAccount: bankAccount?.trim() || null }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),
+      ...(category !== undefined && { category: category?.trim() || null }),
+      ...(categoryId !== undefined && { categoryId: categoryId || null }),
     },
   })
 

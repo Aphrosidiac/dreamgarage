@@ -154,6 +154,7 @@
                 <span v-if="item.itemCode" class="font-mono text-gray-500 text-xs">{{ item.itemCode }} </span>
                 {{ item.description }}
                 <span v-if="(item as any).tyreDotCode" class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-gray-900 text-white rounded">DOT{{ (item as any).tyreDotCode }}</span>
+                <span v-if="(item as any).serialNumber" class="block text-gray-500 text-xs mt-0.5">S/N: {{ (item as any).serialNumber }}</span>
                 <span v-if="item.serviceDate" class="block text-gray-400 text-xs mt-0.5">Service: {{ fmtDate(item.serviceDate) }}</span>
               </td>
               <td class="py-2 text-center">{{ item.quantity }}</td>
@@ -230,6 +231,22 @@
       <!-- Terms (only if custom terms set) -->
       <div v-if="doc.terms" class="px-8 py-3 border-t border-gray-200">
         <p class="text-xs text-gray-500 whitespace-pre-line">{{ doc.terms }}</p>
+      </div>
+    </div>
+
+    <!-- Warranty Photos (below template, print-hidden) -->
+    <div v-if="doc?.items?.some((i: any) => i.photoUrl)" class="mt-6 max-w-3xl mx-auto print:hidden">
+      <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-3">Warranty Photos</h3>
+      <div class="bg-dark-900 border border-dark-800 rounded-xl p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <a v-for="item in doc.items.filter((i: any) => i.photoUrl)" :key="item.id" :href="(item as any).photoUrl" target="_blank" class="group block">
+            <div class="aspect-square rounded-lg overflow-hidden border border-dark-700 group-hover:border-gold-500/50 transition-colors">
+              <img :src="(item as any).photoUrl" class="w-full h-full object-cover" />
+            </div>
+            <p class="text-dark-400 text-xs mt-1 truncate">{{ item.description }}</p>
+            <p v-if="(item as any).serialNumber" class="text-dark-500 text-xs">S/N: {{ (item as any).serialNumber }}</p>
+          </a>
+        </div>
       </div>
     </div>
 

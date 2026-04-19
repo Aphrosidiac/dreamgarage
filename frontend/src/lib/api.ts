@@ -8,11 +8,14 @@ const api = axios.create({
   },
 })
 
-// Request interceptor — attach JWT token
+// Request interceptor — attach JWT token + fix multipart
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('dg_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
   }
   return config
 })

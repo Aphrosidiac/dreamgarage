@@ -30,9 +30,10 @@ model Branch {
   documentSettings DocumentSetting[]
   paymentTerms     PaymentTerm[]
   customers        Customer[]
-  suppliers        Supplier[]
-  purchaseInvoices PurchaseInvoice[]
-  supplierPayments SupplierPayment[]
+  suppliers           Supplier[]
+  supplierCategories  SupplierCategory[]
+  purchaseInvoices    PurchaseInvoice[]
+  supplierPayments    SupplierPayment[]
 
   @@map("branches")
 }
@@ -358,8 +359,11 @@ model DocumentItem {
   serviceDate    DateTime?
   serviceReminderSent Boolean @default(false)
   // Tyre DOT tracking
-  tyreDotId   String?
-  tyreDotCode String?
+  tyreDotId    String?
+  tyreDotCode  String?
+  // Serial number & warranty photo
+  serialNumber String?
+  photoUrl     String?
 
   document  Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   stockItem StockItem? @relation(fields: [stockItemId], references: [id])
@@ -442,12 +446,29 @@ model PaymentTerm {
   @@map("payment_terms")
 }
 
+// ─── SUPPLIER CATEGORY ────────────────────────────────────
+model SupplierCategory {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  createdAt DateTime @default(now())
+
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  suppliers Supplier[]
+
+  @@unique([branchId, name])
+  @@index([branchId])
+  @@map("supplier_categories")
+}
+
 // ─── SUPPLIER ─────────────────────────────────────────────
 model Supplier {
   id           String   @id @default(cuid())
   branchId     String
   companyName  String
   contactName  String?
+  category     String?
+  categoryId   String?
   phone        String?
   email        String?
   address      String?
@@ -459,10 +480,12 @@ model Supplier {
   updatedAt    DateTime @updatedAt
 
   branch           Branch             @relation(fields: [branchId], references: [id])
+  supplierCategory SupplierCategory?  @relation(fields: [categoryId], references: [id])
   purchaseInvoices PurchaseInvoice[]
   payments         SupplierPayment[]
 
   @@index([branchId])
+  @@index([categoryId])
   @@map("suppliers")
 }
 

@@ -212,6 +212,10 @@
                   class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50"
                 />
               </div>
+              <div class="w-32">
+                <label class="block text-xs text-dark-500 mb-1">Serial No.</label>
+                <input v-model="item.serialNumber" type="text" placeholder="S/N (optional)" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
+              </div>
             </div>
           </div>
         </div>
@@ -352,6 +356,7 @@ interface OrderItem {
   tyreDotId?: string
   tyreDotCode?: string
   dotBatches?: DotBatch[]
+  serialNumber?: string
 }
 
 const form = reactive({
@@ -656,6 +661,7 @@ async function proceedSubmit() {
         sortOrder: idx,
         tyreDotId: item.tyreDotId || undefined,
         tyreDotCode: item.tyreDotCode || undefined,
+        serialNumber: item.serialNumber || undefined,
       })),
     })
     toast.success(`Draft invoice ${doc.documentNumber} created`)

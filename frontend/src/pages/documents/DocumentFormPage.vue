@@ -188,6 +188,17 @@
                           <option v-for="d in item.dotOptions || []" :key="d.id" :value="d.id">DOT{{ d.dotCode }} ({{ d.quantity }} avail)</option>
                         </select>
                       </div>
+                      <div class="flex items-center gap-2 mt-1">
+                        <input v-model="item.serialNumber" type="text" placeholder="Serial No. (optional)" class="w-40 bg-dark-800 border border-dark-700 rounded px-2 py-0.5 text-dark-100 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50 placeholder:text-dark-600" />
+                        <label v-if="!item.photoUrl" class="cursor-pointer p-0.5 text-dark-500 hover:text-gold-500 transition-colors" title="Upload warranty photo">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+                          <input type="file" accept="image/*" class="hidden" @change="uploadItemPhoto(idx, $event)" />
+                        </label>
+                        <div v-if="item.photoUrl" class="relative group">
+                          <img :src="item.photoUrl" class="w-6 h-6 rounded object-cover border border-dark-700" />
+                          <button type="button" @click="removeItemPhoto(idx)" class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-600 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center">×</button>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td class="px-3 py-2"><input v-model.number="item.quantity" type="number" min="1" class="w-16 bg-dark-800 border border-dark-700 rounded px-2 py-1 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" /></td>
@@ -346,6 +357,8 @@ interface FormItem {
   tyreDotId?: string
   tyreDotCode?: string
   dotOptions?: DotOption[]
+  serialNumber?: string
+  photoUrl?: string
 }
 
 const form = reactive({
@@ -530,6 +543,8 @@ async function loadDocument() {
       isTyre: !!(i as any).tyreDotId || !!(i as any).stockItem?.isTyre,
       tyreDotId: (i as any).tyreDotId || undefined,
       tyreDotCode: (i as any).tyreDotCode || undefined,
+      serialNumber: (i as any).serialNumber || undefined,
+      photoUrl: (i as any).photoUrl || undefined,
     }))
     // Lazy-load DOTs for tyre lines so edit preserves choice
     for (const it of form.items) {
@@ -635,7 +650,7 @@ async function doSubmit() {
       ...form,
       customerId: selectedCustomer.value?.id || undefined,
       vehicleId: selectedVehicleId.value || undefined,
-      items: form.items.map((i, idx) => ({ ...i, sortOrder: idx })),
+      items: form.items.map((i, idx) => ({ ...i, sortOrder: idx, serialNumber: i.serialNumber || undefined, photoUrl: i.photoUrl || undefined })),
     }
     if (isEdit.value) {
       await store.updateDocument(route.params.id as string, payload)
@@ -651,6 +666,28 @@ async function doSubmit() {
     toast.error(e.response?.data?.message || 'Failed to save document')
   } finally {
     saving.value = false
+  }
+}
+
+async function uploadItemPhoto(idx: number, event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const { data } = await api.post('/uploads/upload', formData)
+    form.items[idx].photoUrl = data.data.url
+  } catch {
+    toast.error('Failed to upload photo')
+  }
+}
+
+function removeItemPhoto(idx: number) {
+  const item = form.items[idx]
+  if (item.photoUrl) {
+    const filename = item.photoUrl.split('/').pop()
+    if (filename) api.delete(`/uploads/${filename}`).catch(() => {})
+    item.photoUrl = undefined
   }
 }
 
