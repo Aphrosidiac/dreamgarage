@@ -227,6 +227,7 @@ model Vehicle {
   model      String?
   color      String?
   engineNo   String?
+  chassisNo  String?
   mileage    String?
   isDefault  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -258,7 +259,10 @@ model Document {
   vehicleModel   String?
   vehicleMileage String?
   vehicleColor   String?
-  vehicleEngineNo String?
+  vehicleEngineNo  String?
+  vehicleChassisNo String?
+  // Reference / PO number from customer
+  poNumber         String?
   // Dates
   issueDate      DateTime     @default(now())
   dueDate        DateTime?

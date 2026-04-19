@@ -83,9 +83,23 @@
             <BaseInput v-model="form.vehicleModel" label="Model" placeholder="e.g. Accord T2A, 320i" />
           </div>
           <div class="grid grid-cols-3 gap-4">
-            <BaseInput v-model="form.vehicleColor" label="Color" placeholder="e.g. White, Black" />
+            <div>
+              <label class="block text-sm font-medium text-dark-200 mb-1.5">Color</label>
+              <div class="flex items-center gap-2">
+                <input v-model="form.vehicleColor" type="text" placeholder="e.g. White" class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
+                <div v-if="form.vehicleColor" class="w-8 h-8 rounded-lg border border-dark-600" :style="{ backgroundColor: colorMap[form.vehicleColor.toLowerCase()] || form.vehicleColor }"></div>
+              </div>
+              <div class="flex gap-1.5 mt-2 flex-wrap">
+                <button v-for="c in carColors" :key="c.name" type="button" @click="form.vehicleColor = c.name"
+                  :class="['w-7 h-7 rounded-full border-2 transition-all', form.vehicleColor === c.name ? 'border-gold-500 scale-110' : 'border-dark-600 hover:border-dark-400']"
+                  :style="{ backgroundColor: c.hex }" :title="c.name" />
+              </div>
+            </div>
             <BaseInput v-model="form.vehicleMileage" label="Current Mileage (KM)" placeholder="e.g. 112692" />
             <BaseInput v-model="form.vehicleEngineNo" label="Engine No (optional)" placeholder="e.g. R20A3-123456" />
+          </div>
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            <BaseInput v-model="form.vehicleChassisNo" label="Chassis No (optional)" placeholder="e.g. WBAPH5C50BA123456" />
           </div>
         </div>
       </div>
@@ -349,10 +363,27 @@ const form = reactive({
   vehicleColor: '',
   vehicleMileage: '',
   vehicleEngineNo: '',
+  vehicleChassisNo: '',
   foremanId: '',
   notes: '',
   items: [] as OrderItem[],
 })
+
+const carColors = [
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Black', hex: '#1a1a1a' },
+  { name: 'Silver', hex: '#C0C0C0' },
+  { name: 'Grey', hex: '#808080' },
+  { name: 'Red', hex: '#DC2626' },
+  { name: 'Blue', hex: '#2563EB' },
+  { name: 'Dark Blue', hex: '#1E3A5F' },
+  { name: 'Brown', hex: '#8B4513' },
+  { name: 'Gold', hex: '#DAA520' },
+  { name: 'Green', hex: '#16A34A' },
+  { name: 'Orange', hex: '#EA580C' },
+  { name: 'Maroon', hex: '#800000' },
+]
+const colorMap: Record<string, string> = Object.fromEntries(carColors.map(c => [c.name.toLowerCase(), c.hex]))
 
 const orderTotal = computed(() =>
   form.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0), 0)
@@ -416,6 +447,7 @@ function selectVehicle(v: Vehicle) {
   form.vehicleColor = v.color || ''
   form.vehicleMileage = v.mileage || ''
   form.vehicleEngineNo = v.engineNo || ''
+  form.vehicleChassisNo = v.chassisNo || ''
 }
 
 function clearCustomer() {
@@ -429,6 +461,7 @@ function clearCustomer() {
   form.vehicleColor = ''
   form.vehicleMileage = ''
   form.vehicleEngineNo = ''
+  form.vehicleChassisNo = ''
 }
 
 // ─── Stock search ─────────────────────────────────
@@ -541,6 +574,7 @@ async function confirmSubmit() {
       model: form.vehicleModel || undefined,
       color: form.vehicleColor || undefined,
       engineNo: form.vehicleEngineNo || undefined,
+      chassisNo: form.vehicleChassisNo || undefined,
       mileage: form.vehicleMileage || undefined,
     }] : undefined
 
@@ -571,6 +605,7 @@ async function addNewVehicleAndSubmit() {
       model: form.vehicleModel || undefined,
       color: form.vehicleColor || undefined,
       engineNo: form.vehicleEngineNo || undefined,
+      chassisNo: form.vehicleChassisNo || undefined,
       mileage: form.vehicleMileage || undefined,
     })
     toast.success(`Vehicle ${form.vehiclePlate} added to ${selectedCustomer.value.name}`)
@@ -607,6 +642,7 @@ async function proceedSubmit() {
       vehicleMileage: form.vehicleMileage || undefined,
       vehicleColor: form.vehicleColor || undefined,
       vehicleEngineNo: form.vehicleEngineNo || undefined,
+      vehicleChassisNo: form.vehicleChassisNo || undefined,
       foremanId: form.foremanId || undefined,
       notes: form.notes || undefined,
       items: form.items.map((item, idx) => ({

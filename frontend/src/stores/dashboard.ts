@@ -71,5 +71,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
-  return { stats, revenueChart, lowStock, recentInvoices, actionItems, activities, loading, error, fetchAll }
+  async function fetchRevenueChart(days: number = 7) {
+    try {
+      const { data } = await api.get('/dashboard/revenue-chart', { params: { days } })
+      revenueChart.value = data.data
+    } catch { /* ignore */ }
+  }
+
+  return { stats, revenueChart, lowStock, recentInvoices, actionItems, activities, loading, error, fetchAll, fetchRevenueChart }
 })

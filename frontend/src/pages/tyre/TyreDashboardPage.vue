@@ -40,7 +40,8 @@
                 <span class="text-gold-500 text-sm font-medium">RM{{ Number(item.sellPrice).toFixed(0) }}</span>
               </div>
               <div v-if="item.tyreDots?.length" class="flex flex-wrap gap-2 mt-1">
-                <span v-for="dot in item.tyreDots" :key="dot.id" class="text-xs bg-dark-800 border border-dark-700 rounded px-2 py-0.5">
+                <span v-for="dot in item.tyreDots" :key="dot.id" :class="['text-xs rounded px-2 py-0.5', dot.holdQuantity > 0 ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-dark-800 border border-dark-700']">
+                  <span v-if="dot.holdQuantity > 0" class="text-amber-400 mr-1">Held: {{ dot.holdQuantity }}pc{{ dot.holdQuantity > 1 ? 's' : '' }}</span>
                   <span class="text-dark-400">DOT</span>
                   <span class="text-dark-200 font-mono ml-1">{{ dot.dotCode }}</span>
                   <span class="text-gold-500 ml-1">{{ dot.quantity }}pcs</span>
@@ -49,7 +50,10 @@
               <div v-else class="text-dark-500 text-xs mt-1">No DOT batches</div>
             </div>
             <div class="flex items-center gap-3 ml-4">
-              <span class="text-dark-200 text-sm font-semibold">{{ item.quantity }} pcs</span>
+              <div class="text-right">
+                <span class="text-dark-200 text-sm font-semibold">{{ item.quantity }} pcs</span>
+                <span v-if="item.holdQuantity > 0" class="ml-2 text-xs bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-medium">{{ item.holdQuantity }} held</span>
+              </div>
               <button @click="copyItem(item)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Copy item">
                 <Copy class="w-4 h-4" />
               </button>
@@ -75,6 +79,7 @@ interface TyreDot {
   id: string
   dotCode: string
   quantity: number
+  holdQuantity: number
 }
 
 interface TyreItem {
@@ -84,6 +89,7 @@ interface TyreItem {
   sellPrice: number
   costPrice: number
   quantity: number
+  holdQuantity: number
   brand?: { name: string }
   category?: { name: string }
   tyreDots?: TyreDot[]

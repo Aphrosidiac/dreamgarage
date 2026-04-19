@@ -96,14 +96,14 @@ export async function getCustomer(
 
 export async function createCustomer(
   request: FastifyRequest<{
-    Body: { name: string; phone?: string; email?: string; companyName?: string; vehicles?: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string }[] }
+    Body: { name: string; phone?: string; email?: string; companyName?: string; vehicles?: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; chassisNo?: string }[] }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { name, phone, email, companyName, vehicles } = request.body
 
-  const customerName = name?.trim() || phone?.trim() || 'Walk-in'
+  const customerName = name?.trim() || 'Walk-in'
 
   const customer = await request.server.prisma.customer.create({
     data: {
@@ -121,6 +121,7 @@ export async function createCustomer(
             color: v.color?.trim() || null,
             engineNo: v.engineNo?.trim() || null,
             mileage: v.mileage?.trim() || null,
+            chassisNo: v.chassisNo?.trim() || null,
             isDefault: i === 0,
           })),
         },
@@ -185,13 +186,13 @@ export async function deleteCustomer(
 export async function addVehicle(
   request: FastifyRequest<{
     Params: { id: string }
-    Body: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; isDefault?: boolean }
+    Body: { plate: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; chassisNo?: string; isDefault?: boolean }
   }>,
   reply: FastifyReply
 ) {
   const { branchId } = request.user
   const { id } = request.params
-  const { plate, make, model, color, engineNo, mileage, isDefault } = request.body
+  const { plate, make, model, color, engineNo, mileage, chassisNo, isDefault } = request.body
 
   const customer = await request.server.prisma.customer.findFirst({ where: { id, branchId } })
   if (!customer) {
@@ -219,6 +220,7 @@ export async function addVehicle(
       color: color?.trim() || null,
       engineNo: engineNo?.trim() || null,
       mileage: mileage?.trim() || null,
+      chassisNo: chassisNo?.trim() || null,
       isDefault: isDefault || false,
     },
   })
@@ -229,12 +231,12 @@ export async function addVehicle(
 export async function updateVehicle(
   request: FastifyRequest<{
     Params: { id: string; vid: string }
-    Body: { plate?: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; isDefault?: boolean }
+    Body: { plate?: string; make?: string; model?: string; color?: string; engineNo?: string; mileage?: string; chassisNo?: string; isDefault?: boolean }
   }>,
   reply: FastifyReply
 ) {
   const { id, vid } = request.params
-  const { plate, make, model, color, engineNo, mileage, isDefault } = request.body
+  const { plate, make, model, color, engineNo, mileage, chassisNo, isDefault } = request.body
 
   if (isDefault) {
     await request.server.prisma.vehicle.updateMany({
@@ -252,6 +254,7 @@ export async function updateVehicle(
       ...(color !== undefined && { color: color?.trim() || null }),
       ...(engineNo !== undefined && { engineNo: engineNo?.trim() || null }),
       ...(mileage !== undefined && { mileage: mileage?.trim() || null }),
+      ...(chassisNo !== undefined && { chassisNo: chassisNo?.trim() || null }),
       ...(isDefault !== undefined && { isDefault }),
     },
   })

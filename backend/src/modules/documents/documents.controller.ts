@@ -39,6 +39,8 @@ interface CreateDocumentBody {
   vehicleMileage?: string
   vehicleColor?: string
   vehicleEngineNo?: string
+  vehicleChassisNo?: string
+  poNumber?: string
   foremanId?: string
   issueDate?: string
   dueDate?: string
@@ -105,7 +107,10 @@ export async function getDocument(
   const document = await request.server.prisma.document.findFirst({
     where: { id: request.params.id, branchId },
     include: {
-      items: { orderBy: { sortOrder: 'asc' } },
+      items: {
+        orderBy: { sortOrder: 'asc' },
+        include: { stockItem: { select: { isTyre: true } } },
+      },
       payments: {
         include: { createdBy: { select: { name: true } } },
         orderBy: { createdAt: 'desc' },
@@ -200,6 +205,8 @@ export async function createDocument(
         vehicleMileage: body.vehicleMileage,
         vehicleColor: body.vehicleColor,
         vehicleEngineNo: body.vehicleEngineNo,
+        vehicleChassisNo: body.vehicleChassisNo,
+        poNumber: body.poNumber,
         issueDate: body.issueDate ? new Date(body.issueDate) : new Date(),
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         status: defaultStatus,
@@ -342,6 +349,8 @@ export async function updateDocument(
         vehicleMileage: body.vehicleMileage,
         vehicleColor: body.vehicleColor,
         vehicleEngineNo: body.vehicleEngineNo,
+        vehicleChassisNo: body.vehicleChassisNo,
+        poNumber: body.poNumber,
         issueDate: body.issueDate ? new Date(body.issueDate) : undefined,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         subtotal: docTotals.subtotal,
@@ -813,6 +822,8 @@ export async function convertDocument(
         vehicleMileage: source.vehicleMileage,
         vehicleColor: source.vehicleColor,
         vehicleEngineNo: source.vehicleEngineNo,
+        vehicleChassisNo: source.vehicleChassisNo,
+        poNumber: source.poNumber,
         issueDate: new Date(),
         dueDate: source.dueDate,
         status: defaultStatus,

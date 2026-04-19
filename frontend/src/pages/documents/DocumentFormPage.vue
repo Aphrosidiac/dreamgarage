@@ -86,8 +86,20 @@
             <BaseInput v-model="form.vehiclePlate" label="Plate Number" placeholder="e.g. JUX 1589" />
             <BaseInput v-model="form.vehicleModel" label="Make & Model" placeholder="e.g. Honda Accord T2A" />
             <BaseInput v-model="form.vehicleMileage" label="Mileage (KM)" placeholder="e.g. 57028" />
-            <BaseInput v-model="form.vehicleColor" label="Color" placeholder="e.g. White" />
+            <div>
+              <label class="block text-sm font-medium text-dark-200 mb-1.5">Color</label>
+              <div class="flex items-center gap-2">
+                <input v-model="form.vehicleColor" type="text" placeholder="e.g. White" class="flex-1 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
+                <div v-if="form.vehicleColor" class="w-8 h-8 rounded-lg border border-dark-600" :style="{ backgroundColor: colorMap[form.vehicleColor.toLowerCase()] || form.vehicleColor }"></div>
+              </div>
+              <div class="flex gap-1.5 mt-2 flex-wrap">
+                <button v-for="c in carColors" :key="c.name" type="button" @click="form.vehicleColor = c.name"
+                  :class="['w-7 h-7 rounded-full border-2 transition-all', form.vehicleColor === c.name ? 'border-gold-500 scale-110' : 'border-dark-600 hover:border-dark-400']"
+                  :style="{ backgroundColor: c.hex }" :title="c.name" />
+              </div>
+            </div>
             <BaseInput v-model="form.vehicleEngineNo" label="Engine No" placeholder="e.g. R20A3-123456" />
+            <BaseInput v-model="form.vehicleChassisNo" label="Chassis No" placeholder="e.g. WBAPH5C50BA123456" />
             <BaseInput v-model="form.customerEmail" label="Email" type="email" placeholder="customer@email.com" />
           </div>
 
@@ -213,6 +225,7 @@
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Details</h3>
           <BaseInput v-model="form.issueDate" label="Issue Date" type="date" required />
           <BaseInput v-model="form.dueDate" label="Due Date" type="date" />
+          <BaseInput v-model="form.poNumber" label="P.O. Number" placeholder="e.g. PO-12345" />
         </div>
         <div class="bg-dark-900 border border-dark-800 rounded-xl p-6">
           <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">Summary</h3>
@@ -346,6 +359,8 @@ const form = reactive({
   vehicleMileage: '',
   vehicleColor: '',
   vehicleEngineNo: '',
+  vehicleChassisNo: '',
+  poNumber: '',
   foremanId: '',
   issueDate: new Date().toISOString().split('T')[0],
   dueDate: '',
@@ -355,6 +370,22 @@ const form = reactive({
   discountAmount: 0,
   items: [] as FormItem[],
 })
+
+const carColors = [
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Black', hex: '#1a1a1a' },
+  { name: 'Silver', hex: '#C0C0C0' },
+  { name: 'Grey', hex: '#808080' },
+  { name: 'Red', hex: '#DC2626' },
+  { name: 'Blue', hex: '#2563EB' },
+  { name: 'Dark Blue', hex: '#1E3A5F' },
+  { name: 'Brown', hex: '#8B4513' },
+  { name: 'Gold', hex: '#DAA520' },
+  { name: 'Green', hex: '#16A34A' },
+  { name: 'Orange', hex: '#EA580C' },
+  { name: 'Maroon', hex: '#800000' },
+]
+const colorMap: Record<string, string> = Object.fromEntries(carColors.map(c => [c.name.toLowerCase(), c.hex]))
 
 function autoResize(e: Event) {
   const el = e.target as HTMLTextAreaElement
@@ -407,6 +438,7 @@ function applyVehicle(v: Vehicle) {
   form.vehicleMileage = v.mileage || ''
   form.vehicleColor = v.color || ''
   form.vehicleEngineNo = v.engineNo || ''
+  form.vehicleChassisNo = v.chassisNo || ''
 }
 
 function clearCustomer() {
@@ -421,6 +453,7 @@ function clearCustomer() {
   form.vehicleMileage = ''
   form.vehicleColor = ''
   form.vehicleEngineNo = ''
+  form.vehicleChassisNo = ''
 }
 
 // ─── Stock search ─────────────────────────────────
@@ -480,6 +513,8 @@ async function loadDocument() {
     form.vehicleMileage = doc.vehicleMileage || ''
     form.vehicleColor = doc.vehicleColor || ''
     form.vehicleEngineNo = doc.vehicleEngineNo || ''
+    form.vehicleChassisNo = doc.vehicleChassisNo || ''
+    form.poNumber = doc.poNumber || ''
     form.foremanId = doc.foremanId || ''
     form.issueDate = doc.issueDate.split('T')[0]
     form.dueDate = doc.dueDate?.split('T')[0] || ''
@@ -558,7 +593,7 @@ async function confirmNewCustomerAndSubmit() {
   showNewCustomerModal.value = false
   saving.value = true
   try {
-    const vehicles = form.vehiclePlate ? [{ plate: form.vehiclePlate, model: form.vehicleModel || undefined, mileage: form.vehicleMileage || undefined, color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined }] : undefined
+    const vehicles = form.vehiclePlate ? [{ plate: form.vehiclePlate, model: form.vehicleModel || undefined, mileage: form.vehicleMileage || undefined, color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined, chassisNo: form.vehicleChassisNo || undefined }] : undefined
     const { data } = await api.post('/customers', { name: form.customerName || form.customerPhone || 'Walk-in', phone: form.customerPhone || undefined, email: form.customerEmail || undefined, vehicles })
     selectedCustomer.value = data.data
     if (data.data.vehicles?.length) selectedVehicleId.value = data.data.vehicles[0].id
@@ -576,7 +611,7 @@ async function addNewVehicleAndSubmit() {
     try {
       const { data } = await api.post(`/customers/${selectedCustomer.value.id}/vehicles`, {
         plate: form.vehiclePlate, model: form.vehicleModel || undefined, mileage: form.vehicleMileage || undefined,
-        color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined,
+        color: form.vehicleColor || undefined, engineNo: form.vehicleEngineNo || undefined, chassisNo: form.vehicleChassisNo || undefined,
       })
       selectedVehicleId.value = data.data.id
       toast.success(`Vehicle ${form.vehiclePlate} added`)

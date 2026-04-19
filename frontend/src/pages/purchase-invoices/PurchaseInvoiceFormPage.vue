@@ -12,9 +12,32 @@
       <div class="bg-dark-900 border border-dark-800 rounded-xl p-6 space-y-4">
         <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Invoice Details</h3>
         <div class="grid sm:grid-cols-2 gap-4">
-          <BaseSelect v-model="form.supplierId" label="Supplier" required>
-            <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.companyName }}</option>
-          </BaseSelect>
+          <div>
+            <label class="block text-sm font-medium text-dark-200 mb-1.5">Supplier <span class="text-red-400">*</span></label>
+            <div class="relative">
+              <input
+                v-model="supplierSearch"
+                @input="filterSuppliers"
+                @focus="showSupplierDropdown = true"
+                @blur="handleSupplierBlur"
+                type="text"
+                :placeholder="selectedSupplierName || 'Search supplier...'"
+                :class="['w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50', form.supplierId && !supplierSearch ? 'text-gold-500' : 'text-dark-100 placeholder-dark-500']"
+              />
+              <div v-if="showSupplierDropdown && filteredSuppliers.length" class="absolute z-20 mt-1 w-full bg-dark-800 border border-dark-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                <button
+                  v-for="s in filteredSuppliers"
+                  :key="s.id"
+                  type="button"
+                  @click="selectSupplier(s)"
+                  :class="['w-full text-left px-4 py-2.5 hover:bg-dark-700 transition-colors text-sm', form.supplierId === s.id ? 'text-gold-500' : 'text-dark-200']"
+                >
+                  {{ s.companyName }}
+                  <span v-if="s.contactName" class="text-dark-500 text-xs ml-2">{{ s.contactName }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
           <BaseInput v-model="form.invoiceNumber" label="Supplier Invoice No." placeholder="e.g. INV-12345" required />
         </div>
         <div class="grid sm:grid-cols-2 gap-4">
@@ -120,6 +143,38 @@ const toast = useToast()
 const isEdit = computed(() => !!route.params.id)
 const saving = ref(false)
 const suppliers = ref<any[]>([])
+
+const supplierSearch = ref('')
+const showSupplierDropdown = ref(false)
+
+const selectedSupplierName = computed(() => {
+  const s = suppliers.value.find(s => s.id === form.supplierId)
+  return s?.companyName || ''
+})
+
+const filteredSuppliers = computed(() => {
+  if (!supplierSearch.value) return suppliers.value
+  const q = supplierSearch.value.toLowerCase()
+  return suppliers.value.filter(s =>
+    s.companyName.toLowerCase().includes(q) ||
+    (s.contactName || '').toLowerCase().includes(q)
+  )
+})
+
+function selectSupplier(s: any) {
+  form.supplierId = s.id
+  supplierSearch.value = ''
+  showSupplierDropdown.value = false
+}
+
+function filterSuppliers() {
+  showSupplierDropdown.value = true
+  if (supplierSearch.value) form.supplierId = ''
+}
+
+function handleSupplierBlur() {
+  setTimeout(() => { showSupplierDropdown.value = false }, 200)
+}
 
 function newItem() {
   return { description: '', itemCode: '', quantity: 1, unitPrice: 0, dotCode: '', brandName: '', stockItemId: '', isTyre: false, searchTerm: '', showDropdown: false, stockResults: [] as any[] }

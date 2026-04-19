@@ -48,6 +48,7 @@
                   <span v-if="v.color">{{ v.color }}</span>
                   <span v-if="v.mileage">{{ v.mileage }} KM</span>
                   <span v-if="v.engineNo">Eng: {{ v.engineNo }}</span>
+                  <span v-if="v.chassisNo">Chassis: {{ v.chassisNo }}</span>
                 </div>
               </div>
             </div>
@@ -75,10 +76,22 @@
             <BaseInput v-model="vehicleForm.model" label="Model" placeholder="e.g. Accord T2A, 320i" />
           </div>
           <div class="grid grid-cols-2 gap-4">
-            <BaseInput v-model="vehicleForm.color" label="Color" placeholder="e.g. White" />
             <BaseInput v-model="vehicleForm.mileage" label="Mileage (KM)" placeholder="e.g. 57028" />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-dark-200 mb-1.5">Color</label>
+            <div class="flex items-center gap-2">
+              <input v-model="vehicleForm.color" type="text" placeholder="e.g. White" class="w-48 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500" />
+              <div v-if="vehicleForm.color" class="w-8 h-8 rounded-lg border border-dark-600 shrink-0" :style="{ backgroundColor: colorMap[vehicleForm.color.toLowerCase()] || vehicleForm.color }"></div>
+            </div>
+            <div class="flex gap-1.5 mt-2 flex-wrap">
+              <button v-for="c in carColors" :key="c.name" type="button" @click="vehicleForm.color = c.name"
+                :class="['w-7 h-7 rounded-full border-2 transition-all', vehicleForm.color === c.name ? 'border-gold-500 scale-110' : 'border-dark-600 hover:border-dark-400']"
+                :style="{ backgroundColor: c.hex }" :title="c.name" />
+            </div>
+          </div>
           <BaseInput v-model="vehicleForm.engineNo" label="Engine No" placeholder="e.g. R20A3-123456" />
+          <BaseInput v-model="vehicleForm.chassisNo" label="Chassis No" placeholder="e.g. WBAPH5C50BA123456" />
         </div>
         <template #footer>
           <BaseButton variant="secondary" @click="closeVehicleModal">Cancel</BaseButton>
@@ -117,7 +130,23 @@ const editingVehicle = ref<string | null>(null)
 const vehicles = ref<Vehicle[]>([])
 
 const form = reactive({ name: '', companyName: '', phone: '', email: '' })
-const vehicleForm = reactive({ plate: '', make: '', model: '', color: '', mileage: '', engineNo: '' })
+const vehicleForm = reactive({ plate: '', make: '', model: '', color: '', mileage: '', engineNo: '', chassisNo: '' })
+
+const carColors = [
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Black', hex: '#1a1a1a' },
+  { name: 'Silver', hex: '#C0C0C0' },
+  { name: 'Grey', hex: '#808080' },
+  { name: 'Red', hex: '#DC2626' },
+  { name: 'Blue', hex: '#2563EB' },
+  { name: 'Dark Blue', hex: '#1E3A5F' },
+  { name: 'Brown', hex: '#8B4513' },
+  { name: 'Gold', hex: '#DAA520' },
+  { name: 'Green', hex: '#16A34A' },
+  { name: 'Orange', hex: '#EA580C' },
+  { name: 'Maroon', hex: '#800000' },
+]
+const colorMap: Record<string, string> = Object.fromEntries(carColors.map(c => [c.name.toLowerCase(), c.hex]))
 
 async function loadCustomer() {
   if (!route.params.id) return
@@ -164,6 +193,7 @@ function editVehicle(v: Vehicle) {
   vehicleForm.color = v.color || ''
   vehicleForm.mileage = v.mileage || ''
   vehicleForm.engineNo = v.engineNo || ''
+  vehicleForm.chassisNo = v.chassisNo || ''
   showVehicleModal.value = true
 }
 
@@ -176,6 +206,7 @@ function closeVehicleModal() {
   vehicleForm.color = ''
   vehicleForm.mileage = ''
   vehicleForm.engineNo = ''
+  vehicleForm.chassisNo = ''
 }
 
 async function handleSaveVehicle() {

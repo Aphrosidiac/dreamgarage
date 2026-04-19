@@ -70,7 +70,7 @@
           v-if="job.workshopStatus === 'WAITING'"
           @click="updateStatus(job, 'IN_PROGRESS')"
           :disabled="updatingId === job.id"
-          class="w-full py-2.5 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
+          class="w-full py-4 sm:py-2.5 rounded-lg text-base sm:text-sm font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white transition-colors disabled:opacity-50 min-h-[48px]"
         >
           {{ updatingId === job.id ? '...' : 'Start Work' }}
         </button>
@@ -78,7 +78,7 @@
           v-else-if="job.workshopStatus === 'IN_PROGRESS'"
           @click="updateStatus(job, 'READY')"
           :disabled="updatingId === job.id"
-          class="w-full py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
+          class="w-full py-4 sm:py-2.5 rounded-lg text-base sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white transition-colors disabled:opacity-50 min-h-[48px]"
         >
           {{ updatingId === job.id ? '...' : 'Mark Ready' }}
         </button>
@@ -86,7 +86,7 @@
           <button
             @click="updateStatus(job, 'DONE')"
             :disabled="updatingId === job.id"
-            class="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-dark-700 hover:bg-dark-600 text-dark-300 transition-colors disabled:opacity-50"
+            class="flex-1 py-4 sm:py-2.5 rounded-lg text-base sm:text-sm font-semibold bg-dark-700 hover:bg-dark-600 active:bg-dark-500 text-dark-300 transition-colors disabled:opacity-50 min-h-[48px]"
           >
             {{ updatingId === job.id ? '...' : 'Remove from Display' }}
           </button>
@@ -191,7 +191,7 @@ async function updateStatus(job: Job, newStatus: 'WAITING' | 'IN_PROGRESS' | 'RE
 let pollTimer: ReturnType<typeof setInterval>
 onMounted(() => {
   fetchJobs()
-  pollTimer = setInterval(fetchJobs, 15000)
+  pollTimer = setInterval(fetchJobs, 30000)
 })
 onUnmounted(() => clearInterval(pollTimer))
 </script>

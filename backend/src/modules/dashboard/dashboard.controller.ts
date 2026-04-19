@@ -72,16 +72,20 @@ export async function getStats(request: FastifyRequest, reply: FastifyReply) {
   return reply.send({ success: true, data })
 }
 
-export async function getRevenueChart(request: FastifyRequest, reply: FastifyReply) {
+export async function getRevenueChart(
+  request: FastifyRequest<{ Querystring: Record<string, any> }>,
+  reply: FastifyReply,
+) {
   const { branchId } = request.user
-  const cacheKey = `dashboard:revenue:${branchId}`
+  const days = parseInt((request.query as any).days) || 7
+  const cacheKey = `dashboard:revenue:${branchId}:${days}`
 
   const cached = await request.server.cache.get(cacheKey)
   if (cached) return reply.send({ success: true, data: cached })
 
-  // Last 7 days revenue
-  const days: { date: string; revenue: number; count: number }[] = []
-  for (let i = 6; i >= 0; i--) {
+  // Last N days revenue
+  const chartDays: { date: string; revenue: number; count: number }[] = []
+  for (let i = days - 1; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
     date.setHours(0, 0, 0, 0)
@@ -98,15 +102,15 @@ export async function getRevenueChart(request: FastifyRequest, reply: FastifyRep
       select: { totalAmount: true },
     })
 
-    days.push({
+    chartDays.push({
       date: date.toISOString().split('T')[0],
       revenue: invoices.reduce((sum, inv) => sum + inv.totalAmount.toNumber(), 0),
       count: invoices.length,
     })
   }
 
-  await request.server.cache.set(cacheKey, days, 60)
-  return reply.send({ success: true, data: days })
+  await request.server.cache.set(cacheKey, chartDays, 60)
+  return reply.send({ success: true, data: chartDays })
 }
 
 export async function getLowStock(request: FastifyRequest, reply: FastifyReply) {

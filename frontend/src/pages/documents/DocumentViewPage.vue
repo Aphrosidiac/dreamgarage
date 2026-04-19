@@ -88,7 +88,7 @@
     <div v-else-if="doc" id="document-template" class="bg-white text-gray-900 overflow-hidden max-w-3xl mx-auto border border-gray-300 print:max-w-full print:shadow-none print:border-none" style="width: 800px;">
       <!-- Header: Logo + Company Info -->
       <div class="px-8 pt-6 pb-4 flex items-start justify-between">
-        <img src="/logo-invoice.png" alt="Dream Garage" class="h-16" />
+        <img src="/logo-invoice.png" alt="Dream Garage" class="h-24" />
         <div class="text-right text-xs text-gray-700">
           <p class="text-sm font-bold text-gray-900">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</p>
           <p v-if="branch?.ssmNumber" class="text-gray-500">({{ branch.ssmNumber }})</p>
@@ -109,6 +109,7 @@
             <p><span class="text-gray-500">No:</span> <strong>{{ doc.documentNumber }}</strong></p>
             <p><span class="text-gray-500">Date:</span> {{ fmtDate(doc.issueDate) }}</p>
             <p v-if="doc.dueDate"><span class="text-gray-500">Due:</span> {{ fmtDate(doc.dueDate) }}</p>
+            <p v-if="(doc as any).poNumber"><span class="text-gray-500">P.O. No:</span> <strong>{{ (doc as any).poNumber }}</strong></p>
           </div>
         </div>
         <div v-if="doc.customerName || doc.vehiclePlate" class="grid grid-cols-2 gap-6 text-sm border-t border-gray-200 pt-3">
@@ -126,6 +127,7 @@
             <p v-if="doc.vehicleColor" class="text-gray-500 text-xs">Color: {{ doc.vehicleColor }}</p>
             <p v-if="doc.vehicleMileage" class="text-gray-500 text-xs">Mileage: {{ doc.vehicleMileage }} KM</p>
             <p v-if="doc.vehicleEngineNo" class="text-gray-500 text-xs">Engine No: {{ doc.vehicleEngineNo }}</p>
+            <p v-if="(doc as any).vehicleChassisNo" class="text-gray-500 text-xs">Chassis No: {{ (doc as any).vehicleChassisNo }}</p>
           </div>
         </div>
       </div>
@@ -194,15 +196,9 @@
 
       <!-- Payment Status (for invoices) -->
       <div v-if="doc.documentType === 'INVOICE'" class="px-8 py-3">
-        <div class="flex items-center justify-between text-xs border border-gray-400">
-          <div class="flex items-center border-r border-gray-400">
-            <span :class="['px-3 py-1.5 font-bold border-r border-gray-400', Number(doc.paidAmount) >= Number(doc.totalAmount) ? 'bg-gray-900 text-white' : '']">PAID</span>
-            <span class="px-3 py-1.5">CASH / Transfer / Cheque / Credit Card</span>
-          </div>
-          <div class="flex items-center">
-            <span :class="['px-3 py-1.5 font-bold border-l border-gray-400', Number(doc.paidAmount) < Number(doc.totalAmount) ? 'bg-gray-900 text-white' : '']">UNPAID</span>
-            <span class="px-3 py-1.5 border-l border-gray-400">TNG / BOOST</span>
-          </div>
+        <div class="flex items-center text-xs border border-gray-400">
+          <span :class="['px-3 py-1.5 font-bold border-r border-gray-400', Number(doc.paidAmount) >= Number(doc.totalAmount) ? 'bg-gray-900 text-white' : '']">PAID</span>
+          <span class="px-3 py-1.5">CASH / Transfer / Cheque / Credit Card / TNG / BOOST</span>
         </div>
       </div>
 

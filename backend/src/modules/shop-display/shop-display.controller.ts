@@ -123,7 +123,10 @@ export async function setWorkshopStatus(
   if (!doc) return reply.status(404).send({ success: false, message: 'Document not found' })
 
   const data: any = { workshopStatus }
-  if (workshopStatus === 'IN_PROGRESS' && !doc.workshopStartedAt) data.workshopStartedAt = new Date()
+  if (workshopStatus === 'IN_PROGRESS' && !doc.workshopStartedAt) {
+    data.workshopStartedAt = new Date()
+    data.foremanId = request.user.userId
+  }
   if (workshopStatus === 'READY') data.workshopReadyAt = new Date()
 
   const updated = await request.server.prisma.document.update({ where: { id }, data })

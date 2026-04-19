@@ -177,12 +177,36 @@ export async function getTyreStock(
       brand: { select: { name: true } },
       tyreDots: {
         where: { quantity: { gt: 0 } },
-        orderBy: { dotCode: 'asc' },
         select: { id: true, dotCode: true, quantity: true },
       },
     },
     orderBy: { description: 'asc' },
   })
+
+  // Query DOT-level held quantities from draft/outstanding document items
+  const heldLines = await request.server.prisma.documentItem.groupBy({
+    by: ['tyreDotId'],
+    where: {
+      tyreDotId: { not: null },
+      document: { branchId, status: 'DRAFT' },
+      stockItemId: { in: items.map((i) => i.id) },
+    },
+    _sum: { quantity: true },
+  })
+  const dotHeldMap = new Map<string, number>()
+  for (const line of heldLines) {
+    if (line.tyreDotId) dotHeldMap.set(line.tyreDotId, line._sum.quantity || 0)
+  }
+
+  // Sort DOTs chronologically (MMYY format → earliest first)
+  function dotSortKey(code: string): number {
+    const mm = parseInt(code.slice(0, 2), 10) || 0
+    const yy = parseInt(code.slice(2, 4), 10) || 0
+    return yy * 100 + mm
+  }
+  for (const item of items) {
+    item.tyreDots.sort((a, b) => dotSortKey(a.dotCode) - dotSortKey(b.dotCode))
+  }
 
   // Group by tyreSize
   const grouped = new Map<string, typeof items>()
@@ -208,23 +232,35 @@ export async function getTyreStock(
     ))
   }
 
-  const data = Array.from(grouped.entries()).map(([tyreSize, sizeItems]) => ({
-    tyreSize,
-    items: sizeItems.map((item) => {
-      const dotTotal = item.tyreDots.reduce((s, d) => s + d.quantity, 0)
-      return {
-        id: item.id,
-        itemCode: item.itemCode,
-        description: item.description,
-        sellPrice: item.sellPrice,
-        costPrice: item.costPrice,
-        brand: item.brand,
-        category: item.category,
-        tyreDots: item.tyreDots,
-        quantity: item.tyreDots.length > 0 ? dotTotal : item.quantity,
-      }
-    }),
-  }))
+  const data = Array.from(grouped.entries())
+    .map(([tyreSize, sizeItems]) => ({
+      tyreSize,
+      items: sizeItems
+        .map((item) => {
+          const dotTotal = item.tyreDots.reduce((s, d) => s + d.quantity, 0)
+          return {
+            id: item.id,
+            itemCode: item.itemCode,
+            description: item.description,
+            sellPrice: item.sellPrice,
+            costPrice: item.costPrice,
+            brand: item.brand,
+            category: item.category,
+            tyreDots: item.tyreDots.map((d) => ({
+              ...d,
+              holdQuantity: dotHeldMap.get(d.id) || 0,
+            })),
+            quantity: item.tyreDots.length > 0 ? dotTotal : item.quantity,
+            holdQuantity: item.holdQuantity,
+          }
+        })
+        .sort((a, b) => (b.holdQuantity > 0 ? 1 : 0) - (a.holdQuantity > 0 ? 1 : 0)),
+    }))
+    .sort((a, b) => {
+      const aHasHeld = a.items.some((i) => i.holdQuantity > 0) ? 1 : 0
+      const bHasHeld = b.items.some((i) => i.holdQuantity > 0) ? 1 : 0
+      return bHasHeld - aHasHeld
+    })
 
   return reply.send({ success: true, data })
 }

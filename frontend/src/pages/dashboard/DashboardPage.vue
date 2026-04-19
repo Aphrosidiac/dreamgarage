@@ -42,7 +42,21 @@
       <div class="grid lg:grid-cols-3 gap-6 mb-6">
         <!-- Revenue Chart (2/3) -->
         <div class="lg:col-span-2 bg-dark-900 border border-dark-800 rounded-xl p-6">
-          <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">Revenue (Last 7 Days)</h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider">Revenue</h3>
+            <div class="relative">
+              <button @click="showRevDropdown = !showRevDropdown" class="flex items-center gap-1.5 bg-dark-800 border border-dark-700 rounded-lg px-3 py-1.5 text-dark-300 text-xs hover:border-dark-600 transition-colors">
+                {{ revOptions.find(o => o.value === revenueDays)?.label }}
+                <svg class="w-3 h-3 text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div v-if="showRevDropdown" class="absolute right-0 mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-xl overflow-hidden z-20 min-w-[140px]">
+                <button v-for="o in revOptions" :key="o.value" @click="revenueDays = o.value; showRevDropdown = false; fetchRevenue()"
+                  :class="['w-full text-left px-3 py-2 text-xs transition-colors', revenueDays === o.value ? 'bg-gold-500/10 text-gold-500' : 'text-dark-300 hover:bg-dark-700']">
+                  {{ o.label }}
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="h-64">
             <Bar v-if="revenueChartData" :data="revenueChartData" :options="chartOptions" />
           </div>
@@ -173,7 +187,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useDashboardStore } from '../../stores/dashboard'
 import BaseCard from '../../components/base/BaseCard.vue'
@@ -188,6 +202,19 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 
 const dashboard = useDashboardStore()
+
+const revenueDays = ref(7)
+const showRevDropdown = ref(false)
+const revOptions = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 14, label: 'Last 14 days' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 60, label: 'Last 60 days' },
+]
+
+async function fetchRevenue() {
+  await dashboard.fetchRevenueChart(revenueDays.value)
+}
 
 // ─── Stat Card Component ───────────────────────────────────
 const StatCard = {
