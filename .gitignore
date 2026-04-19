@@ -10,3 +10,14 @@ AutoCount Reference/
 QUOTATION_*.pdf
 backend/*.json
 backend/debtor_id.txt
+backend/uploads/
+*.sql
+
+# Images/assets not needed in repo
+screenshot-*.png
+Brand Logo/
+Dream Garage Pictures/
+brand exp/
+*.jpeg
+invoice logo.png
+stamp company.jpeg
