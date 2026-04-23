@@ -133,7 +133,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseInput from '../../components/base/BaseInput.vue'
-import BaseSelect from '../../components/base/BaseSelect.vue'
 import BaseButton from '../../components/base/BaseButton.vue'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-vue-next'
 

@@ -123,6 +123,8 @@ export interface Document {
   vehicleMileage?: string
   vehicleColor?: string
   vehicleEngineNo?: string
+  vehicleChassisNo?: string
+  poNumber?: string
   issueDate: string
   dueDate?: string
   status: DocumentStatus
@@ -187,6 +189,7 @@ export interface Vehicle {
   model?: string
   color?: string
   engineNo?: string
+  chassisNo?: string
   mileage?: string
   isDefault: boolean
   createdAt: string
@@ -238,6 +241,8 @@ export interface DocumentFormData {
   vehicleMileage?: string
   vehicleColor?: string
   vehicleEngineNo?: string
+  vehicleChassisNo?: string
+  poNumber?: string
   foremanId?: string
   issueDate?: string
   dueDate?: string
@@ -256,6 +261,9 @@ export interface DocumentFormData {
     taxRate?: number
     sortOrder?: number
     serviceDate?: string
+    tyreDotId?: string
+    tyreDotCode?: string
+    serialNumber?: string
   }[]
 }
 
