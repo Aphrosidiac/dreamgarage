@@ -38,6 +38,52 @@
         <StatCard label="Drafts" :value="dashboard.stats.draftDocuments" icon="edit" color="gray" />
       </div>
 
+      <!-- KPI Tracker -->
+      <div v-if="dashboard.kpis" class="bg-dark-900 border border-dark-800 rounded-xl p-6 mb-6">
+        <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-4">KPI Tracker</h3>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-6">
+          <div>
+            <p class="text-xs text-dark-500 mb-1">Weekly Revenue</p>
+            <p class="text-lg font-bold text-dark-100">RM {{ fmtMoney(dashboard.kpis.weeklyRevenue) }}</p>
+            <div class="flex items-center gap-1 mt-1">
+              <span :class="[dashboard.kpis.weeklyRevenueChange >= 0 ? 'text-green-400' : 'text-red-400', 'text-xs font-medium']">
+                {{ dashboard.kpis.weeklyRevenueChange >= 0 ? '+' : '' }}{{ dashboard.kpis.weeklyRevenueChange.toFixed(1) }}%
+              </span>
+              <span class="text-dark-600 text-xs">vs last week</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs text-dark-500 mb-1">Monthly Revenue</p>
+            <p class="text-lg font-bold text-dark-100">RM {{ fmtMoney(dashboard.kpis.monthlyRevenue) }}</p>
+            <div class="flex items-center gap-1 mt-1">
+              <span :class="[dashboard.kpis.monthlyRevenueChange >= 0 ? 'text-green-400' : 'text-red-400', 'text-xs font-medium']">
+                {{ dashboard.kpis.monthlyRevenueChange >= 0 ? '+' : '' }}{{ dashboard.kpis.monthlyRevenueChange.toFixed(1) }}%
+              </span>
+              <span class="text-dark-600 text-xs">vs last month</span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs text-dark-500 mb-1">Avg Invoice Value</p>
+            <p class="text-lg font-bold text-gold-500">RM {{ fmtMoney(dashboard.kpis.avgInvoiceValue) }}</p>
+            <p class="text-dark-600 text-xs mt-1">{{ dashboard.kpis.invoicesThisMonth }} invoices this month</p>
+          </div>
+          <div>
+            <p class="text-xs text-dark-500 mb-1">Collection Rate</p>
+            <p class="text-lg font-bold" :class="dashboard.kpis.collectionRate >= 80 ? 'text-green-400' : dashboard.kpis.collectionRate >= 50 ? 'text-gold-500' : 'text-red-400'">
+              {{ dashboard.kpis.collectionRate.toFixed(1) }}%
+            </p>
+            <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2">
+              <div class="h-1.5 rounded-full transition-all" :class="dashboard.kpis.collectionRate >= 80 ? 'bg-green-500' : dashboard.kpis.collectionRate >= 50 ? 'bg-gold-500' : 'bg-red-500'" :style="{ width: Math.min(dashboard.kpis.collectionRate, 100) + '%' }" />
+            </div>
+          </div>
+          <div>
+            <p class="text-xs text-dark-500 mb-1">Outstanding</p>
+            <p class="text-lg font-bold text-red-400">RM {{ fmtMoney(dashboard.kpis.totalOutstanding) }}</p>
+            <p class="text-dark-600 text-xs mt-1">unpaid balance</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Charts Row -->
       <div class="grid lg:grid-cols-3 gap-6 mb-6">
         <!-- Revenue Chart (2/3) -->
@@ -325,6 +371,10 @@ const doughnutOptions = {
 }
 
 // ─── Helpers ───────────────────────────────────────────────
+function fmtMoney(n: number) {
+  return n.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-MY')
 }

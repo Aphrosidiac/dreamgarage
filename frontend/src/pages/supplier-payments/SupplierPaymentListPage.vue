@@ -45,7 +45,7 @@
         <span class="text-dark-400 text-sm">{{ formatDate(value) }}</span>
       </template>
       <template #actions="{ row }">
-        <button @click="openReceipt(row)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Print receipt">
+        <button @click="openReceipt(row)" class="p-1.5 text-dark-400 hover:text-gold-500 transition-colors" title="Payment Voucher">
           <Printer class="w-4 h-4" />
         </button>
         <button @click="handleDelete(row)" class="p-1.5 text-dark-400 hover:text-red-400 transition-colors">
@@ -54,69 +54,100 @@
       </template>
     </BaseTable>
 
-    <!-- Printable Receipt -->
+    <!-- Payment Voucher -->
     <div v-if="receiptRow" class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 print:static print:bg-white print:p-0" @click.self="receiptRow = null">
       <div class="bg-white text-black rounded-lg shadow-xl w-[820px] max-w-full max-h-[90vh] overflow-auto print:shadow-none print:rounded-none print:max-h-none">
         <div class="flex items-center justify-end gap-2 p-3 border-b border-gray-200 print:hidden">
           <BaseButton variant="secondary" size="sm" @click="receiptRow = null">Close</BaseButton>
           <BaseButton variant="primary" size="sm" @click="handlePrint"><Printer class="w-4 h-4 mr-1" /> Print</BaseButton>
         </div>
-        <div id="ap-receipt" class="p-10 font-sans">
-          <div class="flex items-start justify-between border-b-2 border-black pb-4 mb-6">
+        <div id="ap-receipt" class="p-8 font-sans text-[13px]">
+          <!-- Header -->
+          <div class="flex items-start justify-between border-b-2 border-black pb-3 mb-4">
             <div>
-              <img src="/logo-invoice.png" alt="Dream Garage" class="h-14 mb-2" />
-              <p class="text-xs text-gray-700 font-semibold">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</p>
+              <img src="/logo-invoice.png" alt="Dream Garage" class="h-12 mb-1" />
+              <p class="text-sm font-bold">{{ branch?.name || 'DREAM GARAGE (M) SDN BHD' }}</p>
+              <p v-if="branch?.ssmNumber" class="text-[11px] text-gray-600">{{ branch?.ssmNumber }}</p>
               <p class="text-[11px] text-gray-600">{{ branch?.address }}</p>
-              <p class="text-[11px] text-gray-600">{{ branch?.phone }} · {{ branch?.email }}</p>
-              <p v-if="branch?.ssmNumber" class="text-[11px] text-gray-600">SSM: {{ branch?.ssmNumber }}</p>
+              <p class="text-[11px] text-gray-600">Tel: {{ branch?.phone }}{{ branch?.email ? ' · ' + branch.email : '' }}</p>
             </div>
             <div class="text-right">
-              <h2 class="text-2xl font-bold tracking-widest">PAYMENT RECEIPT</h2>
-              <p class="text-xs text-gray-600 mt-1">A/P Payment Voucher</p>
-              <p class="text-sm font-mono mt-2">{{ receiptRow.paymentNumber }}</p>
-              <p class="text-xs text-gray-600">{{ formatDate(receiptRow.paymentDate) }}</p>
+              <h2 class="text-xl font-bold tracking-wider mb-2">PAYMENT VOUCHER</h2>
+              <table class="text-xs ml-auto">
+                <tr><td class="text-gray-500 pr-3 text-right">No.:</td><td class="font-mono font-semibold">{{ receiptRow.paymentNumber }}</td></tr>
+                <tr><td class="text-gray-500 pr-3 text-right">Date:</td><td>{{ formatDate(receiptRow.paymentDate) }}</td></tr>
+                <tr><td class="text-gray-500 pr-3 text-right whitespace-nowrap">{{ receiptRow.paymentMethod === 'CHEQUE' ? 'Cheque No.:' : 'Ref No.:' }}</td><td class="font-mono">{{ receiptRow.referenceNumber || '-' }}</td></tr>
+                <tr><td class="text-gray-500 pr-3 text-right whitespace-nowrap">Payment By:</td><td>{{ pvMethodLabel(receiptRow.paymentMethod) }}</td></tr>
+              </table>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-8 mb-6 text-sm">
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Paid To</p>
-              <p class="font-semibold">{{ receiptRow.supplier?.companyName || '—' }}</p>
-              <p v-if="receiptRow.supplier?.contactName" class="text-xs text-gray-600">{{ receiptRow.supplier?.contactName }}</p>
-              <p v-if="receiptRow.supplier?.phone" class="text-xs text-gray-600">{{ receiptRow.supplier?.phone }}</p>
-            </div>
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Payment Details</p>
-              <div class="text-xs space-y-0.5">
-                <div class="flex justify-between"><span class="text-gray-500">Method</span><span>{{ receiptRow.paymentMethod?.replace('_', ' ') }}</span></div>
-                <div v-if="receiptRow.bankName" class="flex justify-between"><span class="text-gray-500">Bank</span><span>{{ receiptRow.bankName }}</span></div>
-                <div v-if="receiptRow.referenceNumber" class="flex justify-between"><span class="text-gray-500">Reference</span><span class="font-mono">{{ receiptRow.referenceNumber }}</span></div>
-                <div v-if="receiptRow.purchaseInvoice" class="flex justify-between"><span class="text-gray-500">Applied to</span><span class="font-mono">{{ receiptRow.purchaseInvoice.internalNumber }}</span></div>
-              </div>
+          <!-- Pay To -->
+          <div class="mb-3">
+            <div class="flex gap-2 text-sm">
+              <span class="text-gray-500 shrink-0">PAY TO:</span>
+              <span class="font-semibold">{{ receiptRow.supplier?.companyName || '-' }}</span>
             </div>
           </div>
 
-          <div class="border-t-2 border-b-2 border-black py-4 mb-4">
-            <div class="flex items-end justify-between">
-              <div>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Amount (in words)</p>
-                <p class="text-sm italic">{{ amountInWords(Number(receiptRow.amount)) }}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Paid</p>
-                <p class="text-3xl font-bold">RM {{ Number(receiptRow.amount).toFixed(2) }}</p>
-              </div>
+          <!-- Pay The Sum Of -->
+          <div class="border border-gray-300 rounded px-3 py-2 mb-4 bg-gray-50">
+            <div class="flex gap-2 text-sm">
+              <span class="text-gray-500 shrink-0 text-xs uppercase">Pay the sum of:</span>
+              <span class="font-semibold uppercase text-xs">{{ amountInWords(Number(receiptRow.amount)) }}</span>
             </div>
           </div>
 
-          <p v-if="receiptRow.notes" class="text-xs text-gray-700 mb-8"><span class="text-gray-500">Notes: </span>{{ receiptRow.notes }}</p>
+          <!-- Payment Details Table -->
+          <div class="mb-4">
+            <p class="text-xs font-semibold text-gray-600 mb-1 uppercase">Payment Details</p>
+            <table class="w-full border-collapse text-xs">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="border border-gray-300 px-2 py-1.5 text-left">Inv. Date</th>
+                  <th class="border border-gray-300 px-2 py-1.5 text-left">Inv. No</th>
+                  <th class="border border-gray-300 px-2 py-1.5 text-right">Total Amt</th>
+                  <th class="border border-gray-300 px-2 py-1.5 text-right">Outstanding</th>
+                  <th class="border border-gray-300 px-2 py-1.5 text-right">Paid Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="receiptRow.purchaseInvoice">
+                  <td class="border border-gray-300 px-2 py-1.5">{{ formatDate(receiptRow.purchaseInvoice.issueDate) }}</td>
+                  <td class="border border-gray-300 px-2 py-1.5 font-mono">{{ receiptRow.purchaseInvoice.internalNumber }}</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right">{{ fmtRM(receiptRow.purchaseInvoice.totalAmount) }}</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right">{{ fmtRM(Number(receiptRow.purchaseInvoice.totalAmount) - Number(receiptRow.purchaseInvoice.paidAmount)) }}</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right font-semibold">{{ fmtRM(receiptRow.amount) }}</td>
+                </tr>
+                <tr v-else>
+                  <td class="border border-gray-300 px-2 py-1.5">{{ formatDate(receiptRow.paymentDate) }}</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-gray-400">-</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right">-</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right">-</td>
+                  <td class="border border-gray-300 px-2 py-1.5 text-right font-semibold">{{ fmtRM(receiptRow.amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-          <div class="grid grid-cols-2 gap-12 mt-16 text-xs">
+          <!-- Notes -->
+          <p v-if="receiptRow.notes" class="text-xs text-gray-600 mb-4"><span class="text-gray-400">Notes: </span>{{ receiptRow.notes }}</p>
+
+          <!-- Total -->
+          <div class="flex justify-end mb-8">
+            <div class="border-t-2 border-black pt-2 px-4 text-right">
+              <span class="text-xs text-gray-500 mr-4">TOTAL:</span>
+              <span class="text-lg font-bold">RM {{ Number(receiptRow.amount).toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <!-- Signatures -->
+          <div class="grid grid-cols-2 gap-16 mt-12 text-xs">
             <div>
-              <div class="border-t border-gray-400 pt-1 text-center">Prepared by</div>
+              <div class="border-t border-gray-400 pt-1 text-center">Approved By</div>
             </div>
             <div>
-              <div class="border-t border-gray-400 pt-1 text-center">Authorised signature</div>
+              <div class="border-t border-gray-400 pt-1 text-center">Received By</div>
             </div>
           </div>
         </div>
@@ -257,6 +288,16 @@ async function handleDelete(payment: any) {
 const receiptRow = ref<any>(null)
 const branch = ref<any>(null)
 
+function fmtRM(v: any) { return 'RM ' + Number(v).toFixed(2) }
+
+function pvMethodLabel(method: string) {
+  const map: Record<string, string> = {
+    CASH: 'Cash', BANK_TRANSFER: 'Bank Transfer', CHEQUE: 'Cheque',
+    CREDIT_CARD: 'Credit Card', TNG: "Touch 'n Go", BOOST: 'Boost', EWALLET: 'E-Wallet',
+  }
+  return map[method] || method?.replace('_', ' ')
+}
+
 async function openReceipt(row: any) {
   receiptRow.value = row
   if (!branch.value) {
@@ -272,7 +313,7 @@ function handlePrint() {
   if (!receiptEl) return window.print()
   const w = window.open('', '_blank', 'width=900,height=1100')
   if (!w) return window.print()
-  w.document.write(`<!doctype html><html><head><title>${receiptRow.value?.paymentNumber || 'Receipt'}</title><script src="https://cdn.tailwindcss.com"><\/script></head><body>${receiptEl.outerHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`)
+  w.document.write(`<!doctype html><html><head><title>${receiptRow.value?.paymentNumber || 'Payment Voucher'}</title><script src="https://cdn.tailwindcss.com"><\/script></head><body>${receiptEl.outerHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`)
   w.document.close()
 }
 

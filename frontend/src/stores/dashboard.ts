@@ -28,6 +28,18 @@ interface ActionItems {
   drafts: any[]
 }
 
+interface KpiData {
+  weeklyRevenue: number
+  weeklyRevenueChange: number
+  monthlyRevenue: number
+  monthlyRevenueChange: number
+  invoicesThisWeek: number
+  invoicesThisMonth: number
+  avgInvoiceValue: number
+  collectionRate: number
+  totalOutstanding: number
+}
+
 interface Activity {
   type: 'stock' | 'document' | 'payment'
   description: string
@@ -42,6 +54,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const lowStock = ref<any[]>([])
   const recentInvoices = ref<any[]>([])
   const actionItems = ref<ActionItems | null>(null)
+  const kpis = ref<KpiData | null>(null)
   const activities = ref<Activity[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -50,13 +63,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading.value = true
     error.value = null
     try {
-      const [statsRes, chartRes, lowStockRes, recentRes, actionsRes, activityRes] = await Promise.all([
+      const [statsRes, chartRes, lowStockRes, recentRes, actionsRes, activityRes, kpiRes] = await Promise.all([
         api.get('/dashboard/stats'),
         api.get('/dashboard/revenue-chart'),
         api.get('/dashboard/low-stock'),
         api.get('/dashboard/recent-invoices'),
         api.get('/dashboard/action-items'),
         api.get('/dashboard/activity'),
+        api.get('/dashboard/kpis'),
       ])
       stats.value = statsRes.data.data
       revenueChart.value = chartRes.data.data
@@ -64,6 +78,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       recentInvoices.value = recentRes.data.data
       actionItems.value = actionsRes.data.data
       activities.value = activityRes.data.data
+      kpis.value = kpiRes.data.data
     } catch (e: any) {
       error.value = e.response?.data?.message || 'Failed to load dashboard'
     } finally {
@@ -78,5 +93,5 @@ export const useDashboardStore = defineStore('dashboard', () => {
     } catch { /* ignore */ }
   }
 
-  return { stats, revenueChart, lowStock, recentInvoices, actionItems, activities, loading, error, fetchAll, fetchRevenueChart }
+  return { stats, kpis, revenueChart, lowStock, recentInvoices, actionItems, activities, loading, error, fetchAll, fetchRevenueChart }
 })

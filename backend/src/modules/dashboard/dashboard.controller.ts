@@ -177,6 +177,74 @@ export async function getActionItems(request: FastifyRequest, reply: FastifyRepl
   return reply.send({ success: true, data: { overdue, pendingQuotations, drafts } })
 }
 
+export async function getKpis(request: FastifyRequest, reply: FastifyReply) {
+  const { branchId } = request.user
+  const cacheKey = `dashboard:kpis:${branchId}`
+
+  const cached = await request.server.cache.get(cacheKey)
+  if (cached) return reply.send({ success: true, data: cached })
+
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayOfWeek = today.getDay() || 7
+  const weekStart = new Date(today)
+  weekStart.setDate(today.getDate() - dayOfWeek + 1)
+  const lastWeekStart = new Date(weekStart)
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999)
+
+  const invoiceFilter = { branchId, documentType: 'INVOICE' as const, status: { notIn: ['VOID' as const, 'CANCELLED' as const, 'DRAFT' as const] } }
+
+  const [thisWeekInvs, lastWeekInvs, thisMonthInvs, lastMonthInvs, allOutstanding] = await Promise.all([
+    request.server.prisma.document.findMany({
+      where: { ...invoiceFilter, issueDate: { gte: weekStart } },
+      select: { totalAmount: true, paidAmount: true },
+    }),
+    request.server.prisma.document.findMany({
+      where: { ...invoiceFilter, issueDate: { gte: lastWeekStart, lt: weekStart } },
+      select: { totalAmount: true },
+    }),
+    request.server.prisma.document.findMany({
+      where: { ...invoiceFilter, issueDate: { gte: monthStart } },
+      select: { totalAmount: true, paidAmount: true },
+    }),
+    request.server.prisma.document.findMany({
+      where: { ...invoiceFilter, issueDate: { gte: lastMonthStart, lte: lastMonthEnd } },
+      select: { totalAmount: true },
+    }),
+    request.server.prisma.document.findMany({
+      where: { branchId, documentType: 'INVOICE', status: { in: ['OUTSTANDING', 'PARTIAL'] } },
+      select: { totalAmount: true, paidAmount: true },
+    }),
+  ])
+
+  const thisWeekRev = thisWeekInvs.reduce((s, i) => s + i.totalAmount.toNumber(), 0)
+  const lastWeekRev = lastWeekInvs.reduce((s, i) => s + i.totalAmount.toNumber(), 0)
+  const thisMonthRev = thisMonthInvs.reduce((s, i) => s + i.totalAmount.toNumber(), 0)
+  const lastMonthRev = lastMonthInvs.reduce((s, i) => s + i.totalAmount.toNumber(), 0)
+  const avgInvoiceValue = thisMonthInvs.length > 0 ? thisMonthRev / thisMonthInvs.length : 0
+  const totalBilled = allOutstanding.reduce((s, i) => s + i.totalAmount.toNumber(), 0)
+  const totalCollected = allOutstanding.reduce((s, i) => s + i.paidAmount.toNumber(), 0)
+  const collectionRate = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 100
+
+  const data = {
+    weeklyRevenue: thisWeekRev,
+    weeklyRevenueChange: lastWeekRev > 0 ? ((thisWeekRev - lastWeekRev) / lastWeekRev) * 100 : 0,
+    monthlyRevenue: thisMonthRev,
+    monthlyRevenueChange: lastMonthRev > 0 ? ((thisMonthRev - lastMonthRev) / lastMonthRev) * 100 : 0,
+    invoicesThisWeek: thisWeekInvs.length,
+    invoicesThisMonth: thisMonthInvs.length,
+    avgInvoiceValue,
+    collectionRate,
+    totalOutstanding: totalBilled - totalCollected,
+  }
+
+  await request.server.cache.set(cacheKey, data, 30)
+  return reply.send({ success: true, data })
+}
+
 export async function getRecentActivity(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
 

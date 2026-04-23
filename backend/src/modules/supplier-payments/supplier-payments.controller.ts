@@ -32,8 +32,9 @@ export async function listSupplierPayments(
     request.server.prisma.supplierPayment.findMany({
       where,
       include: {
-        supplier: { select: { id: true, companyName: true } },
-        purchaseInvoice: { select: { id: true, internalNumber: true } },
+        supplier: { select: { id: true, companyName: true, contactName: true, phone: true } },
+        purchaseInvoice: { select: { id: true, internalNumber: true, invoiceNumber: true, totalAmount: true, paidAmount: true, issueDate: true, status: true } },
+        createdBy: { select: { id: true, name: true } },
       },
       orderBy: { paymentDate: 'desc' },
       skip,
@@ -98,10 +99,11 @@ export async function createSupplierPayment(
     return reply.status(400).send({ success: false, message: `Invalid payment method. Must be one of: ${validMethods.join(', ')}` })
   }
 
-  // Auto-generate paymentNumber: PAY{YY}-{0001}
+  // Auto-generate paymentNumber: PV{YYMM}/{seq}
   const now = new Date()
   const yy = String(now.getFullYear()).slice(-2)
-  const prefix = `PAY${yy}-`
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const prefix = `PV${yy}${mm}/`
 
   const lastPayment = await request.server.prisma.supplierPayment.findFirst({
     where: { branchId, paymentNumber: { startsWith: prefix } },
@@ -115,7 +117,7 @@ export async function createSupplierPayment(
     if (!isNaN(lastSeq)) nextSeq = lastSeq + 1
   }
 
-  const paymentNumber = `${prefix}${String(nextSeq).padStart(4, '0')}`
+  const paymentNumber = `${prefix}${String(nextSeq).padStart(3, '0')}`
 
   const payment = await request.server.prisma.$transaction(async (tx) => {
     const created = await tx.supplierPayment.create({

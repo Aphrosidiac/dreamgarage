@@ -584,7 +584,7 @@ async function confirmSubmit() {
     }] : undefined
 
     const { data: custData } = await api.post('/customers', {
-      name: form.customerName || form.customerPhone || 'Walk-in',
+      name: form.customerName || 'Walk-in',
       phone: form.customerPhone || undefined,
       vehicles: vehicleData,
     })
@@ -640,7 +640,7 @@ async function proceedSubmit() {
       documentType: 'INVOICE',
       customerId: selectedCustomer.value?.id || undefined,
       vehicleId: selectedVehicleId.value || undefined,
-      customerName: form.customerName || undefined,
+      customerName: form.customerName || selectedCustomer.value?.name || undefined,
       customerPhone: form.customerPhone || undefined,
       vehiclePlate: form.vehiclePlate || undefined,
       vehicleModel: vehicleModelFull,

@@ -20,6 +20,8 @@ export async function listPurchaseInvoices(
       OR: [
         { invoiceNumber: { contains: search, mode: 'insensitive' } },
         { internalNumber: { contains: search, mode: 'insensitive' } },
+        { supplier: { companyName: { contains: search, mode: 'insensitive' } } },
+        { supplier: { contactName: { contains: search, mode: 'insensitive' } } },
       ],
     }),
     ...(from || to

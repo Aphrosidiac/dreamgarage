@@ -193,7 +193,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-dark-800">
-            <tr v-for="(r, idx) in statsRows" :key="r.userId" :class="idx === 0 ? 'bg-gold-500/5' : ''">
+            <tr v-for="(r, idx) in statsRows" :key="r.userId" :class="[idx === 0 ? 'bg-gold-500/5' : '', 'cursor-pointer hover:bg-dark-800/50 transition-colors']" @click="openJobHistory(r)">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
                   <span v-if="idx === 0" class="text-gold-500 text-xs">★</span>
@@ -213,6 +213,60 @@
           </tbody>
         </table>
       </div>
+    <!-- Job History Modal -->
+    <BaseModal v-model="showHistory" :title="historyStaff ? historyStaff.name + ' — Job History' : 'Job History'" size="lg">
+      <div class="flex items-center gap-2 mb-4">
+        <BaseInput v-model="historyFrom" type="date" />
+        <span class="text-dark-500 text-sm">to</span>
+        <BaseInput v-model="historyTo" type="date" />
+        <BaseButton variant="secondary" size="sm" @click="fetchJobHistory" :loading="historyLoading">Apply</BaseButton>
+      </div>
+      <div v-if="historyLoading" class="text-dark-400 text-sm text-center py-8">Loading...</div>
+      <div v-else-if="!historyDocs.length" class="text-dark-500 text-sm text-center py-8">No jobs found in this period.</div>
+      <div v-else class="overflow-auto max-h-[60vh]">
+        <table class="w-full text-sm">
+          <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800 sticky top-0">
+            <tr>
+              <th class="px-3 py-2.5 text-left">Date</th>
+              <th class="px-3 py-2.5 text-left">Doc No.</th>
+              <th class="px-3 py-2.5 text-left">Type</th>
+              <th class="px-3 py-2.5 text-left">Customer</th>
+              <th class="px-3 py-2.5 text-left">Vehicle</th>
+              <th class="px-3 py-2.5 text-left">Items</th>
+              <th class="px-3 py-2.5 text-right">Amount</th>
+              <th class="px-3 py-2.5 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-dark-800">
+            <tr v-for="d in historyDocs" :key="d.id" class="hover:bg-dark-800/30">
+              <td class="px-3 py-2 text-dark-400 text-xs whitespace-nowrap">{{ fmtDate(d.issueDate) }}</td>
+              <td class="px-3 py-2">
+                <RouterLink :to="`/app/documents/${d.id}`" class="text-gold-500 font-mono text-xs hover:text-gold-400" @click.stop>{{ d.documentNumber }}</RouterLink>
+              </td>
+              <td class="px-3 py-2 text-dark-300 text-xs">{{ d.documentType }}</td>
+              <td class="px-3 py-2 text-dark-200 text-xs">{{ d.customerName || '-' }}</td>
+              <td class="px-3 py-2 text-dark-400 text-xs font-mono">{{ d.vehiclePlate || '-' }}</td>
+              <td class="px-3 py-2 text-dark-400 text-xs max-w-[200px] truncate" :title="d.items?.map((i: any) => i.description).join(', ')">
+                {{ d.items?.map((i: any) => i.description).join(', ') || '-' }}
+              </td>
+              <td class="px-3 py-2 text-right font-mono text-dark-200 text-xs">RM {{ Number(d.totalAmount).toFixed(2) }}</td>
+              <td class="px-3 py-2 text-center">
+                <BaseBadge :color="d.status === 'PAID' ? 'green' : d.status === 'DRAFT' ? 'gray' : 'gold'" class="text-[10px]">{{ d.status }}</BaseBadge>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="historyTotal > historyDocs.length" class="text-center py-3">
+          <BaseButton variant="secondary" size="sm" @click="historyPage++; fetchJobHistory(true)" :loading="historyLoading">Load more</BaseButton>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-between w-full">
+          <span class="text-dark-500 text-xs">{{ historyTotal }} total jobs</span>
+          <BaseButton variant="secondary" @click="showHistory = false">Close</BaseButton>
+        </div>
+      </template>
+    </BaseModal>
     </template>
   </div>
 </template>
@@ -229,6 +283,7 @@ import BaseModal from '../../components/base/BaseModal.vue'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 import { Plus, Pencil, KeyRound, ShieldCheck, Check, X } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import type { User } from '../../types'
 
 const toast = useToast()
@@ -416,6 +471,47 @@ async function fetchStats() {
     statsRows.value = data.data
     statsLoaded.value = true
   } finally { statsLoading.value = false }
+}
+
+// ─── Job History ────────────────────────────────────
+const showHistory = ref(false)
+const historyStaff = ref<StatsRow | null>(null)
+const historyDocs = ref<any[]>([])
+const historyLoading = ref(false)
+const historyTotal = ref(0)
+const historyPage = ref(1)
+const historyFrom = ref(statsFrom.value)
+const historyTo = ref(statsTo.value)
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function openJobHistory(row: StatsRow) {
+  historyStaff.value = row
+  historyFrom.value = statsFrom.value
+  historyTo.value = statsTo.value
+  historyDocs.value = []
+  historyPage.value = 1
+  historyTotal.value = 0
+  showHistory.value = true
+  fetchJobHistory()
+}
+
+async function fetchJobHistory(append = false) {
+  if (!historyStaff.value) return
+  historyLoading.value = true
+  try {
+    const { data } = await api.get(`/reports/staff-history/${historyStaff.value.userId}`, {
+      params: { from: historyFrom.value, to: historyTo.value, page: historyPage.value, limit: 20 },
+    })
+    if (append) {
+      historyDocs.value.push(...data.data)
+    } else {
+      historyDocs.value = data.data
+    }
+    historyTotal.value = data.total
+  } finally { historyLoading.value = false }
 }
 
 // ─── Init ────────────────────────────────────────

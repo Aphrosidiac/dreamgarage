@@ -8,11 +8,12 @@ export async function listSuppliers(
 ) {
   const { branchId } = request.user
   const { page, limit, skip } = getPaginationParams(request.query)
-  const { search } = request.query as any
+  const { search, categoryId } = request.query as any
 
   const where: Prisma.SupplierWhereInput = {
     branchId,
     isActive: true,
+    ...(categoryId && { categoryId }),
     ...(search && {
       OR: [
         { companyName: { contains: search, mode: 'insensitive' } },

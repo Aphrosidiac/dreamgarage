@@ -93,6 +93,63 @@ export async function getDailyPaymentLog(
   })
 }
 
+// ─── STAFF JOB HISTORY ─────────────────────────────
+export async function getStaffJobHistory(
+  request: import('fastify').FastifyRequest<{ Params: { userId: string }; Querystring: { from?: string; to?: string; page?: string; limit?: string } }>,
+  reply: import('fastify').FastifyReply,
+) {
+  const { branchId } = request.user
+  const { userId } = request.params
+  const { from, to } = request.query
+  const page = parseInt(request.query.page || '1')
+  const limit = Math.min(parseInt(request.query.limit || '20'), 50)
+  const skip = (page - 1) * limit
+
+  const dateFilter: any = {}
+  if (from) dateFilter.gte = new Date(from)
+  if (to) dateFilter.lte = new Date(to + 'T23:59:59')
+
+  const where: any = { branchId, foremanId: userId, status: { notIn: ['VOID', 'CANCELLED'] } }
+  if (Object.keys(dateFilter).length) where.issueDate = dateFilter
+
+  const [docs, total, staff] = await Promise.all([
+    request.server.prisma.document.findMany({
+      where,
+      select: {
+        id: true,
+        documentNumber: true,
+        documentType: true,
+        status: true,
+        customerName: true,
+        vehiclePlate: true,
+        vehicleModel: true,
+        totalAmount: true,
+        paidAmount: true,
+        issueDate: true,
+        workshopStatus: true,
+        items: { select: { description: true, quantity: true, unitPrice: true }, orderBy: { sortOrder: 'asc' } },
+      },
+      orderBy: { issueDate: 'desc' },
+      skip,
+      take: limit,
+    }),
+    request.server.prisma.document.count({ where }),
+    request.server.prisma.user.findFirst({
+      where: { id: userId, branchId },
+      select: { id: true, name: true, jobTitle: true, role: true },
+    }),
+  ])
+
+  return reply.send({
+    success: true,
+    data: docs,
+    staff,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  })
+}
+
 // ─── WORKER STATS ──────────────────────────────────
 export async function getWorkerStats(
   request: import('fastify').FastifyRequest<{ Querystring: { from?: string; to?: string } }>,

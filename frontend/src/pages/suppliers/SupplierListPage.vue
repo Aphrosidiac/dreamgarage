@@ -12,9 +12,18 @@
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="mb-6">
-      <input v-model="search" type="text" placeholder="Search suppliers..." class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500 w-72" />
+    <!-- Filters -->
+    <div class="flex items-end gap-4 mb-6">
+      <div>
+        <input v-model="search" type="text" placeholder="Search suppliers..." class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 placeholder:text-dark-500 w-72" />
+      </div>
+      <div>
+        <label class="block text-xs text-dark-400 mb-1">Category</label>
+        <select v-model="filterCategory" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50">
+          <option value="">All Categories</option>
+          <option v-for="cat in filterCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- Table -->
@@ -83,6 +92,8 @@ const toast = useToast()
 const suppliers = ref<any[]>([])
 const loading = ref(true)
 const search = ref('')
+const filterCategory = ref('')
+const filterCategories = ref<any[]>([])
 const page = ref(1)
 const totalPages = ref(1)
 
@@ -95,7 +106,7 @@ const columns = [
 ]
 
 let searchTimeout: ReturnType<typeof setTimeout>
-watch(search, () => {
+watch([search, filterCategory], () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => { page.value = 1; fetchSuppliers() }, 300)
 })
@@ -105,6 +116,7 @@ async function fetchSuppliers() {
   try {
     const params: Record<string, any> = { page: page.value }
     if (search.value) params.search = search.value
+    if (filterCategory.value) params.categoryId = filterCategory.value
     const { data } = await api.get('/suppliers', { params })
     suppliers.value = data.data
     totalPages.value = data.totalPages || 1
@@ -150,5 +162,15 @@ async function deleteCategory(cat: any) {
 
 watch(showCatModal, (v) => { if (v) fetchCategories() })
 
-onMounted(() => fetchSuppliers())
+async function fetchFilterCategories() {
+  try {
+    const { data } = await api.get('/supplier-categories')
+    filterCategories.value = data.data
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  fetchSuppliers()
+  fetchFilterCategories()
+})
 </script>

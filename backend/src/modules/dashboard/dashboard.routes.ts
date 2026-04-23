@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { getStats, getRevenueChart, getLowStock, getRecentInvoices, getActionItems, getRecentActivity } from './dashboard.controller.js'
+import { getStats, getRevenueChart, getLowStock, getRecentInvoices, getActionItems, getRecentActivity, getKpis } from './dashboard.controller.js'
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate)
@@ -10,4 +10,5 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/recent-invoices', getRecentInvoices)
   fastify.get('/action-items', getActionItems)
   fastify.get('/activity', getRecentActivity)
+  fastify.get('/kpis', getKpis)
 }
