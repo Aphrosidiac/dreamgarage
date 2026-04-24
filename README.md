@@ -89,12 +89,14 @@ DreamGarage/
 │       │   ├── customers/
 │       │   ├── debtors/
 │       │   ├── suppliers/        # Supplier directory
+│       │   ├── supplier-categories/ # Supplier category CRUD
 │       │   ├── purchase-invoices/
-│       │   ├── supplier-payments/# A/P payments
+│       │   ├── supplier-payments/# A/P payments + Payment Voucher
+│       │   ├── uploads/          # File uploads (@fastify/multipart)
 │       │   ├── assistant/        # DG Assistant (Claude + tool use)
 │       │   ├── audit/            # Admin audit log viewer
-│       │   ├── reports/          # Payment log
-│       │   └── dashboard/
+│       │   ├── reports/          # Payment log, worker stats, staff history
+│       │   └── dashboard/       # Stats, charts, KPIs, activity
 │       └── utils/
 ├── frontend/
 │   └── src/
@@ -148,7 +150,8 @@ DreamGarage/
 | **PurchaseInvoice** | Purchase invoices from suppliers |
 | **PurchaseInvoiceItem** | Purchase line items |
 | **PurchaseAttachment** | File attachments for purchase invoices |
-| **SupplierPayment** | A/P payments to suppliers |
+| **SupplierCategory** | Categories for organizing suppliers |
+| **SupplierPayment** | A/P payments to suppliers (Payment Voucher) |
 | **AuditLog** | Branch-scoped activity trail (requests, logins, tool calls) |
 
 All core tables include `branchId` for multi-branch support.
@@ -220,15 +223,16 @@ Streamlined single-page order entry that manages the customer database automatic
 Unpaid invoices grouped by customer, sorted by total owed. Detail view shows all unpaid invoices with payment history.
 
 ### Purchasing (A/P)
-- **Suppliers** — directory with contact details
-- **Purchase Orders** — surfaced as the 5th tab on Documents (uses the same white document template as QT/INV/RCP/DO). Status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments. Backend table is still `purchase_invoices`; UI/routes use Purchase Orders.
-- **Supplier Payments** — A/P payment log against suppliers/invoices, with printable receipt (amount-in-words)
+- **Suppliers** — directory with contact details, category tagging, category filter
+- **Supplier Categories** — CRUD for organizing suppliers (Tyre, Motor Oil, Brake Parts, etc.)
+- **Purchase Orders** — surfaced as the 5th tab on Documents (uses the same white document template as QT/INV/RCP/DO). Status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments. Search supports supplier name (any word). Backend table is still `purchase_invoices`; UI/routes use Purchase Orders.
+- **Supplier Payments** — A/P payment log with printable Payment Voucher (PV{YYMM}/{seq} numbering, invoice detail table, amount-in-words, Approved By / Received By signature lines)
 
 ### Held Stock Dashboard
 `/app/held-stock` — items where `holdQuantity > 0`, grouped by category, with the holding draft invoice (customer, plate, foreman, qty held). Helps find why a stock item shows as unavailable.
 
-### Worker Performance
-`/app/worker-stats` — per-foreman aggregation over a date range: invoices, quotations, delivery orders, jobs completed, revenue handled, avg turnaround. Top performer highlighted.
+### Worker Performance & Job History
+`/app/staff` → Performance tab — per-foreman aggregation over a date range: invoices, quotations, delivery orders, jobs completed, revenue handled, avg turnaround. Top performer highlighted. Click any staff row to drill down into detailed job history (individual invoices/documents with customer, vehicle, items, amounts).
 
 ### Workshop Job Board (Shop Display)
 - `Document.workshopStatus` enum (WAITING → IN_PROGRESS → READY → DONE) is separate from billing status.
@@ -248,7 +252,7 @@ Branch-scoped activity trail. Global hook captures every non-GET `/api/v1/*` req
 Staff page has a **Roles** button (admin-only page) opening a matrix modal: each app page × each role with checkmarks. Reflects current router/sidebar config. To change access, edit `router/index.ts` + `DashboardLayout.vue`. Roles enum: `ADMIN`, `MANAGER`, `WORKER`.
 
 ### Dashboard
-Totals (stock, invoices today/month, revenue today/month), low stock alerts, recent invoices.
+Totals (stock, invoices today/month, revenue today/month), low stock alerts, recent invoices. **KPI Tracker** section with weekly/monthly revenue (vs previous period %), average invoice value, collection rate (progress bar), and total outstanding balance.
 
 ### Company Website
 Public-facing Home, About, Services, Contact. Black + gold theme, responsive, WhatsApp + Google Maps integration.
@@ -318,9 +322,10 @@ Edit name/email, change password, admin-only branch details (name, address, phon
 ### Purchasing
 | Method | Endpoint |
 |--------|----------|
-| GET/POST/PUT/DELETE | `/api/v1/suppliers` |
+| GET/POST/PUT/DELETE | `/api/v1/suppliers` (?categoryId for filter) |
+| GET/POST/PUT/DELETE | `/api/v1/supplier-categories` |
 | GET/POST/PUT/DELETE | `/api/v1/purchase-invoices` (UI labels: Purchase Orders) |
-| GET/POST | `/api/v1/supplier-payments` |
+| GET/POST/DELETE | `/api/v1/supplier-payments` |
 
 ### Shop Display
 | Method | Endpoint |
@@ -333,6 +338,7 @@ Edit name/email, change password, admin-only branch details (name, address, phon
 |--------|----------|
 | GET | `/api/v1/stock/held` (grouped by category) |
 | GET | `/api/v1/reports/worker-stats?from&to` |
+| GET | `/api/v1/reports/staff-history/:userId?from&to&page&limit` |
 
 ### Assistant
 | Method | Endpoint |
@@ -349,8 +355,12 @@ Edit name/email, change password, admin-only branch details (name, address, phon
 |--------|----------|
 | GET | `/api/v1/reports/payment-log` |
 | GET | `/api/v1/dashboard/stats` |
+| GET | `/api/v1/dashboard/revenue-chart?days` |
 | GET | `/api/v1/dashboard/low-stock` |
 | GET | `/api/v1/dashboard/recent-invoices` |
+| GET | `/api/v1/dashboard/action-items` |
+| GET | `/api/v1/dashboard/activity` |
+| GET | `/api/v1/dashboard/kpis` |
 | GET | `/api/health` |
 
 ## Environment Variables
@@ -407,7 +417,7 @@ cd backend && npx prisma db push && npx prisma generate && npm run build && pm2 
 ```
 
 ### Repository
-- **GitHub**: [Aphrosidiac/dreamgarage](https://github.com/Aphrosidiac/gm)
+- **GitHub**: [Aphrosidiac/dreamgarage](https://github.com/Aphrosidiac/dreamgarage)
 - **Monorepo**: `frontend/` and `backend/` in one repo
 
 ## Testing
