@@ -214,7 +214,7 @@
         </table>
       </div>
     <!-- Job History Modal -->
-    <BaseModal v-model="showHistory" :title="historyStaff ? historyStaff.name + ' — Job History' : 'Job History'" size="lg">
+    <BaseModal v-model="showHistory" :title="historyStaff ? historyStaff.name + ' — Job History' : 'Job History'" size="xl">
       <div class="flex items-center gap-2 mb-4">
         <BaseInput v-model="historyFrom" type="date" />
         <span class="text-dark-500 text-sm">to</span>
