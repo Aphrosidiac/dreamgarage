@@ -472,15 +472,13 @@ export async function updateDocumentStatus(
   const { userId } = request.user
   const document = await request.server.prisma.$transaction(async (tx) => {
     // Invoice: DRAFT → OUTSTANDING — release holds + deduct stock
+    const issueWarnings: string[] = []
     if (existing.documentType === 'INVOICE' && existing.status === 'DRAFT' && status === 'OUTSTANDING') {
       for (const item of existing.items) {
         if (item.stockItemId) {
           const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
           if (stock && stock.quantity < item.quantity) {
-            throw Object.assign(
-              new Error(`Insufficient stock for ${item.itemCode || item.description}: have ${stock.quantity}, need ${item.quantity}`),
-              { statusCode: 400 }
-            )
+            issueWarnings.push(`${item.itemCode || item.description}: have ${stock.quantity}, need ${item.quantity}`)
           }
           const newQty = stock!.quantity - item.quantity
           const newHold = Math.max(0, stock!.holdQuantity - item.quantity)
@@ -704,14 +702,15 @@ export async function updateDocumentStatus(
       }
     }
 
-    return tx.document.update({
+    const updated = await tx.document.update({
       where: { id },
       data: { status: status as any },
       include: { items: { orderBy: { sortOrder: 'asc' } }, createdBy: { select: { id: true, name: true } } },
     })
+    return { updated, issueWarnings }
   })
 
-  return reply.send({ success: true, data: document })
+  return reply.send({ success: true, data: document.updated, warnings: document.issueWarnings?.length ? document.issueWarnings : undefined })
 }
 
 // ─── ADD PAYMENT ───────────────────────────────────────────

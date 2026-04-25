@@ -87,6 +87,9 @@
 
       <!-- Table -->
       <BaseTable :columns="columns" :data="payments" :loading="loading" empty-text="No payments found." class="print:hidden">
+        <template #cell-paymentNumber="{ value }">
+          <span class="text-dark-200 font-mono text-xs">{{ value || '—' }}</span>
+        </template>
         <template #cell-createdAt="{ value }">
           {{ fmtDateTime(value) }}
         </template>
@@ -392,6 +395,7 @@ const methodTabs = [
 ]
 
 const columns = [
+  { key: 'paymentNumber', label: 'Pay No.' },
   { key: 'createdAt', label: 'Date/Time' },
   { key: 'documentNumber', label: 'Invoice' },
   { key: 'customerName', label: 'Customer' },

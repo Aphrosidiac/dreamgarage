@@ -124,8 +124,16 @@ const sidebarOpen = ref(false)
 
 const allSidebarItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
-  { path: '/app/order-list', label: 'Order List', icon: List, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  {
+    key: 'orders',
+    label: 'Orders',
+    icon: ClipboardList,
+    roles: ['ADMIN', 'MANAGER', 'WORKER'],
+    children: [
+      { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+      { path: '/app/order-list', label: 'Order List', icon: List, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+    ],
+  },
   { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
