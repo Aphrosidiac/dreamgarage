@@ -234,6 +234,22 @@ export async function createDocument(
 
     // Hold stock for draft invoices
     if (documentType === 'INVOICE') {
+      // Check availability before holding
+      for (const item of documentItems) {
+        if (item.stockItemId) {
+          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+          if (stock) {
+            const available = stock.quantity - stock.holdQuantity
+            if (available < item.quantity) {
+              throw Object.assign(
+                new Error(`Insufficient stock for ${item.itemCode || item.description}: ${available} available, need ${item.quantity}`),
+                { statusCode: 400 },
+              )
+            }
+          }
+        }
+      }
+
       for (const item of documentItems) {
         if (item.stockItemId) {
           const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })

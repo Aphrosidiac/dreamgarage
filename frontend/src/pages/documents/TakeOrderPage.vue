@@ -154,6 +154,9 @@
                       <span class="text-gold-500 font-mono text-xs">{{ s.itemCode }}</span>
                       <span class="text-dark-200 ml-2">{{ s.description }}</span>
                       <span class="text-dark-500 ml-2">RM{{ Number(s.sellPrice).toFixed(2) }}</span>
+                      <span :class="[(s.quantity - (s.holdQuantity || 0)) <= 0 ? 'text-red-400' : 'text-emerald-400', 'ml-2 text-xs']">
+                        ({{ s.quantity - (s.holdQuantity || 0) }} avail)
+                      </span>
                     </button>
                   </div>
                 </template>
@@ -180,7 +183,8 @@
             <div class="flex items-end gap-3">
               <div class="w-20">
                 <label class="block text-xs text-dark-500 mb-1">Qty</label>
-                <input v-model.number="item.quantity" type="number" min="1" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
+                <input v-model.number="item.quantity" type="number" min="1" :class="['w-full bg-dark-800 rounded-lg px-3 py-2 text-dark-100 text-sm text-center focus:outline-none focus:ring-1', item.stockItemId && item.availableQty !== undefined && item.quantity > item.availableQty ? 'border-red-500 focus:ring-red-500/50' : 'border-dark-700 focus:ring-gold-500/50', 'border']" />
+                <p v-if="item.stockItemId && item.availableQty !== undefined && item.quantity > item.availableQty" class="text-red-400 text-[10px] mt-0.5">Only {{ item.availableQty }} avail</p>
               </div>
               <div class="w-32">
                 <label class="block text-xs text-dark-500 mb-1">Unit Price (RM)</label>
@@ -494,6 +498,7 @@ async function selectStock(idx: number, s: StockItem) {
   form.items[idx].showDropdown = false
   form.items[idx].stockResults = []
   form.items[idx].isTyre = (s as any).isTyre || false
+  form.items[idx].availableQty = s.quantity - (s.holdQuantity || 0)
 
   if ((s as any).isTyre) {
     try {
