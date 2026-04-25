@@ -16,8 +16,8 @@
     :style="{ bottom: pos.y + 'px', right: pos.x + 'px' }"
     class="fixed w-[480px] h-[620px] max-h-[85vh] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
   >
-    <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-dark-800 bg-dark-900">
+    <!-- Header (draggable) -->
+    <div @mousedown="startDragChat" @touchstart.passive="startDragChat" class="flex items-center justify-between px-4 py-3 border-b border-dark-800 bg-dark-900 cursor-grab active:cursor-grabbing select-none">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-full bg-gold-500/20 flex items-center justify-center">
           <Sparkles class="w-4 h-4 text-gold-500" />
@@ -146,6 +146,26 @@ function endDrag() {
   document.removeEventListener('touchmove', onDrag)
   document.removeEventListener('touchend', endDrag)
   if (!hasMoved) assistant.toggle()
+}
+
+function startDragChat(e: MouseEvent | TouchEvent) {
+  if ((e.target as HTMLElement).closest('button')) return
+  dragging = true
+  hasMoved = false
+  const point = 'touches' in e ? e.touches[0] : e
+  dragStart = { mx: point.clientX, my: point.clientY, ox: pos.x, oy: pos.y }
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', endDragChat)
+  document.addEventListener('touchmove', onDrag)
+  document.addEventListener('touchend', endDragChat)
+}
+
+function endDragChat() {
+  dragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', endDragChat)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', endDragChat)
 }
 
 onMounted(() => {
