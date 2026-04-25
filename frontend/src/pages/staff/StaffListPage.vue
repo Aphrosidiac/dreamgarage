@@ -227,31 +227,27 @@
         <table class="w-full text-sm">
           <thead class="bg-dark-800/50 text-dark-400 text-xs uppercase border-b border-dark-800 sticky top-0">
             <tr>
-              <th class="px-3 py-2.5 text-left">Date</th>
-              <th class="px-3 py-2.5 text-left">Doc No.</th>
-              <th class="px-3 py-2.5 text-left">Type</th>
+              <th class="px-3 py-2.5 text-left">Document</th>
               <th class="px-3 py-2.5 text-left">Customer</th>
               <th class="px-3 py-2.5 text-left">Vehicle</th>
               <th class="px-3 py-2.5 text-left">Items</th>
               <th class="px-3 py-2.5 text-right">Amount</th>
-              <th class="px-3 py-2.5 text-center">Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-dark-800">
             <tr v-for="d in historyDocs" :key="d.id" class="hover:bg-dark-800/30">
-              <td class="px-3 py-2 text-dark-400 text-xs whitespace-nowrap">{{ fmtDate(d.issueDate) }}</td>
               <td class="px-3 py-2">
                 <RouterLink :to="`/app/documents/${d.id}`" class="text-gold-500 font-mono text-xs hover:text-gold-400" @click.stop>{{ d.documentNumber }}</RouterLink>
+                <div class="text-dark-500 text-[10px]">{{ d.documentType }} · {{ fmtDate(d.issueDate) }}</div>
               </td>
-              <td class="px-3 py-2 text-dark-300 text-xs">{{ d.documentType }}</td>
               <td class="px-3 py-2 text-dark-200 text-xs">{{ d.customerName || '-' }}</td>
               <td class="px-3 py-2 text-dark-400 text-xs font-mono">{{ d.vehiclePlate || '-' }}</td>
-              <td class="px-3 py-2 text-dark-400 text-xs max-w-[200px] truncate" :title="d.items?.map((i: any) => i.description).join(', ')">
+              <td class="px-3 py-2 text-dark-400 text-xs max-w-[250px] truncate" :title="d.items?.map((i: any) => i.description).join(', ')">
                 {{ d.items?.map((i: any) => i.description).join(', ') || '-' }}
               </td>
-              <td class="px-3 py-2 text-right font-mono text-dark-200 text-xs">RM {{ Number(d.totalAmount).toFixed(2) }}</td>
-              <td class="px-3 py-2 text-center">
-                <BaseBadge :color="d.status === 'PAID' ? 'green' : d.status === 'DRAFT' ? 'gray' : 'gold'" class="text-[10px]">{{ d.status }}</BaseBadge>
+              <td class="px-3 py-2 text-right">
+                <div class="font-mono text-dark-200 text-xs">RM {{ Number(d.totalAmount).toFixed(2) }}</div>
+                <BaseBadge :color="d.status === 'PAID' ? 'green' : d.status === 'DRAFT' ? 'gray' : 'gold'" class="text-[10px] mt-0.5">{{ d.status }}</BaseBadge>
               </td>
             </tr>
           </tbody>

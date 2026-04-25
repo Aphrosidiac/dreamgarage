@@ -20,6 +20,14 @@
           <option value="PAID">Paid</option>
         </select>
       </div>
+      <div>
+        <label class="block text-xs text-dark-400 mb-1">Per page</label>
+        <select v-model.number="perPage" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50">
+          <option :value="10">10</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+      </div>
     </div>
 
     <!-- Orders -->
@@ -100,21 +108,10 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="orders.length" class="flex items-center justify-between mt-4">
-      <div class="flex items-center gap-2">
-        <span class="text-dark-500 text-xs">Show</span>
-        <select v-model.number="perPage" class="bg-dark-800 border border-dark-700 rounded-lg px-2 py-1 text-dark-200 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50">
-          <option :value="10">10</option>
-          <option :value="50">50</option>
-          <option :value="100">100</option>
-        </select>
-        <span class="text-dark-500 text-xs">per page</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button @click="prevPage" :disabled="page <= 1" :class="['px-3 py-1 rounded-lg text-xs font-medium transition-colors', page <= 1 ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Prev</button>
-        <span class="text-dark-400 text-xs">Page {{ page }} of {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="page >= totalPages" :class="['px-3 py-1 rounded-lg text-xs font-medium transition-colors', page >= totalPages ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Next</button>
-      </div>
+    <div v-if="totalPages > 1" class="flex items-center justify-end gap-2 mt-4">
+      <button @click="prevPage" :disabled="page <= 1" :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', page <= 1 ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Prev</button>
+      <span class="text-dark-400 text-xs">{{ page }} / {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="page >= totalPages" :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', page >= totalPages ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Next</button>
     </div>
   </div>
 </template>

@@ -31,7 +31,7 @@ import { X } from 'lucide-vue-next'
 const props = defineProps<{
   modelValue: boolean
   title: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
