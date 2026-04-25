@@ -82,18 +82,7 @@
       <span v-if="(doc as any).foreman.jobTitle" class="text-dark-500 text-sm"> ({{ (doc as any).foreman.jobTitle }})</span>
     </div>
 
-    <!-- Item Photos (internal reference only, not printed) -->
-    <div v-if="doc?.items?.some((i: any) => i.photoUrl)" class="bg-dark-900 border border-dark-800 rounded-xl p-4 mb-4 print:hidden">
-      <p class="text-xs text-dark-500 uppercase tracking-wider mb-3">Item Reference Photos</p>
-      <div class="flex gap-3 flex-wrap">
-        <div v-for="item in doc.items.filter((i: any) => i.photoUrl)" :key="item.id" class="relative group">
-          <a :href="(item as any).photoUrl" target="_blank">
-            <img :src="(item as any).photoUrl" :alt="item.description" class="w-20 h-20 object-cover rounded-lg border border-dark-700 hover:border-gold-500/50 transition-colors" />
-          </a>
-          <p class="text-dark-500 text-[10px] mt-1 text-center truncate max-w-[80px]">{{ item.itemCode || item.description }}</p>
-        </div>
-      </div>
-    </div>
+
 
     <div v-if="loadingDoc" class="text-dark-400">Loading...</div>
 
@@ -249,7 +238,7 @@
 
     <!-- Warranty Photos (below template, print-hidden) -->
     <div v-if="doc?.items?.some((i: any) => i.photoUrl)" class="mt-6 max-w-3xl mx-auto print:hidden">
-      <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-3">Warranty Photos</h3>
+      <h3 class="text-sm font-semibold text-dark-200 uppercase tracking-wider mb-3">Item Reference Photos</h3>
       <div class="bg-dark-900 border border-dark-800 rounded-xl p-4">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           <a v-for="item in doc.items.filter((i: any) => i.photoUrl)" :key="item.id" :href="(item as any).photoUrl" target="_blank" class="group block">
