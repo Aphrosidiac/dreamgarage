@@ -377,6 +377,7 @@ model DocumentItem {
 model Payment {
   id              String        @id @default(cuid())
   documentId      String
+  paymentNumber   String?
   amount          Decimal       @db.Decimal(12, 2)
   paymentMethod   PaymentMethod
   referenceNumber String?

@@ -4,7 +4,7 @@
       <button @click="$router.back()" class="text-dark-400 hover:text-dark-200 transition-colors">
         <ArrowLeft class="w-5 h-5" />
       </button>
-      <h2 class="text-lg font-semibold text-dark-100">{{ pi?.internalNumber || 'Purchase Order' }}</h2>
+      <h2 class="text-lg font-semibold text-dark-100">{{ pi?.internalNumber || 'Purchase Invoice' }}</h2>
       <BaseBadge v-if="pi" :color="statusColor">{{ pi.status.replace('_', ' ') }}</BaseBadge>
     </div>
 
@@ -46,7 +46,7 @@
         <!-- Title + Meta -->
         <div class="px-8 py-4">
           <div class="flex justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900 uppercase">Purchase Order</h2>
+            <h2 class="text-xl font-bold text-gray-900 uppercase">Purchase Invoice</h2>
             <div class="text-right text-sm space-y-0.5">
               <p><span class="text-gray-500">No:</span> <strong>{{ pi.internalNumber }}</strong></p>
               <p><span class="text-gray-500">Date:</span> {{ formatDate(pi.issueDate) }}</p>
@@ -146,7 +146,7 @@
       </div>
     </template>
     <!-- Confirm Modal -->
-    <BaseModal v-model="showConfirmModal" :title="confirmAction === 'finalize' ? 'Finalize Purchase Order' : 'Cancel Purchase Order'" size="sm">
+    <BaseModal v-model="showConfirmModal" :title="confirmAction === 'finalize' ? 'Finalize Purchase Invoice' : 'Cancel Purchase Invoice'" size="sm">
       <p v-if="confirmAction === 'finalize'" class="text-dark-300 text-sm">
         This will add all items to stock and update quantities. This action <strong class="text-dark-100">cannot be undone</strong>.
       </p>

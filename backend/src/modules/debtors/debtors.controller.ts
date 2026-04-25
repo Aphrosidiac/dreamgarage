@@ -110,6 +110,16 @@ export async function listDebtors(
   // Sort by total owed descending
   data.sort((a, b) => b.totalOwed - a.totalOwed)
 
+  // Assign debtor codes: 300-{PLATE_PREFIX}{SEQ} per plate prefix
+  const platePrefixCounters = new Map<string, number>()
+  for (const d of data) {
+    const plate = (d.plate || '').replace(/[\s-]/g, '').toUpperCase()
+    const prefix = plate.replace(/\d+$/, '') || 'GEN'
+    const seq = (platePrefixCounters.get(prefix) || 0) + 1
+    platePrefixCounters.set(prefix, seq)
+    ;(d as any).debtorCode = `300-${prefix}${String(seq).padStart(4, '0')}`
+  }
+
   return reply.send({ success: true, data })
 }
 

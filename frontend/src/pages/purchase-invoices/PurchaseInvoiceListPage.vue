@@ -1,9 +1,9 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-dark-100">Purchase Orders</h2>
+      <h2 class="text-lg font-semibold text-dark-100">Purchase Invoices</h2>
       <BaseButton variant="primary" size="sm" @click="$router.push('/app/purchase-orders/new')">
-        <Plus class="w-4 h-4 mr-1" /> New Purchase Order
+        <Plus class="w-4 h-4 mr-1" /> New Purchase Invoice
       </BaseButton>
     </div>
 

@@ -220,6 +220,21 @@
                 <label class="block text-xs text-dark-500 mb-1">Serial No.</label>
                 <input v-model="item.serialNumber" type="text" placeholder="S/N (optional)" class="w-full bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50" />
               </div>
+              <div class="flex items-end">
+                <div>
+                  <label class="block text-xs text-dark-500 mb-1">Photo</label>
+                  <div class="flex items-center gap-1.5">
+                    <label :class="['cursor-pointer p-2 rounded-lg border transition-colors', item.photoUrl ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-dark-800 border-dark-700 text-dark-400 hover:text-gold-500']">
+                      <Camera v-if="!item.uploading" class="w-4 h-4" />
+                      <Loader2 v-else class="w-4 h-4 animate-spin" />
+                      <input type="file" accept="image/*" capture="environment" class="hidden" @change="(e) => uploadItemPhoto(idx, e)" :disabled="item.uploading" />
+                    </label>
+                    <button v-if="item.photoUrl" type="button" @click="removeItemPhoto(idx)" class="p-2 text-red-400 hover:text-red-300 transition-colors">
+                      <X class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -319,7 +334,7 @@ import BaseButton from '../../components/base/BaseButton.vue'
 import BaseInput from '../../components/base/BaseInput.vue'
 import BaseSelect from '../../components/base/BaseSelect.vue'
 import BaseModal from '../../components/base/BaseModal.vue'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { Plus, Trash2, Camera, Loader2, X } from 'lucide-vue-next'
 import type { Customer, Vehicle, StockItem } from '../../types'
 
 const router = useRouter()
@@ -362,6 +377,8 @@ interface OrderItem {
   dotBatches?: DotBatch[]
   serialNumber?: string
   availableQty?: number
+  photoUrl?: string
+  uploading?: boolean
 }
 
 const form = reactive({
@@ -523,6 +540,35 @@ function selectDot(idx: number, dotId: string) {
   }
 }
 
+// ─── Item photo upload ───────────────────────────
+async function uploadItemPhoto(idx: number, event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  form.items[idx].uploading = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const { data } = await api.post('/uploads/upload', fd)
+    form.items[idx].photoUrl = data.data.url
+  } catch {
+    toast.error('Failed to upload photo')
+  } finally {
+    form.items[idx].uploading = false
+    ;(event.target as HTMLInputElement).value = ''
+  }
+}
+
+async function removeItemPhoto(idx: number) {
+  const url = form.items[idx].photoUrl
+  if (url) {
+    const filename = url.split('/').pop()
+    if (filename) {
+      try { await api.delete(`/uploads/${filename}`) } catch {}
+    }
+  }
+  form.items[idx].photoUrl = undefined
+}
+
 // ─── Submit flow ──────────────────────────────────
 async function handleSubmit() {
   if (form.items.length === 0) return
@@ -590,7 +636,7 @@ async function confirmSubmit() {
     }] : undefined
 
     const { data: custData } = await api.post('/customers', {
-      name: form.customerName || 'Walk-in',
+      name: form.customerName || form.customerPhone || 'Walk-in',
       phone: form.customerPhone || undefined,
       vehicles: vehicleData,
     })
@@ -642,7 +688,7 @@ async function proceedSubmit() {
   saving.value = true
   try {
     const vehicleModelFull = [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || undefined
-    const doc = await docStore.createDocument({
+    const { data: res } = await api.post('/documents', {
       documentType: 'INVOICE',
       customerId: selectedCustomer.value?.id || undefined,
       vehicleId: selectedVehicleId.value || undefined,
@@ -668,8 +714,13 @@ async function proceedSubmit() {
         tyreDotId: item.tyreDotId || undefined,
         tyreDotCode: item.tyreDotCode || undefined,
         serialNumber: item.serialNumber || undefined,
+        photoUrl: item.photoUrl || undefined,
       })),
     })
+    const doc = res.data
+    if (res.warnings?.length) {
+      res.warnings.forEach((w: string) => toast.error(`Low stock: ${w}`))
+    }
     toast.success(`Draft invoice ${doc.documentNumber} created`)
     router.push(`/app/documents/${doc.id}`)
   } catch (e: any) {

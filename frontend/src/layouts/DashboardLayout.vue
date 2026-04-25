@@ -114,7 +114,7 @@
 import { ref, computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, ChevronDown, Wallet, BookUser } from 'lucide-vue-next'
+import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, ChevronDown, Wallet, BookUser, List } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -125,6 +125,7 @@ const sidebarOpen = ref(false)
 const allSidebarItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
   { path: '/app/take-order', label: 'Take Order', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
+  { path: '/app/order-list', label: 'Order List', icon: List, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/held-stock', label: 'Held Stock', icon: Archive, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/tyre-dashboard', label: 'Tyre Dashboard', icon: CircleDot, roles: ['ADMIN', 'MANAGER', 'WORKER'] },
   { path: '/app/stock', label: 'Stock', icon: Package, roles: ['ADMIN', 'MANAGER'] },
@@ -200,8 +201,9 @@ const pageTitle = computed(() => {
   if (name?.startsWith('document')) return 'Documents'
   if (name?.startsWith('supplier-payment')) return 'Payments'
   if (name?.startsWith('supplier')) return 'Suppliers'
-  if (name?.startsWith('purchase-order')) return 'Purchase Orders'
+  if (name?.startsWith('purchase-order')) return 'Purchase Invoices'
   if (name === 'take-order') return 'Take Order'
+  if (name === 'order-list') return 'Order List'
   if (name === 'dashboard') return 'Dashboard'
   if (name === 'tyre-dashboard') return 'Tyre Dashboard'
   if (name === 'display-controller') return 'Display Controller'

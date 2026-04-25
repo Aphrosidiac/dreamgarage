@@ -10,7 +10,7 @@
           <Settings class="w-5 h-5" />
         </RouterLink>
         <BaseButton variant="primary" size="md" @click="isPO ? $router.push('/app/purchase-orders/new') : $router.push(`/app/documents/new?type=${activeType}`)">
-          <Plus class="w-4 h-4 mr-1.5" /> New {{ isPO ? 'Purchase Order' : store.getDocTypeLabel(activeType as DocumentType) }}
+          <Plus class="w-4 h-4 mr-1.5" /> New {{ isPO ? 'Purchase Invoice' : store.getDocTypeLabel(activeType as DocumentType) }}
         </BaseButton>
       </div>
     </div>
@@ -188,7 +188,7 @@ const docTypes = [
   { value: 'INVOICE' as const, label: 'Invoices' },
   { value: 'RECEIPT' as const, label: 'Receipts' },
   { value: 'DELIVERY_ORDER' as const, label: 'Delivery Orders' },
-  { value: 'PURCHASE_ORDER' as const, label: 'Purchase Orders' },
+  { value: 'PURCHASE_ORDER' as const, label: 'Purchase Invoices' },
 ]
 
 const availableStatuses = computed(() => {

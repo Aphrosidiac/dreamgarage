@@ -82,6 +82,19 @@
       <span v-if="(doc as any).foreman.jobTitle" class="text-dark-500 text-sm"> ({{ (doc as any).foreman.jobTitle }})</span>
     </div>
 
+    <!-- Item Photos (internal reference only, not printed) -->
+    <div v-if="doc?.items?.some((i: any) => i.photoUrl)" class="bg-dark-900 border border-dark-800 rounded-xl p-4 mb-4 print:hidden">
+      <p class="text-xs text-dark-500 uppercase tracking-wider mb-3">Item Reference Photos</p>
+      <div class="flex gap-3 flex-wrap">
+        <div v-for="item in doc.items.filter((i: any) => i.photoUrl)" :key="item.id" class="relative group">
+          <a :href="(item as any).photoUrl" target="_blank">
+            <img :src="(item as any).photoUrl" :alt="item.description" class="w-20 h-20 object-cover rounded-lg border border-dark-700 hover:border-gold-500/50 transition-colors" />
+          </a>
+          <p class="text-dark-500 text-[10px] mt-1 text-center truncate max-w-[80px]">{{ item.itemCode || item.description }}</p>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loadingDoc" class="text-dark-400">Loading...</div>
 
     <!-- Document Template — Clean White Professional -->

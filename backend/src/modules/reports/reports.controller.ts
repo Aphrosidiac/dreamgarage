@@ -69,6 +69,7 @@ export async function getDailyPaymentLog(
 
   const data = payments.map((p) => ({
     id: p.id,
+    paymentNumber: p.paymentNumber,
     amount: p.amount.toNumber(),
     paymentMethod: p.paymentMethod,
     referenceNumber: p.referenceNumber,

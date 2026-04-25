@@ -39,6 +39,9 @@
 
     <!-- Table -->
     <BaseTable :columns="columns" :data="debtors" :loading="loading" empty-text="No outstanding debtors.">
+      <template #cell-debtorCode="{ value }">
+        <span class="text-gold-500 font-mono text-xs">{{ value || '-' }}</span>
+      </template>
       <template #cell-name="{ row }">
         <RouterLink :to="`/app/debtors/${encodeURIComponent(row.id)}`" class="text-dark-100 hover:text-gold-500 font-medium transition-colors">
           {{ row.name }}
@@ -96,6 +99,7 @@ import { Eye } from 'lucide-vue-next'
 
 interface Debtor {
   id: string
+  debtorCode?: string
   name: string
   phone?: string
   plate?: string
@@ -119,6 +123,7 @@ watch(searchQuery, (val) => {
 })
 
 const columns = [
+  { key: 'debtorCode', label: 'Code' },
   { key: 'name', label: 'Customer' },
   { key: 'phone', label: 'Phone' },
   { key: 'plate', label: 'Vehicle' },

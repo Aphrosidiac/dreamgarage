@@ -58,22 +58,24 @@ export async function listDocuments(
   request: FastifyRequest<{ Querystring: Record<string, any> }>,
   reply: FastifyReply
 ) {
-  const { branchId } = request.user
+  const { branchId, userId } = request.user
   const { page, limit, skip } = getPaginationParams(request.query)
-  const { type, status, search, from, to } = request.query as any
+  const { type, status, search, from, to, myOrders } = request.query as any
+
+  const andClauses: Prisma.DocumentWhereInput[] = []
+  if (myOrders) andClauses.push({ OR: [{ createdById: userId }, { foremanId: userId }] })
+  if (search) andClauses.push({ OR: [
+    { documentNumber: { contains: search, mode: 'insensitive' } },
+    { customerName: { contains: search, mode: 'insensitive' } },
+    { customerCompanyName: { contains: search, mode: 'insensitive' } },
+    { vehiclePlate: { contains: search, mode: 'insensitive' } },
+  ] })
 
   const where: Prisma.DocumentWhereInput = {
     branchId,
     ...(type && { documentType: type }),
     ...(status && { status }),
-    ...(search && {
-      OR: [
-        { documentNumber: { contains: search, mode: 'insensitive' } },
-        { customerName: { contains: search, mode: 'insensitive' } },
-        { customerCompanyName: { contains: search, mode: 'insensitive' } },
-        { vehiclePlate: { contains: search, mode: 'insensitive' } },
-      ],
-    }),
+    ...(andClauses.length && { AND: andClauses }),
     ...(from || to ? {
       issueDate: {
         ...(from && { gte: new Date(from) }),
@@ -88,6 +90,7 @@ export async function listDocuments(
       include: {
         createdBy: { select: { id: true, name: true } },
         foreman: { select: { id: true, name: true, jobTitle: true, phone: true } },
+        ...(myOrders ? { items: { orderBy: { sortOrder: 'asc' as const } } } : {}),
         _count: { select: { items: true, payments: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -233,27 +236,16 @@ export async function createDocument(
     })
 
     // Hold stock for draft invoices
+    const stockWarnings: string[] = []
     if (documentType === 'INVOICE') {
-      // Check availability before holding
       for (const item of documentItems) {
         if (item.stockItemId) {
           const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
           if (stock) {
             const available = stock.quantity - stock.holdQuantity
             if (available < item.quantity) {
-              throw Object.assign(
-                new Error(`Insufficient stock for ${item.itemCode || item.description}: ${available} available, need ${item.quantity}`),
-                { statusCode: 400 },
-              )
+              stockWarnings.push(`${item.itemCode || item.description}: ${available} available, need ${item.quantity}`)
             }
-          }
-        }
-      }
-
-      for (const item of documentItems) {
-        if (item.stockItemId) {
-          const stock = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
-          if (stock) {
             await tx.stockItem.update({
               where: { id: item.stockItemId },
               data: { holdQuantity: stock.holdQuantity + item.quantity },
@@ -275,10 +267,10 @@ export async function createDocument(
       }
     }
 
-    return created
+    return { created, stockWarnings }
   })
 
-  return reply.status(201).send({ success: true, data: document })
+  return reply.status(201).send({ success: true, data: document.created, warnings: document.stockWarnings.length ? document.stockWarnings : undefined })
 }
 
 // ─── UPDATE ────────────────────────────────────────────────
@@ -747,9 +739,27 @@ export async function addPayment(
   }
 
   const result = await request.server.prisma.$transaction(async (tx) => {
+    // Generate OR number: OR{YYMM}/{SEQ}
+    const now = new Date()
+    const yy = String(now.getFullYear()).slice(-2)
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const orPrefix = `OR${yy}${mm}/`
+    const lastPayment = await tx.payment.findFirst({
+      where: { paymentNumber: { startsWith: orPrefix } },
+      orderBy: { paymentNumber: 'desc' },
+      select: { paymentNumber: true },
+    })
+    let orSeq = 1
+    if (lastPayment?.paymentNumber) {
+      const parsed = parseInt(lastPayment.paymentNumber.replace(orPrefix, ''), 10)
+      if (!isNaN(parsed)) orSeq = parsed + 1
+    }
+    const paymentNumber = `${orPrefix}${String(orSeq).padStart(4, '0')}`
+
     const payment = await tx.payment.create({
       data: {
         documentId: id,
+        paymentNumber,
         amount,
         paymentMethod: paymentMethod as any,
         referenceNumber,

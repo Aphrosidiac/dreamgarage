@@ -4,7 +4,7 @@
       <button @click="$router.back()" class="text-dark-400 hover:text-dark-200 transition-colors">
         <ArrowLeft class="w-5 h-5" />
       </button>
-      <h2 class="text-lg font-semibold text-dark-100">{{ isEdit ? 'Edit Purchase Order' : 'New Purchase Order' }}</h2>
+      <h2 class="text-lg font-semibold text-dark-100">{{ isEdit ? 'Edit Purchase Invoice' : 'New Purchase Invoice' }}</h2>
     </div>
 
     <form @submit.prevent="handleSave" class="space-y-6">
