@@ -361,6 +361,7 @@ interface OrderItem {
   tyreDotCode?: string
   dotBatches?: DotBatch[]
   serialNumber?: string
+  availableQty?: number
 }
 
 const form = reactive({
