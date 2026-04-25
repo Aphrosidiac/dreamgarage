@@ -20,13 +20,18 @@
           <option value="PAID">Paid</option>
         </select>
       </div>
-      <div>
+      <div class="relative">
         <label class="block text-xs text-dark-400 mb-1">Per page</label>
-        <select v-model.number="perPage" class="bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50">
-          <option :value="10">10</option>
-          <option :value="50">50</option>
-          <option :value="100">100</option>
-        </select>
+        <button @click="showPerPage = !showPerPage" class="flex items-center gap-2 bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 text-dark-100 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500/50 min-w-[70px]">
+          {{ perPage }}
+          <ChevronDown class="w-3.5 h-3.5 text-dark-500 ml-auto" />
+        </button>
+        <div v-if="showPerPage" class="absolute z-20 mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-xl overflow-hidden min-w-[70px]">
+          <button v-for="opt in [10, 50, 100]" :key="opt" @click="perPage = opt; showPerPage = false"
+            :class="['w-full text-left px-3 py-2 text-sm transition-colors', perPage === opt ? 'bg-gold-500/10 text-gold-500' : 'text-dark-300 hover:bg-dark-700']">
+            {{ opt }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -128,6 +133,7 @@ const loading = ref(true)
 const search = ref('')
 const filterStatus = ref('')
 const perPage = ref(10)
+const showPerPage = ref(false)
 const page = ref(1)
 const totalPages = ref(1)
 const expanded = reactive(new Set<string>())
