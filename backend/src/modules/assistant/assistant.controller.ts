@@ -7,7 +7,19 @@ const client = apiKey ? new Anthropic({ apiKey }) : null
 
 const SYSTEM_PROMPT = `You are DG Assistant, an AI helper embedded inside the Dream Garage car workshop management system.
 
-You help staff quickly answer questions about their data: documents (quotations, invoices, receipts, delivery orders), stock, customers, debtors, suppliers, purchase invoices, staff, and dashboard stats. Use the provided tools to look up live data before answering — never fabricate numbers, amounts, or names.
+You help staff quickly answer questions about their data: documents (quotations, invoices, receipts, delivery orders), stock, customers, debtors, suppliers, purchase invoices, payments, staff, and dashboard stats. Use the provided tools to look up live data before answering — never fabricate numbers, amounts, or names.
+
+System features you should know about:
+- Documents: Quotation → Invoice → Receipt / Delivery Order. Invoices auto-hold stock on draft, deduct on issue.
+- Purchase Invoices (A/P): from suppliers. Status: ON_HOLD → VERIFIED → FINALIZED.
+- Payment Vouchers (PV): issued when paying suppliers. Numbered PV{YYMM}/{seq}.
+- Payment Received (OR): customer payments. Numbered OR{YYMM}/{seq} (e.g. OR2604/0001).
+- Debtor codes: auto-generated as 300-{PLATE_PREFIX}{SEQ} (e.g. 300-JVS0001).
+- Stock: soft warning when ordering more than available (stock can go negative). Confirmation modal on invoice issuance if insufficient.
+- Supplier categories: Tyre, Motor Oil, Brake Parts, etc.
+- Take Order: creates draft invoices. Workers can upload reference photos per item.
+- Order List: workers can view/edit their own orders.
+- Staff roles: ADMIN, MANAGER, WORKER.
 
 Guidelines:
 - Malaysian Ringgit (RM) is the currency. Today's date context is passed with each user message.
@@ -180,7 +192,7 @@ async function runTool(ctx: Ctx, name: string, input: any): Promise<string> {
           include: { document: { select: { documentNumber: true, customerName: true } } },
         })
         return JSON.stringify(rows.map(r => ({
-          documentNumber: r.document.documentNumber, customerName: r.document.customerName,
+          paymentNumber: r.paymentNumber, documentNumber: r.document.documentNumber, customerName: r.document.customerName,
           amount: Number(r.amount), paymentMethod: r.paymentMethod, referenceNumber: r.referenceNumber,
           date: r.createdAt.toISOString().slice(0, 10),
         })))
@@ -213,10 +225,10 @@ async function runTool(ctx: Ctx, name: string, input: any): Promise<string> {
         if (input.tyresOnly) where.isTyre = true
         const rows = await prisma.stockItem.findMany({
           where, take: clamp(input.limit), orderBy: { description: 'asc' },
-          select: { itemCode: true, description: true, uom: true, quantity: true, minStock: true, sellPrice: true, isTyre: true, tyreSize: true },
+          select: { itemCode: true, description: true, uom: true, quantity: true, holdQuantity: true, minStock: true, sellPrice: true, isTyre: true, tyreSize: true },
         })
         const filtered = input.lowStockOnly ? rows.filter(r => r.quantity <= r.minStock) : rows
-        return JSON.stringify(filtered.map(r => ({ ...r, sellPrice: Number(r.sellPrice) })))
+        return JSON.stringify(filtered.map(r => ({ ...r, sellPrice: Number(r.sellPrice), available: r.quantity - r.holdQuantity })))
       }
       case 'list_purchase_invoices': {
         const where: any = { branchId }
@@ -241,8 +253,8 @@ async function runTool(ctx: Ctx, name: string, input: any): Promise<string> {
             { contactName: { contains: input.search, mode: 'insensitive' } },
           ]
         }
-        const rows = await prisma.supplier.findMany({ where, orderBy: { companyName: 'asc' }, take: 50 })
-        return JSON.stringify(rows.map(r => ({ companyName: r.companyName, contactName: r.contactName, phone: r.phone, email: r.email })))
+        const rows = await prisma.supplier.findMany({ where, orderBy: { companyName: 'asc' }, take: 50, include: { supplierCategory: { select: { name: true } } } })
+        return JSON.stringify(rows.map(r => ({ companyName: r.companyName, contactName: r.contactName, phone: r.phone, email: r.email, category: (r as any).supplierCategory?.name || null })))
       }
       case 'search_customers': {
         const q = input.query

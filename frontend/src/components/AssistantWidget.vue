@@ -1,18 +1,20 @@
 <template>
-  <!-- Floating trigger button -->
+  <!-- Floating trigger button (draggable) -->
   <button
     v-if="!assistant.isOpen"
-    @click="assistant.toggle"
-    class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gold-500 hover:bg-gold-400 shadow-lg shadow-gold-500/30 flex items-center justify-center text-dark-950 transition-all hover:scale-105 z-40"
+    @mousedown="startDrag" @touchstart.passive="startDrag"
+    :style="{ bottom: pos.y + 'px', right: pos.x + 'px' }"
+    class="fixed w-14 h-14 rounded-full bg-gold-500 hover:bg-gold-400 shadow-lg shadow-gold-500/30 flex items-center justify-center text-dark-950 transition-shadow z-40 cursor-grab active:cursor-grabbing select-none"
     title="Ask DG Assistant"
   >
-    <Sparkles class="w-6 h-6" />
+    <Sparkles class="w-6 h-6 pointer-events-none" />
   </button>
 
   <!-- Chat drawer -->
   <div
     v-if="assistant.isOpen"
-    class="fixed bottom-6 right-6 w-[480px] h-[620px] max-h-[85vh] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
+    :style="{ bottom: pos.y + 'px', right: pos.x + 'px' }"
+    class="fixed w-[480px] h-[620px] max-h-[85vh] bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden"
   >
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-dark-800 bg-dark-900">
@@ -101,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { Sparkles, X, Send, RotateCcw } from 'lucide-vue-next'
 import { useAssistantStore } from '../stores/assistant'
 import { marked } from 'marked'
@@ -110,6 +112,48 @@ import DOMPurify from 'dompurify'
 const assistant = useAssistantStore()
 const input = ref('')
 const scrollEl = ref<HTMLElement | null>(null)
+
+const pos = reactive({ x: 24, y: 24 })
+let dragging = false
+let dragStart = { mx: 0, my: 0, ox: 0, oy: 0 }
+let hasMoved = false
+
+function startDrag(e: MouseEvent | TouchEvent) {
+  dragging = true
+  hasMoved = false
+  const point = 'touches' in e ? e.touches[0] : e
+  dragStart = { mx: point.clientX, my: point.clientY, ox: pos.x, oy: pos.y }
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', endDrag)
+  document.addEventListener('touchmove', onDrag)
+  document.addEventListener('touchend', endDrag)
+}
+
+function onDrag(e: MouseEvent | TouchEvent) {
+  if (!dragging) return
+  const point = 'touches' in e ? e.touches[0] : e
+  const dx = dragStart.mx - point.clientX
+  const dy = dragStart.my - point.clientY
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved = true
+  pos.x = Math.max(0, Math.min(window.innerWidth - 60, dragStart.ox + dx))
+  pos.y = Math.max(0, Math.min(window.innerHeight - 60, dragStart.oy + dy))
+}
+
+function endDrag() {
+  dragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', endDrag)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', endDrag)
+  if (!hasMoved) assistant.toggle()
+}
+
+onMounted(() => {
+  const saved = localStorage.getItem('dg_assistant_pos')
+  if (saved) { try { const p = JSON.parse(saved); pos.x = p.x; pos.y = p.y } catch {} }
+})
+
+watch(pos, () => { localStorage.setItem('dg_assistant_pos', JSON.stringify({ x: pos.x, y: pos.y })) })
 
 const suggestions = [
   'How many invoices created today?',
