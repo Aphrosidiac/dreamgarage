@@ -469,6 +469,30 @@ async function handleStatus(status: DocumentStatus) {
     promptConfirm('Void Invoice', `Are you sure you want to void <strong>${doc.value.documentNumber}</strong>? Stock will be restored.`, 'Void Invoice', 'danger', () => doStatusChange(status))
     return
   }
+  if (status === 'OUTSTANDING' && doc.value.documentType === 'INVOICE' && doc.value.status === 'DRAFT') {
+    const shortItems: string[] = []
+    for (const item of (doc.value.items || [])) {
+      if (item.stockItemId) {
+        try {
+          const { data } = await api.get(`/stock/${item.stockItemId}`)
+          const stock = data.data
+          if (stock && stock.quantity < item.quantity) {
+            shortItems.push(`<strong>${item.itemCode || item.description}</strong>: ${stock.quantity} in stock, need ${item.quantity}`)
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    if (shortItems.length) {
+      promptConfirm(
+        'Low Stock Warning',
+        `The following items have insufficient stock:<br><br>${shortItems.join('<br>')}<br><br>Stock will go negative. Do you want to proceed?`,
+        'Issue Anyway',
+        'danger',
+        () => doStatusChange(status),
+      )
+      return
+    }
+  }
   await doStatusChange(status)
 }
 
