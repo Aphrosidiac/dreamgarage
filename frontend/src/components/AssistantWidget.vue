@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, nextTick, watch, onMounted } from 'vue'
 import { Sparkles, X, Send, RotateCcw } from 'lucide-vue-next'
 import { useAssistantStore } from '../stores/assistant'
 import { marked } from 'marked'
