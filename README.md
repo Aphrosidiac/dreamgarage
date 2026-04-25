@@ -184,14 +184,14 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - Race-condition safe (FOR UPDATE lock), resets yearly
 
 **Stock Integration:**
-- Invoice DRAFT: stock placed on hold
-- DRAFT → OUTSTANDING: hold released + stock deducted
+- Invoice DRAFT: stock placed on hold (soft warning if exceeding available — stock can go negative)
+- DRAFT → OUTSTANDING: hold released + stock deducted (warning confirmation modal if insufficient)
 - VOID / cancelled: stock auto-restored
 - Quotations, receipts, delivery orders do NOT affect stock
 - Full audit trail via StockHistory
 
 **Payment System:**
-- Record payments against invoices
+- Record payments against invoices with auto-generated OR number (`OR{YYMM}/{SEQ}`, e.g. OR2604/0001)
 - Methods: Cash, Bank Transfer, Cheque, Credit Card, E-Wallet, TNG, Boost
 - Auto-updates invoice status: OUTSTANDING → PARTIAL → PAID
 
@@ -216,16 +216,20 @@ Receipt (COMPLETED)    Delivery Order (DRAFT → APPROVED → COMPLETED)
 - `jobTitle` captures role (Foreman, Mechanic, Salesman, etc.)
 - Admin-only staff management page with create/edit/password-reset
 
-### Take Order
-Streamlined single-page order entry that manages the customer database automatically. Quick search, vehicle switcher, foreman dropdown, stock search per line. Auto-creates customer/vehicle with duplicate detection; creates draft invoice.
+### Orders
+Expandable sidebar group containing Take Order and Order List.
+
+**Take Order:** Streamlined single-page order entry that manages the customer database automatically. Quick search, vehicle switcher, foreman dropdown, stock search per line with available qty display. Auto-creates customer/vehicle with duplicate detection (name can be text or numbers); creates draft invoice. Per-item photo upload (camera/file) for reference tracking — photos stored as WebP, viewable on document detail page ("Item Reference Photos"), not printed on invoices.
+
+**Order List:** Worker-accessible page showing all orders created by or assigned to the logged-in user. Expandable rows with full item detail, inline photo thumbnails, and edit button for draft invoices. Workers can view and edit their orders without accessing the full Documents page.
 
 ### Debtor Tracking
-Unpaid invoices grouped by customer, sorted by total owed. Detail view shows all unpaid invoices with payment history.
+Unpaid invoices grouped by customer, sorted by total owed. Auto-generated debtor code per plate prefix: `300-{PLATE}{SEQ}` (e.g. 300-JVS0001, 300-JVS0002, 300-JRE0001). Detail view shows all unpaid invoices with payment history.
 
 ### Purchasing (A/P)
 - **Suppliers** — directory with contact details, category tagging, category filter
 - **Supplier Categories** — CRUD for organizing suppliers (Tyre, Motor Oil, Brake Parts, etc.)
-- **Purchase Orders** — surfaced as the 5th tab on Documents (uses the same white document template as QT/INV/RCP/DO). Status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments. Search supports supplier name (any word). Backend table is still `purchase_invoices`; UI/routes use Purchase Orders.
+- **Purchase Invoices** — surfaced as the 5th tab on Documents (uses the same white document template as QT/INV/RCP/DO). Status flow: ON_HOLD → VERIFIED → FINALIZED, with line items + attachments. Search supports supplier name (any word). Backend table is still `purchase_invoices`; UI labels say "Purchase Invoice".
 - **Supplier Payments** — A/P payment log with printable Payment Voucher (PV{YYMM}/{seq} numbering, invoice detail table, amount-in-words, Approved By / Received By signature lines)
 
 ### Held Stock Dashboard
