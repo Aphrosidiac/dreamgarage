@@ -113,7 +113,7 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex items-center justify-end gap-2 mt-4">
+    <div v-if="totalPages > 1" class="flex items-center justify-start gap-2 mt-4">
       <button @click="prevPage" :disabled="page <= 1" :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', page <= 1 ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Prev</button>
       <span class="text-dark-400 text-xs">{{ page }} / {{ totalPages }}</span>
       <button @click="nextPage" :disabled="page >= totalPages" :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', page >= totalPages ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Next</button>
