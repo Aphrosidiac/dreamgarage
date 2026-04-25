@@ -327,7 +327,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useDocumentStore } from '../../stores/documents'
 import { useToast } from '../../composables/useToast'
 import api from '../../lib/api'
 import BaseButton from '../../components/base/BaseButton.vue'
@@ -338,7 +337,6 @@ import { Plus, Trash2, Camera, Loader2, X } from 'lucide-vue-next'
 import type { Customer, Vehicle, StockItem } from '../../types'
 
 const router = useRouter()
-const docStore = useDocumentStore()
 const toast = useToast()
 const saving = ref(false)
 

@@ -63,7 +63,7 @@
             </thead>
             <tbody>
               <tr v-for="(item, i) in order.items" :key="item.id" class="border-b border-dark-800/50">
-                <td class="py-2 text-dark-500">{{ i + 1 }}</td>
+                <td class="py-2 text-dark-500">{{ Number(i) + 1 }}</td>
                 <td class="py-2">
                   <div class="flex items-center gap-2">
                     <a v-if="item.photoUrl" :href="item.photoUrl" target="_blank" class="shrink-0">
