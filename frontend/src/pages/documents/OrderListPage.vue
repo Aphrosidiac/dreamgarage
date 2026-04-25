@@ -98,6 +98,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <div v-if="orders.length" class="flex items-center justify-between mt-4">
+      <div class="flex items-center gap-2">
+        <span class="text-dark-500 text-xs">Show</span>
+        <select v-model.number="perPage" class="bg-dark-800 border border-dark-700 rounded-lg px-2 py-1 text-dark-200 text-xs focus:outline-none focus:ring-1 focus:ring-gold-500/50">
+          <option :value="10">10</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span class="text-dark-500 text-xs">per page</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="prevPage" :disabled="page <= 1" :class="['px-3 py-1 rounded-lg text-xs font-medium transition-colors', page <= 1 ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Prev</button>
+        <span class="text-dark-400 text-xs">Page {{ page }} of {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="page >= totalPages" :class="['px-3 py-1 rounded-lg text-xs font-medium transition-colors', page >= totalPages ? 'bg-dark-800 text-dark-600 cursor-not-allowed' : 'bg-dark-800 text-dark-200 hover:bg-dark-700']">Next</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -112,6 +130,9 @@ const orders = ref<any[]>([])
 const loading = ref(true)
 const search = ref('')
 const filterStatus = ref('')
+const perPage = ref(10)
+const page = ref(1)
+const totalPages = ref(1)
 const expanded = reactive(new Set<string>())
 
 function formatDate(d: string) {
@@ -130,21 +151,26 @@ function editOrder(order: any) {
 let searchTimeout: ReturnType<typeof setTimeout>
 watch([search, filterStatus], () => {
   clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => fetchOrders(), 300)
+  searchTimeout = setTimeout(() => { page.value = 1; fetchOrders() }, 300)
 })
+watch(perPage, () => { page.value = 1; fetchOrders() })
 
 async function fetchOrders() {
   loading.value = true
   try {
-    const params: Record<string, any> = { type: 'INVOICE', limit: 50, myOrders: true }
+    const params: Record<string, any> = { type: 'INVOICE', limit: perPage.value, page: page.value, myOrders: true }
     if (search.value) params.search = search.value
     if (filterStatus.value) params.status = filterStatus.value
     const { data } = await api.get('/documents', { params })
     orders.value = data.data
+    totalPages.value = data.totalPages || 1
   } catch { /* ignore */ } finally {
     loading.value = false
   }
 }
+
+function prevPage() { if (page.value > 1) { page.value--; fetchOrders() } }
+function nextPage() { if (page.value < totalPages.value) { page.value++; fetchOrders() } }
 
 onMounted(() => fetchOrders())
 </script>
