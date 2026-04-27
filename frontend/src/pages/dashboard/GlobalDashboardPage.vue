@@ -130,9 +130,6 @@ onMounted(async () => {
     branches.value = data.data
     for (const b of branches.value) {
       expanded[b.branchId] = true
-      for (const c of b.categories) {
-        expandedCats[b.branchId + ':' + (c.categoryId ?? 'none')] = true
-      }
     }
   } finally { loading.value = false }
 })
