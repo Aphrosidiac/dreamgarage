@@ -114,7 +114,7 @@
 import { ref, computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { LayoutDashboard, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, ChevronDown, Wallet, BookUser, List } from 'lucide-vue-next'
+import { LayoutDashboard, Globe, Package, Users, FileText, ClipboardList, AlertCircle, UserCog, LogOut, Menu, CircleDot, Monitor, SlidersHorizontal, Truck, CreditCard, ShieldCheck, Archive, ChevronDown, Wallet, BookUser, List } from 'lucide-vue-next'
 import AssistantWidget from '../components/AssistantWidget.vue'
 
 const auth = useAuthStore()
@@ -124,6 +124,7 @@ const sidebarOpen = ref(false)
 
 const allSidebarItems = [
   { path: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/app/global-dashboard', label: 'Global Dashboard', icon: Globe, roles: ['ADMIN'] },
   {
     key: 'orders',
     label: 'Orders',
@@ -213,6 +214,7 @@ const pageTitle = computed(() => {
   if (name === 'take-order') return 'Take Order'
   if (name === 'order-list') return 'Order List'
   if (name === 'dashboard') return 'Dashboard'
+  if (name === 'global-dashboard') return 'Global Dashboard'
   if (name === 'tyre-dashboard') return 'Tyre Dashboard'
   if (name === 'display-controller') return 'Display Controller'
   if (name?.startsWith('debtor')) return 'Debtors'

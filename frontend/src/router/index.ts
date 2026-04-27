@@ -32,6 +32,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'app-root', redirect: '/app/dashboard' },
         { path: 'dashboard', name: 'dashboard', component: () => import('../pages/dashboard/DashboardPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },
+        { path: 'global-dashboard', name: 'global-dashboard', component: () => import('../pages/dashboard/GlobalDashboardPage.vue'), meta: { roles: ['ADMIN'] } },
         { path: 'tyre-dashboard', name: 'tyre-dashboard', component: () => import('../pages/tyre/TyreDashboardPage.vue') },
         { path: 'display-controller', name: 'display-controller', component: () => import('../pages/display/DisplayControllerPage.vue'), meta: { roles: ['ADMIN', 'MANAGER', 'WORKER'] } },
         { path: 'stock', name: 'stock-list', component: () => import('../pages/stock/StockListPage.vue'), meta: { roles: ['ADMIN', 'MANAGER'] } },

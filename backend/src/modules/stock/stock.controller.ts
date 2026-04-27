@@ -385,6 +385,52 @@ export async function getAllStockHistory(
   return reply.send(paginatedResponse(data, total, page, limit))
 }
 
+// ─── GLOBAL STOCK (cross-branch) ──────────────────────
+export async function listGlobalStock(request: FastifyRequest, reply: FastifyReply) {
+  if (request.user.role !== 'ADMIN') {
+    return reply.status(403).send({ success: false, message: 'Admin only' })
+  }
+
+  const branches = await request.server.prisma.branch.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: 'asc' },
+  })
+
+  const items = await request.server.prisma.stockItem.findMany({
+    where: { isActive: true },
+    include: {
+      category: { select: { id: true, name: true } },
+      brand: { select: { id: true, name: true } },
+    },
+    orderBy: [{ description: 'asc' }],
+  })
+
+  const result = branches.map((branch) => {
+    const branchItems = items.filter((i) => i.branchId === branch.id)
+    const byCategory = new Map<string, { categoryId: string | null; categoryName: string; items: typeof branchItems }>()
+
+    for (const item of branchItems) {
+      const key = item.category?.id ?? '__none__'
+      const entry = byCategory.get(key) ?? { categoryId: item.category?.id ?? null, categoryName: item.category?.name ?? 'Uncategorised', items: [] }
+      entry.items.push(item)
+      byCategory.set(key, entry)
+    }
+
+    return {
+      branchId: branch.id,
+      branchName: branch.name,
+      branchCode: branch.code,
+      totalItems: branchItems.length,
+      totalQuantity: branchItems.reduce((s, i) => s + i.quantity, 0),
+      totalValue: branchItems.reduce((s, i) => s + Number(i.costPrice) * i.quantity, 0),
+      categories: Array.from(byCategory.values()),
+    }
+  })
+
+  return reply.send({ success: true, data: result })
+}
+
 // ─── LIST HELD STOCK ───────────────────────────────
 export async function listHeldStock(request: FastifyRequest, reply: FastifyReply) {
   const { branchId } = request.user
