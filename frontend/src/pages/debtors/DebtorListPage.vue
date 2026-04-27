@@ -2,6 +2,10 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-lg font-semibold text-dark-100">Debtors</h2>
+      <button v-if="debtors.length" @click="printDebtors" class="flex items-center gap-2 px-3 py-2 bg-dark-800 border border-dark-700 rounded-lg text-dark-200 hover:text-gold-500 hover:border-gold-500/50 text-sm transition-colors">
+        <Printer class="w-4 h-4" />
+        Print PDF
+      </button>
     </div>
 
     <!-- Search + Filters -->
@@ -95,7 +99,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '../../lib/api'
 import BaseTable from '../../components/base/BaseTable.vue'
-import { Eye } from 'lucide-vue-next'
+import { Eye, Printer } from 'lucide-vue-next'
+import { exportDebtorListPdf } from '../../lib/pdf-export'
 
 interface Debtor {
   id: string
@@ -169,6 +174,14 @@ async function fetchDebtors() {
   } catch { /* ignore */ } finally {
     loading.value = false
   }
+}
+
+function printDebtors() {
+  const rows = debtors.value.map((d) => ({
+    ...d,
+    daysOverdue: d.oldestDueDate ? daysOverdue(d.oldestDueDate) : 0,
+  }))
+  exportDebtorListPdf(rows, grandTotal.value)
 }
 
 watch([debouncedSearch, filterFrom, filterTo], () => fetchDebtors())

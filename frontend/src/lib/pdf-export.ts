@@ -2,6 +2,17 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { StockItem, StockHistory } from '../types'
 
+interface DebtorPdfRow {
+  debtorCode?: string
+  name: string
+  phone?: string
+  plate?: string
+  invoiceCount: number
+  totalOwed: number
+  oldestDueDate?: string
+  daysOverdue: number
+}
+
 const COMPANY = {
   name: 'DREAM GARAGE (M) SDN BHD',
   address: '22, Jalan Mutiara Emas 5/1, Taman Mount Austin, 81100 Johor Bahru, Johor',
@@ -75,6 +86,63 @@ export function exportStockListPdf(items: StockItem[]) {
 
   addFooter(doc)
   doc.save('stock-inventory.pdf')
+}
+
+export function exportDebtorListPdf(debtors: DebtorPdfRow[], grandTotal: number) {
+  const doc = new jsPDF()
+  addHeader(doc)
+
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Debtors Report', 14, 38)
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(100)
+  doc.text(`${debtors.length} debtor${debtors.length !== 1 ? 's' : ''}  |  Total Outstanding: RM ${grandTotal.toFixed(2)}`, 14, 44)
+  doc.text(`Printed: ${new Date().toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' })}`, 14, 49)
+  doc.setTextColor(0)
+
+  const fmtDate = (d?: string) =>
+    d ? new Date(d).toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+  autoTable(doc, {
+    startY: 55,
+    head: [['Code', 'Customer', 'Phone', 'Vehicle', 'Invoices', 'Due Date', 'Overdue', 'Outstanding (RM)']],
+    body: debtors.map((d) => [
+      d.debtorCode || '—',
+      d.name,
+      d.phone || '—',
+      d.plate || '—',
+      String(d.invoiceCount),
+      fmtDate(d.oldestDueDate),
+      d.daysOverdue > 0 ? `${d.daysOverdue}d` : '—',
+      d.totalOwed.toFixed(2),
+    ]),
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [17, 18, 23], textColor: [255, 215, 0], fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    columnStyles: {
+      4: { halign: 'right' },
+      6: { halign: 'right' },
+      7: { halign: 'right' },
+    },
+    didParseCell: (data: any) => {
+      if (data.section === 'body' && data.column.index === 6) {
+        const raw = data.cell.raw as string
+        if (raw !== '—') {
+          const days = parseInt(raw)
+          if (days > 30) data.cell.styles.textColor = [220, 38, 38]
+          else if (days > 7) data.cell.styles.textColor = [202, 138, 4]
+        }
+      }
+      if (data.section === 'body' && data.column.index === 7) {
+        data.cell.styles.textColor = [220, 38, 38]
+      }
+    },
+  })
+
+  addFooter(doc)
+  doc.save('debtors-report.pdf')
 }
 
 export function exportStockHistoryPdf(itemCode: string, description: string, records: StockHistory[]) {
